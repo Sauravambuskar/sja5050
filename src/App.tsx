@@ -8,6 +8,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PageLayout } from "./components/layout/PageLayout";
 import { AdminLayout } from "./components/layout/AdminLayout";
 
+// Auth
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 // Client Pages
 import Dashboard from "./pages/Dashboard";
 import Investments from "./pages/Investments";
@@ -15,8 +20,6 @@ import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -38,23 +41,27 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           {/* Client Portal */}
-          <Route element={<PageLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/investments" element={<Investments />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/referrals" element={<Referrals />} />
-            <Route path="/notifications" element={<Notifications />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<PageLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/investments" element={<Investments />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/referrals" element={<Referrals />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Route>
           </Route>
 
           {/* Admin Portal */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="investments" element={<InvestmentManagement />} />
-            <Route path="kyc" element={<KycManagement />} />
-            <Route path="commissions" element={<CommissionRules />} />
-            <Route path="reports" element={<Reporting />} />
+          <Route path="/admin" element={<ProtectedRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="investments" element={<InvestmentManagement />} />
+              <Route path="kyc" element={<KycManagement />} />
+              <Route path="commissions" element={<CommissionRules />} />
+              <Route path="reports" element={<Reporting />} />
+            </Route>
           </Route>
 
           {/* Auth & Fallback */}
