@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import InvestmentManagement from "./pages/admin/InvestmentManagement";
+import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
 import KycManagement from "./pages/admin/KycManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
@@ -58,6 +59,7 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="investments" element={<InvestmentManagement />} />
+              <Route path="withdrawals" element={<WithdrawalManagement />} />
               <Route path="kyc" element={<KycManagement />} />
               <Route path="commissions" element={<CommissionRules />} />
               <Route path="reports" element={<Reporting />} />

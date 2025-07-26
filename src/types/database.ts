@@ -45,6 +45,14 @@ export type AdminDashboardStats = {
   pending_withdrawals_value: number;
 };
 
+export type AdminWithdrawalRequest = {
+  request_id: string;
+  user_name: string;
+  amount: number;
+  requested_at: string;
+  status: string;
+};
+
 export type UserInvestment = {
   id: string;
   investment_amount: number;

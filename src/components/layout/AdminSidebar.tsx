@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { BarChart3, ShieldCheck, Home, Landmark, Users, GitBranch } from "lucide-react";
+import { BarChart3, ShieldCheck, Home, Landmark, Users, GitBranch, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminNavItems = [
   { to: "/admin", label: "Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
+  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
