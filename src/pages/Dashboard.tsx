@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft } from "lucide-react";
+import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { DashboardStats, Transaction } from "@/types/database";
@@ -40,6 +40,47 @@ const Dashboard = () => {
     { title: "Total Referrals", value: stats?.referralCount ?? 0, icon: Users, change: "All time" },
     { title: "KYC Status", value: stats?.kycStatus || 'Not Submitted', icon: CreditCard, change: "View Profile to update" },
   ];
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+        return <ArrowDown className="h-4 w-4 text-green-500" />;
+      case 'Withdrawal':
+        return <ArrowUp className="h-4 w-4 text-red-500" />;
+      case 'Investment':
+        return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
+      case 'Commission':
+        return <ArrowDown className="h-4 w-4 text-green-500" />;
+      default:
+        return <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getTransactionAmountClass = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+      case 'Commission':
+        return 'text-green-600';
+      case 'Withdrawal':
+      case 'Investment':
+        return 'text-destructive';
+      default:
+        return '';
+    }
+  };
+
+  const getTransactionAmountPrefix = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+      case 'Commission':
+        return '+';
+      case 'Withdrawal':
+      case 'Investment':
+        return '-';
+      default:
+        return '';
+    }
+  };
 
   return (
     <>
@@ -104,15 +145,15 @@ const Dashboard = () => {
                     <TableRow key={txn.id}>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                          <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                          {getTransactionIcon(txn.type)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{txn.type}</div>
+                        <div className="font-medium">{txn.description || txn.type}</div>
                         <div className="text-sm text-muted-foreground">{format(new Date(txn.created_at), "PPP")}</div>
                       </TableCell>
-                      <TableCell className={cn("text-right font-semibold", txn.type === 'Investment' ? 'text-destructive' : 'text-green-600')}>
-                        {txn.type === 'Investment' ? '-' : '+'} ₹{txn.amount.toLocaleString('en-IN')}
+                      <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
+                        {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
                       </TableCell>
                     </TableRow>
                   ))
