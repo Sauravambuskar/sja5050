@@ -59,6 +59,19 @@ export type CommissionRule = {
   is_active: boolean;
 };
 
+export type CommissionStats = {
+  total_commission_earned: number;
+  total_referrals: number;
+};
+
+export type CommissionHistoryItem = {
+  id: string;
+  from_user_name: string;
+  amount: number;
+  payout_date: string;
+  level: number;
+};
+
 export type UserInvestment = {
   id: string;
   investment_amount: number;
