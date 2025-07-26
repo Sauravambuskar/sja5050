@@ -9,12 +9,13 @@ export type InvestmentPlan = {
   created_at: string;
 };
 
-export type AppUser = {
-  id:string;
-  full_name: string;
-  email: string;
+export type AdminUserView = {
+  id: string;
+  full_name: string | null;
+  email: string | undefined;
   join_date: string;
-  status: string;
+  kyc_status: string | null;
+  wallet_balance: number;
 };
 
 export type UserInvestment = {
