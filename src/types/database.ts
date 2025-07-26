@@ -27,6 +27,16 @@ export type AdminInvestmentView = {
   status: string;
 };
 
+export type AdminKycRequest = {
+  request_id: string;
+  user_id: string;
+  user_name: string;
+  document_type: string;
+  file_path: string;
+  submitted_at: string;
+  status: string;
+};
+
 export type UserInvestment = {
   id: string;
   investment_amount: number;
