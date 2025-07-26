@@ -127,3 +127,13 @@ export type UserGrowthReportData = {
   user_count: number;
   month: string;
 };
+
+export type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  is_read: boolean;
+  created_at: string;
+  link_to: string | null;
+};
