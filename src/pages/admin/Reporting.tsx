@@ -3,24 +3,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Download } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { UserGrowthReportData } from "@/types/database";
 
-const chartData = [
-  { month: "Jan", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Feb", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Mar", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Apr", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "May", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Jun", total: Math.floor(Math.random() * 5000) + 1000 },
-];
+const fetchUserGrowthReport = async (): Promise<UserGrowthReportData[]> => {
+  const { data, error } = await supabase.rpc('get_user_growth_report');
+  if (error) throw new Error(error.message);
+  return data.map((item: { month_start: string; user_count: number; }) => ({
+    ...item,
+    month: format(new Date(item.month_start), "MMM yyyy"),
+  }));
+};
 
 const Reporting = () => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
+
+  const { data: userGrowthData, isLoading: isReportLoading } = useQuery<UserGrowthReportData[]>({
+    queryKey: ['userGrowthReport'],
+    queryFn: fetchUserGrowthReport,
+  });
 
   return (
     <>
@@ -44,7 +52,7 @@ const Reporting = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <Select>
+            <Select defaultValue="user_growth">
               <SelectTrigger>
                 <SelectValue placeholder="Select Report Type" />
               </SelectTrigger>
@@ -92,13 +100,24 @@ const Reporting = () => {
           </div>
           <div className="h-[350px] w-full rounded-lg border p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              {isReportLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <BarChart data={userGrowthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="user_count" name="New Users" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
         </CardContent>

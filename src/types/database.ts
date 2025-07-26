@@ -121,3 +121,9 @@ export type Referral = {
   join_date: string;
   kyc_status: string;
 };
+
+export type UserGrowthReportData = {
+  month_start: string;
+  user_count: number;
+  month: string;
+};
