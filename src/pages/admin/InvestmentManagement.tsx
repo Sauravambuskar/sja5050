@@ -5,11 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { InvestmentPlan, AdminInvestmentView } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { useState } from "react";
+import { InvestmentPlanDialog } from "@/components/admin/InvestmentPlanDialog";
+import { toast } from "sonner";
 
 const fetchAllInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -27,7 +30,24 @@ const fetchAllInvestments = async (): Promise<AdminInvestmentView[]> => {
   return data;
 };
 
+const upsertPlan = async (plan: InvestmentPlan) => {
+  const { error } = await supabase.rpc('upsert_investment_plan', {
+    p_id: plan.id,
+    p_name: plan.name,
+    p_description: plan.description,
+    p_annual_rate: plan.annual_rate,
+    p_duration_months: plan.duration_months,
+    p_min_investment: plan.min_investment,
+    p_is_active: plan.is_active,
+  });
+  if (error) throw new Error(error.message);
+};
+
 const InvestmentManagement = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
+  const queryClient = useQueryClient();
+
   const { data: plans, isLoading: plansLoading, isError: plansIsError, error: plansError } = useQuery<InvestmentPlan[]>({
     queryKey: ['allInvestmentPlans'],
     queryFn: fetchAllInvestmentPlans,
@@ -37,6 +57,31 @@ const InvestmentManagement = () => {
     queryKey: ['allInvestments'],
     queryFn: fetchAllInvestments,
   });
+
+  const mutation = useMutation({
+    mutationFn: upsertPlan,
+    onSuccess: () => {
+      toast.success("Plan status updated!");
+      queryClient.invalidateQueries({ queryKey: ['allInvestmentPlans'] });
+    },
+    onError: (error) => {
+      toast.error(`Update failed: ${error.message}`);
+    },
+  });
+
+  const handleCreatePlan = () => {
+    setSelectedPlan(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditPlan = (plan: InvestmentPlan) => {
+    setSelectedPlan(plan);
+    setIsDialogOpen(true);
+  };
+
+  const handleToggleStatus = (plan: InvestmentPlan) => {
+    mutation.mutate({ ...plan, is_active: !plan.is_active });
+  };
 
   return (
     <>
@@ -56,7 +101,7 @@ const InvestmentManagement = () => {
                   <CardTitle>Investment Plans</CardTitle>
                   <CardDescription>Add, edit, or disable investment plans offered to users.</CardDescription>
                 </div>
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="gap-1" onClick={handleCreatePlan}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Create Plan</span>
                 </Button>
@@ -95,8 +140,8 @@ const InvestmentManagement = () => {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem>Edit</DropdownMenuItem>
-                              <DropdownMenuItem>{plan.is_active ? "Disable" : "Enable"}</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditPlan(plan)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>{plan.is_active ? "Disable" : "Enable"}</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -151,6 +196,11 @@ const InvestmentManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      <InvestmentPlanDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        plan={selectedPlan}
+      />
     </>
   );
 };
