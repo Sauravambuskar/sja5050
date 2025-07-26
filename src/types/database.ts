@@ -16,3 +16,12 @@ export type AppUser = {
   join_date: string;
   status: string;
 };
+
+export type UserInvestment = {
+  id: string;
+  plan_name: string;
+  investment_amount: number;
+  start_date: string;
+  maturity_date: string;
+  status: string;
+};

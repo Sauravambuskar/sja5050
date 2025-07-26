@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { InvestmentPlan } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { InvestDialog } from "./InvestDialog";
 
 const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -19,6 +21,7 @@ const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
 };
 
 const InvestmentPlans = () => {
+  const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
   const { data: plans, isLoading, isError, error } = useQuery<InvestmentPlan[]>({
     queryKey: ['investmentPlans'],
     queryFn: fetchInvestmentPlans,
@@ -28,19 +31,7 @@ const InvestmentPlans = () => {
     return (
       <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 mt-1 w-1/2" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-1/3 mb-2" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardContent>
-            <CardFooter>
-              <Skeleton className="h-10 w-full" />
-            </CardFooter>
-          </Card>
+          <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 mt-1 w-1/2" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>
         ))}
       </div>
     );
@@ -51,23 +42,32 @@ const InvestmentPlans = () => {
   }
 
   return (
-    <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-4">
-      {plans?.map((plan) => (
-        <Card key={plan.id}>
-          <CardHeader>
-            <CardTitle>{plan.name}</CardTitle>
-            <CardDescription>{plan.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{plan.annual_rate}%</div>
-            <p className="text-sm text-muted-foreground">Annually for {plan.duration_months} Months</p>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">Invest Now</Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
+    <>
+      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-4">
+        {plans?.map((plan) => (
+          <Card key={plan.id}>
+            <CardHeader>
+              <CardTitle>{plan.name}</CardTitle>
+              <CardDescription>{plan.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{plan.annual_rate}%</div>
+              <p className="text-sm text-muted-foreground">Annually for {plan.duration_months} Months</p>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Invest Now</Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+      {selectedPlan && (
+        <InvestDialog
+          plan={selectedPlan}
+          isOpen={!!selectedPlan}
+          onClose={() => setSelectedPlan(null)}
+        />
+      )}
+    </>
   );
 };
 
