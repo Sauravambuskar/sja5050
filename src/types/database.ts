@@ -153,3 +153,9 @@ export type AdminHighValueTransaction = {
   amount: number;
   created_at: string;
 };
+
+export type CommissionPayoutReportData = {
+  month_start: string;
+  total_commission: number;
+  month: string;
+};
