@@ -5,9 +5,14 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { AdminUserView } from "@/types/database";
+import { AdminUserView, AdminUserInvestmentHistoryItem } from "@/types/database";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "../ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Skeleton } from "../ui/skeleton";
+import { format } from "date-fns";
 
 interface UserDetailsSheetProps {
   user: AdminUserView | null;
@@ -15,7 +20,21 @@ interface UserDetailsSheetProps {
   onOpenChange: (isOpen: boolean) => void;
 }
 
+const fetchUserInvestmentHistory = async (userId: string): Promise<AdminUserInvestmentHistoryItem[]> => {
+  const { data, error } = await supabase.rpc('get_user_investment_history_for_admin', {
+    user_id_to_fetch: userId,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 export const UserDetailsSheet = ({ user, isOpen, onOpenChange }: UserDetailsSheetProps) => {
+  const { data: investments, isLoading } = useQuery({
+    queryKey: ['userInvestmentHistory', user?.id],
+    queryFn: () => fetchUserInvestmentHistory(user!.id),
+    enabled: !!user && isOpen, // Only fetch when the sheet is open and a user is selected
+  });
+
   if (!user) return null;
 
   return (
@@ -60,8 +79,49 @@ export const UserDetailsSheet = ({ user, isOpen, onOpenChange }: UserDetailsShee
             </div>
           </div>
           
-          <div className="rounded-lg border bg-card p-4 text-center text-muted-foreground">
-            Investment history will be displayed here.
+          <div>
+            <h3 className="font-semibold text-foreground">Investment History</h3>
+            <Separator className="my-2" />
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plan</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    [...Array(2)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-4 w-16" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : investments && investments.length > 0 ? (
+                    investments.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell>
+                          <div className="font-medium">{inv.plan_name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(inv.start_date), "PPP")}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{inv.investment_amount.toLocaleString('en-IN')}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="h-24 text-center">
+                        No investments found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </SheetContent>

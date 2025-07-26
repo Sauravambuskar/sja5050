@@ -137,3 +137,11 @@ export type Notification = {
   created_at: string;
   link_to: string | null;
 };
+
+export type AdminUserInvestmentHistoryItem = {
+  id: string;
+  plan_name: string;
+  investment_amount: number;
+  start_date: string;
+  status: string;
+};
