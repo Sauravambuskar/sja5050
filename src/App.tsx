@@ -11,6 +11,7 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Auth
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AdminRoute } from "./components/auth/AdminRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -63,14 +64,16 @@ const App = () => (
 
             {/* Admin Portal */}
             <Route path="/admin" element={<ProtectedRoute />}>
-              <Route element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="investments" element={<InvestmentManagement />} />
-                <Route path="withdrawals" element={<WithdrawalManagement />} />
-                <Route path="kyc" element={<KycManagement />} />
-                <Route path="commissions" element={<CommissionRules />} />
-                <Route path="reports" element={<Reporting />} />
+              <Route element={<AdminRoute />}>
+                <Route element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="investments" element={<InvestmentManagement />} />
+                  <Route path="withdrawals" element={<WithdrawalManagement />} />
+                  <Route path="kyc" element={<KycManagement />} />
+                  <Route path="commissions" element={<CommissionRules />} />
+                  <Route path="reports" element={<Reporting />} />
+                </Route>
               </Route>
             </Route>
 
