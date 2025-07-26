@@ -53,7 +53,7 @@ const Notifications = () => {
       </div>
       <p className="text-muted-foreground">
         Here are your recent alerts and updates.
-      p>
+      </p>
 
       <Card className="mt-6">
         <CardHeader>

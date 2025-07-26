@@ -19,7 +19,7 @@ import { Skeleton } from "../ui/skeleton";
 const fetchKycDocuments = async (userId: string): Promise<KycDocument[]> => {
   const { data, error } = await supabase
     .from("kyc_documents")
-    .select("id, document_type, status, submitted_at")
+    .select("id, document_type, file_path, status, submitted_at")
     .eq("user_id", userId)
     .order("submitted_at", { ascending: false });
 
