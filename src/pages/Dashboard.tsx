@@ -35,8 +35,8 @@ const Dashboard = () => {
   const kpiData = [
     { title: "Wallet Balance", value: `₹${(stats?.walletBalance ?? 0).toLocaleString('en-IN')}`, icon: DollarSign, change: "Available to invest" },
     { title: "Active Investments", value: stats?.activeInvestments ?? 0, icon: Activity, change: "Currently growing" },
-    { title: "New Referrals", value: "0", icon: Users, change: "this month" },
-    { title: "KYC Status", value: "Pending", icon: CreditCard, change: "needs review" },
+    { title: "Total Referrals", value: stats?.referralCount ?? 0, icon: Users, change: "All time" },
+    { title: "KYC Status", value: stats?.kycStatus || 'Not Submitted', icon: CreditCard, change: "View Profile to update" },
   ];
 
   return (

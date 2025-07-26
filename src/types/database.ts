@@ -96,6 +96,8 @@ export type DashboardStats = {
   fullName: string | null;
   activeInvestments: number;
   walletBalance: number;
+  kycStatus: string | null;
+  referralCount: number;
 };
 
 export type WithdrawalRequest = {
