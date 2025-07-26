@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
 
-const kycSubmissions = [
-  { id: "KYC001", userName: "Alice Johnson", userEmail: "alice.j@example.com", submissionDate: "2024-08-05", status: "Pending" },
-  { id: "KYC002", userName: "David Williams", userEmail: "david.w@example.com", submissionDate: "2024-08-04", status: "Pending" },
-  { id: "KYC003", userName: "Eva Green", userEmail: "eva.g@example.com", submissionDate: "2024-08-02", status: "Approved" },
-  { id: "KYC004", userName: "Frank Miller", userEmail: "frank.m@example.com", submissionDate: "2024-08-01", status: "Rejected" },
+const kycRequests = [
+  { id: "KYC001", name: "Alice Johnson", submittedDate: "2024-08-05", status: "Pending" },
+  { id: "KYC002", name: "David Williams", submittedDate: "2024-08-04", status: "Pending" },
+  { id: "KYC003", name: "Eve Davis", submittedDate: "2024-08-02", status: "Approved" },
+  { id: "KYC004", name: "Frank Miller", submittedDate: "2024-08-01", status: "Rejected" },
 ];
 
 const KycManagement = () => {
@@ -23,8 +23,8 @@ const KycManagement = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Submission Date</TableHead>
+              <TableHead>User Name</TableHead>
+              <TableHead>Submitted Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -32,27 +32,24 @@ const KycManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {kycSubmissions.map((submission) => (
-              <TableRow key={submission.id}>
-                <TableCell>
-                  <div className="font-medium">{submission.userName}</div>
-                  <div className="text-sm text-muted-foreground">{submission.userEmail}</div>
-                </TableCell>
-                <TableCell>{submission.submissionDate}</TableCell>
+            {kycRequests.map((request) => (
+              <TableRow key={request.id}>
+                <TableCell className="font-medium">{request.name}</TableCell>
+                <TableCell>{request.submittedDate}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
-                      submission.status === "Approved"
+                      request.status === "Approved"
                         ? "default"
-                        : submission.status === "Pending"
+                        : request.status === "Pending"
                         ? "outline"
                         : "destructive"
                     }
                   >
-                    {submission.status}
+                    {request.status}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -62,8 +59,14 @@ const KycManagement = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>View Documents</DropdownMenuItem>
-                      <DropdownMenuItem>Approve</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Reject</DropdownMenuItem>
+                      <DropdownMenuItem className="text-green-600">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Approve
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600">
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Reject
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
