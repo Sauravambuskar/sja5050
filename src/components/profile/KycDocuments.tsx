@@ -50,7 +50,7 @@ const KycDocuments = () => {
         <CardHeader>
           <CardTitle>Submitted Documents</CardTitle>
           <CardDescription>History of your submitted documents.</CardDescription>
-        </Header>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
