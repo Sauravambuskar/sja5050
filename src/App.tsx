@@ -12,6 +12,7 @@ import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Wallet from "./pages/Wallet";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route element={<PageLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/investments" element={<Investments />} />
+            <Route path="/wallet" element={<Wallet />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/referrals" element={<Referrals />} />
             <Route path="/notifications" element={<Notifications />} />

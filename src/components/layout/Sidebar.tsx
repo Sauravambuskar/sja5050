@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/investments", label: "Investments", icon: TrendingUp },
+  { to: "/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/referrals", label: "Referrals", icon: Users },
   { to: "/notifications", label: "Notifications", icon: Bell },
