@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
+import DepositForm from "@/components/wallet/DepositForm";
 
 const fetchWalletBalance = async (): Promise<number> => {
   const { data, error } = await supabase.rpc('get_my_wallet_balance');
@@ -33,6 +34,47 @@ const Wallet = () => {
     queryKey: ['transactions'],
     queryFn: fetchTransactions,
   });
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+        return <ArrowDown className="h-4 w-4 text-green-500" />;
+      case 'Withdrawal':
+        return <ArrowUp className="h-4 w-4 text-red-500" />;
+      case 'Investment':
+        return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
+      case 'Commission':
+        return <ArrowDown className="h-4 w-4 text-green-500" />;
+      default:
+        return <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getTransactionAmountClass = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+      case 'Commission':
+        return 'text-green-600';
+      case 'Withdrawal':
+      case 'Investment':
+        return 'text-destructive';
+      default:
+        return '';
+    }
+  };
+
+  const getTransactionAmountPrefix = (type: string) => {
+    switch (type) {
+      case 'Deposit':
+      case 'Commission':
+        return '+';
+      case 'Withdrawal':
+      case 'Investment':
+        return '-';
+      default:
+        return '';
+    }
+  };
 
   return (
     <>
@@ -94,15 +136,15 @@ const Wallet = () => {
                         <TableRow key={txn.id}>
                           <TableCell>
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                              {getTransactionIcon(txn.type)}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{txn.type}</div>
+                            <div className="font-medium">{txn.description || txn.type}</div>
                             <div className="text-sm text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
                           </TableCell>
-                          <TableCell className={cn("text-right font-semibold", txn.type === 'Investment' ? 'text-destructive' : 'text-green-600')}>
-                            {txn.type === 'Investment' ? '-' : '+'} ₹{txn.amount.toLocaleString('en-IN')}
+                          <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
+                            {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
                           </TableCell>
                         </TableRow>
                       ))
@@ -117,15 +159,7 @@ const Wallet = () => {
           </Card>
         </TabsContent>
         <TabsContent value="deposit">
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Deposit Funds</CardTitle>
-              <CardDescription>Instructions for depositing funds will be shown here.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">This feature is coming soon.</p>
-            </CardContent>
-          </Card>
+          <DepositForm />
         </TabsContent>
         <TabsContent value="withdraw">
           <WithdrawalRequests />
