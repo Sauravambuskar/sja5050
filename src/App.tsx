@@ -10,6 +10,8 @@ import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/referrals" element={<Referrals />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
