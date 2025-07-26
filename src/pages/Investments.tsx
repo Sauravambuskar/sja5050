@@ -1,7 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InvestmentPlans from "@/components/investments/InvestmentPlans";
 import InvestmentHistory from "@/components/investments/InvestmentHistory";
-import WithdrawalRequests from "@/components/investments/WithdrawalRequests";
 
 const Investments = () => {
   return (
@@ -10,23 +9,19 @@ const Investments = () => {
         <h1 className="text-3xl font-bold">Investments</h1>
       </div>
       <p className="text-muted-foreground">
-        Browse plans, manage your portfolio, and make withdrawal requests.
+        Browse plans and manage your investment portfolio.
       </p>
 
       <Tabs defaultValue="plans" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+        <TabsList className="grid w-full grid-cols-2 md:w-[300px]">
           <TabsTrigger value="plans">Investment Plans</TabsTrigger>
           <TabsTrigger value="history">My Investments</TabsTrigger>
-          <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
         </TabsList>
         <TabsContent value="plans">
           <InvestmentPlans />
         </TabsContent>
         <TabsContent value="history">
           <InvestmentHistory />
-        </TabsContent>
-        <TabsContent value="withdrawals">
-          <WithdrawalRequests />
         </TabsContent>
       </Tabs>
     </>

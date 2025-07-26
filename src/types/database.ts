@@ -42,3 +42,10 @@ export type DashboardStats = {
   activeInvestments: number;
   walletBalance: number;
 };
+
+export type WithdrawalRequest = {
+  id: string;
+  amount: number;
+  status: string;
+  requested_at: string;
+};
