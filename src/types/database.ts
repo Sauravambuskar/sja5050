@@ -159,3 +159,14 @@ export type CommissionPayoutReportData = {
   total_commission: number;
   month: string;
 };
+
+export type DailyIncomeStats = {
+  today_investment_income: number;
+  today_commission_income: number;
+};
+
+export type IncomeHistoryReportData = {
+  report_date: string;
+  total_income: number;
+  day: string;
+};

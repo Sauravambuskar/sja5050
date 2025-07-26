@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import DailyIncome from "@/components/dashboard/DailyIncome";
+import IncomeChart from "@/components/dashboard/IncomeChart";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
@@ -69,6 +71,11 @@ const Dashboard = () => {
             </Card>
           ))
         )}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <DailyIncome />
+        <IncomeChart />
       </div>
 
       <div className="mt-6">
