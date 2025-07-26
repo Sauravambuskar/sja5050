@@ -5,13 +5,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { InvestmentPlan } from "@/types/database";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const plans = [
-  { name: "Starter Growth", rate: "8% Annually", duration: "12 Months", min: "₹10,000", active: true },
-  { name: "Steady Income", rate: "10% Annually", duration: "24 Months", min: "₹50,000", active: true },
-  { name: "Wealth Builder", rate: "12% Annually", duration: "36 Months", min: "₹1,00,000", active: true },
-  { name: "Retirement Plus", rate: "15% Annually", duration: "60 Months", min: "₹5,00,000", active: false },
-];
+const fetchAllInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
+  const { data, error } = await supabase
+    .from('investment_plans')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data;
+};
 
 const allInvestments = [
     { user: "John Doe", plan: "Wealth Builder", amount: "₹1,50,000", startDate: "2023-06-20", status: "Active" },
@@ -21,6 +30,11 @@ const allInvestments = [
 ];
 
 const InvestmentManagement = () => {
+  const { data: plans, isLoading, isError, error } = useQuery<InvestmentPlan[]>({
+    queryKey: ['allInvestmentPlans'],
+    queryFn: fetchAllInvestmentPlans,
+  });
+
   return (
     <>
       <h1 className="text-3xl font-bold">Investment Management</h1>
@@ -46,38 +60,48 @@ const InvestmentManagement = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Plan Name</TableHead>
-                    <TableHead>Annual Rate</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Min. Investment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead><span className="sr-only">Actions</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {plans.map((plan) => (
-                    <TableRow key={plan.name}>
-                      <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>{plan.rate}</TableCell>
-                      <TableCell>{plan.duration}</TableCell>
-                      <TableCell>{plan.min}</TableCell>
-                      <TableCell><Badge variant={plan.active ? "default" : "secondary"}>{plan.active ? "Active" : "Disabled"}</Badge></TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>{plan.active ? "Disable" : "Enable"}</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : isError ? (
+                <div className="text-red-500">Error: {error.message}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Plan Name</TableHead>
+                      <TableHead>Annual Rate</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Min. Investment</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead><span className="sr-only">Actions</span></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {plans?.map((plan) => (
+                      <TableRow key={plan.id}>
+                        <TableCell className="font-medium">{plan.name}</TableCell>
+                        <TableCell>{plan.annual_rate}%</TableCell>
+                        <TableCell>{plan.duration_months} Months</TableCell>
+                        <TableCell>₹{plan.min_investment.toLocaleString('en-IN')}</TableCell>
+                        <TableCell><Badge variant={plan.is_active ? "default" : "secondary"}>{plan.is_active ? "Active" : "Disabled"}</Badge></TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                              <DropdownMenuItem>{plan.is_active ? "Disable" : "Enable"}</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
