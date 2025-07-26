@@ -7,8 +7,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { InvestmentPlan } from "@/types/database";
+import { InvestmentPlan, AdminInvestmentView } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
 const fetchAllInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -16,23 +17,25 @@ const fetchAllInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   return data;
 };
 
-const allInvestments = [
-    { user: "John Doe", plan: "Wealth Builder", amount: "₹1,50,000", startDate: "2023-06-20", status: "Active" },
-    { user: "Jane Smith", plan: "Starter Growth", amount: "₹25,000", startDate: "2024-07-15", status: "Active" },
-    { user: "Alice Johnson", plan: "Steady Income", amount: "₹75,000", startDate: "2024-02-10", status: "Active" },
-    { user: "Charlie Davis", plan: "Starter Growth", amount: "₹15,000", startDate: "2024-08-01", status: "Active" },
-];
+const fetchAllInvestments = async (): Promise<AdminInvestmentView[]> => {
+  const { data, error } = await supabase.rpc('get_all_investments');
+  if (error) throw new Error(error.message);
+  return data;
+};
 
 const InvestmentManagement = () => {
-  const { data: plans, isLoading, isError, error } = useQuery<InvestmentPlan[]>({
+  const { data: plans, isLoading: plansLoading, isError: plansIsError, error: plansError } = useQuery<InvestmentPlan[]>({
     queryKey: ['allInvestmentPlans'],
     queryFn: fetchAllInvestmentPlans,
+  });
+
+  const { data: allInvestments, isLoading: investmentsLoading, isError: investmentsIsError, error: investmentsError } = useQuery<AdminInvestmentView[]>({
+    queryKey: ['allInvestments'],
+    queryFn: fetchAllInvestments,
   });
 
   return (
@@ -60,14 +63,14 @@ const InvestmentManagement = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {plansLoading ? (
                 <div className="space-y-4">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </div>
-              ) : isError ? (
-                <div className="text-red-500">Error: {error.message}</div>
+              ) : plansIsError ? (
+                <div className="text-red-500">Error: {plansError.message}</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -112,28 +115,38 @@ const InvestmentManagement = () => {
               <CardDescription>A complete log of all ongoing investments across the platform.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allInvestments.map((inv, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{inv.user}</TableCell>
-                      <TableCell>{inv.plan}</TableCell>
-                      <TableCell>{inv.amount}</TableCell>
-                      <TableCell>{inv.startDate}</TableCell>
-                      <TableCell><Badge>{inv.status}</Badge></TableCell>
+              {investmentsLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : investmentsIsError ? (
+                <div className="text-red-500">Error: {investmentsError.message}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {allInvestments?.map((inv) => (
+                      <TableRow key={inv.investment_id}>
+                        <TableCell>{inv.user_name}</TableCell>
+                        <TableCell>{inv.plan_name}</TableCell>
+                        <TableCell>₹{inv.amount.toLocaleString('en-IN')}</TableCell>
+                        <TableCell>{format(new Date(inv.start_date), "PPP")}</TableCell>
+                        <TableCell><Badge>{inv.status}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
