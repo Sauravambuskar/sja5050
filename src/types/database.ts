@@ -37,6 +37,14 @@ export type AdminKycRequest = {
   status: string;
 };
 
+export type AdminDashboardStats = {
+  total_users: number;
+  aum: number;
+  pending_kyc: number;
+  pending_withdrawals_count: number;
+  pending_withdrawals_value: number;
+};
+
 export type UserInvestment = {
   id: string;
   investment_amount: number;
