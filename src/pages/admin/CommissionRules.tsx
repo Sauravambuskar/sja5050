@@ -5,11 +5,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 
-const rules = [
-  { id: "RULE01", level: 1, rate: "5%", type: "Direct Investment" },
-  { id: "RULE02", level: 2, rate: "2.5%", type: "Indirect Investment" },
-  { id: "RULE03", level: 3, rate: "1%", type: "Indirect Investment" },
-  { id: "RULE04", level: 1, rate: "₹500", type: "KYC Completion Bonus" },
+const commissionRules = [
+  { level: 1, rate: "5%", status: "Active" },
+  { level: 2, rate: "3%", status: "Active" },
+  { level: 3, rate: "2%", status: "Active" },
+  { level: 4, rate: "1%", status: "Inactive" },
+  { level: 5, rate: "0.5%", status: "Inactive" },
 ];
 
 const CommissionRules = () => {
@@ -19,7 +20,7 @@ const CommissionRules = () => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Commission Rules Engine</CardTitle>
-            <CardDescription>Configure referral levels, volume ranges, and commission rates.</CardDescription>
+            <CardDescription>Configure referral levels and their commission rates.</CardDescription>
           </div>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
@@ -33,22 +34,24 @@ const CommissionRules = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Level</TableHead>
+              <TableHead>Referral Level</TableHead>
               <TableHead>Commission Rate</TableHead>
-              <TableHead>Rule Type</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rules.map((rule) => (
-              <TableRow key={rule.id}>
+            {commissionRules.map((rule) => (
+              <TableRow key={rule.level}>
+                <TableCell className="font-medium">Level {rule.level}</TableCell>
+                <TableCell>{rule.rate}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">Level {rule.level}</Badge>
+                  <Badge variant={rule.status === "Active" ? "default" : "secondary"}>
+                    {rule.status}
+                  </Badge>
                 </TableCell>
-                <TableCell className="font-medium">{rule.rate}</TableCell>
-                <TableCell>{rule.type}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -59,7 +62,9 @@ const CommissionRules = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>Edit Rule</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                      <DropdownMenuItem>
+                        {rule.status === "Active" ? "Deactivate" : "Activate"}
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
