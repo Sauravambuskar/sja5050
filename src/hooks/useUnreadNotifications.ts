@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { toast } from 'sonner';
+import { Notification as NotificationType } from '@/types/database';
 
 const fetchUnreadCount = async () => {
   const { data, error } = await supabase.rpc('get_my_unread_notifications_count');
@@ -37,8 +39,29 @@ export const useUnreadNotifications = () => {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
+          // 1. Invalidate query to update the sidebar badge count
           queryClient.invalidateQueries({ queryKey });
+
+          // 2. Show a real-time toast notification
+          const newNotification = payload.new as NotificationType;
+          if (newNotification) {
+            const { title, description, type } = newNotification;
+            switch (type) {
+              case 'success':
+                toast.success(title, { description });
+                break;
+              case 'error':
+                toast.error(title, { description });
+                break;
+              case 'warning':
+                toast.warning(title, { description });
+                break;
+              default:
+                toast.info(title, { description });
+                break;
+            }
+          }
         }
       )
       .subscribe();
