@@ -3,16 +3,30 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Layouts
 import { PageLayout } from "./components/layout/PageLayout";
+import { AdminLayout } from "./components/layout/AdminLayout";
+
+// Client Pages
 import Dashboard from "./pages/Dashboard";
 import Investments from "./pages/Investments";
+import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
-import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Wallet from "./pages/Wallet";
+import NotFound from "./pages/NotFound";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import InvestmentManagement from "./pages/admin/InvestmentManagement";
+import KycManagement from "./pages/admin/KycManagement";
+import CommissionRules from "./pages/admin/CommissionRules";
+import Reporting from "./pages/admin/Reporting";
+
 
 const queryClient = new QueryClient();
 
@@ -23,6 +37,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Client Portal */}
           <Route element={<PageLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/investments" element={<Investments />} />
@@ -31,6 +46,18 @@ const App = () => (
             <Route path="/referrals" element={<Referrals />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
+
+          {/* Admin Portal */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="investments" element={<InvestmentManagement />} />
+            <Route path="kyc" element={<KycManagement />} />
+            <Route path="commissions" element={<CommissionRules />} />
+            <Route path="reports" element={<Reporting />} />
+          </Route>
+
+          {/* Auth & Fallback */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
