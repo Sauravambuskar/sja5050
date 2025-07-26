@@ -9,19 +9,28 @@ import { ModeToggle } from "./ModeToggle";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
+
+    // Clear all cached data to prevent data leakage between sessions
+    queryClient.clear();
+
+    if (error && error.message !== 'Auth session missing!') {
+      // Only show an error for unexpected issues.
       toast.error("Logout failed: " + error.message);
     } else {
       toast.success("You have been logged out.");
-      navigate("/login");
     }
+    
+    // Always redirect to the login page to ensure a clean state.
+    navigate("/login");
   };
 
   const getInitials = (name: string | undefined) => {
