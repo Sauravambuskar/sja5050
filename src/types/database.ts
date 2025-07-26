@@ -145,3 +145,11 @@ export type AdminUserInvestmentHistoryItem = {
   start_date: string;
   status: string;
 };
+
+export type AdminHighValueTransaction = {
+  id: string;
+  user_name: string;
+  type: string;
+  amount: number;
+  created_at: string;
+};

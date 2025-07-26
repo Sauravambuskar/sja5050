@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, UserCheck, Hourglass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { AdminDashboardStats, AdminUserView } from "@/types/database";
+import { AdminDashboardStats, AdminUserView, AdminHighValueTransaction } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -20,6 +20,12 @@ const fetchRecentUsers = async (): Promise<AdminUserView[]> => {
   return data.slice(0, 5); // Get the 5 most recent users
 };
 
+const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]> => {
+  const { data, error } = await supabase.rpc('get_high_value_transactions');
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 const AdminDashboard = () => {
   const { data: stats, isLoading: statsLoading } = useQuery<AdminDashboardStats>({
     queryKey: ['adminDashboardStats'],
@@ -29,6 +35,11 @@ const AdminDashboard = () => {
   const { data: recentUsers, isLoading: usersLoading } = useQuery<AdminUserView[]>({
     queryKey: ['recentUsers'],
     queryFn: fetchRecentUsers,
+  });
+
+  const { data: highValueTransactions, isLoading: transactionsLoading } = useQuery<AdminHighValueTransaction[]>({
+    queryKey: ['highValueTransactions'],
+    queryFn: fetchHighValueTransactions,
   });
 
   const kpiData = [
@@ -106,9 +117,32 @@ const AdminDashboard = () => {
             <CardTitle>High-Value Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-              Feed of significant transactions will appear here.
-            </div>
+            {transactionsLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : highValueTransactions && highValueTransactions.length > 0 ? (
+              <div className="space-y-4">
+                {highValueTransactions.map((txn) => (
+                  <div key={txn.id} className="flex items-center">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback>{getInitials(txn.user_name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 space-y-1">
+                      <p className="text-sm font-medium leading-none">{txn.user_name}</p>
+                      <p className="text-sm text-muted-foreground">{txn.type}</p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                      +₹{txn.amount.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                No high-value transactions to display.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
