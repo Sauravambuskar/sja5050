@@ -25,7 +25,7 @@ const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> =
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return data as UserInvestment[];
 };
 
 const InvestmentHistory = () => {
@@ -73,7 +73,7 @@ const InvestmentHistory = () => {
             ) : investments && investments.length > 0 ? (
               investments.map((investment) => (
                 <TableRow key={investment.id}>
-                  <TableCell className="font-medium">{investment.investment_plans?.name || 'N/A'}</TableCell>
+                  <TableCell className="font-medium">{investment.investment_plans?.[0]?.name || 'N/A'}</TableCell>
                   <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
                   <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
                   <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
