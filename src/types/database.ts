@@ -53,6 +53,12 @@ export type AdminWithdrawalRequest = {
   status: string;
 };
 
+export type CommissionRule = {
+  level: number;
+  rate: number;
+  is_active: boolean;
+};
+
 export type UserInvestment = {
   id: string;
   investment_amount: number;
