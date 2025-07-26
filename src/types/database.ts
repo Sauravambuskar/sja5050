@@ -59,3 +59,11 @@ export type WithdrawalRequest = {
   status: string;
   requested_at: string;
 };
+
+export type KycDocument = {
+  id: string;
+  document_type: string;
+  file_path: string;
+  status: string;
+  submitted_at: string;
+};
