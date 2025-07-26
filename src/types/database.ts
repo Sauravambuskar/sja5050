@@ -34,3 +34,10 @@ export type Transaction = {
   description: string | null;
   created_at: string;
 };
+
+export type WithdrawalRequest = {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+};
