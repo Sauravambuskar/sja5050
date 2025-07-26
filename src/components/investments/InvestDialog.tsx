@@ -41,8 +41,8 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
     mutationFn: invest,
     onSuccess: () => {
       toast.success("Investment successful!");
-      queryClient.invalidateQueries({ queryKey: ["myInvestments"] });
-      queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
+      queryClient.invalidateQueries({ queryKey: ["userInvestments"] });
+      queryClient.invalidateQueries({ queryKey: ["walletBalance"] }); // To update wallet later
       onClose();
     },
     onError: (error) => {
