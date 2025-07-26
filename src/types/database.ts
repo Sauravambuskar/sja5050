@@ -19,11 +19,18 @@ export type AppUser = {
 
 export type UserInvestment = {
   id: string;
+  plan_name: string;
   investment_amount: number;
   start_date: string;
   maturity_date: string;
   status: string;
-  investment_plans: {
-    name: string;
-  } | null;
+};
+
+export type Transaction = {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  description: string | null;
+  created_at: string;
 };
