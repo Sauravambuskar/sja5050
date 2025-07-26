@@ -113,6 +113,7 @@ export type KycDocument = {
   file_path: string;
   status: string;
   submitted_at: string;
+  admin_notes: string | null;
 };
 
 export type Referral = {
