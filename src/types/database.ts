@@ -8,3 +8,11 @@ export type InvestmentPlan = {
   is_active: boolean;
   created_at: string;
 };
+
+export type AppUser = {
+  id: string;
+  full_name: string;
+  email: string;
+  join_date: string;
+  status: string;
+};

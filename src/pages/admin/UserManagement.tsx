@@ -7,31 +7,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
+import { AppUser } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
-const fetchUsers = async (): Promise<User[]> => {
-  // Note: This requires admin privileges on the Supabase client.
-  // For now, we assume the logged-in user has the necessary rights.
-  const { data: { users }, error } = await supabase.auth.admin.listUsers();
+const fetchUsers = async (): Promise<AppUser[]> => {
+  const { data, error } = await supabase.rpc('get_all_users');
   if (error) {
     throw new Error(error.message);
   }
-  return users;
+  return data;
 };
 
 const UserManagement = () => {
-  const { data: users, isLoading, isError, error } = useQuery<User[]>({
-    queryKey: ['users'],
+  const { data: users, isLoading, isError, error } = useQuery<AppUser[]>({
+    queryKey: ['allUsers'],
     queryFn: fetchUsers,
   });
-
-  const getUserStatus = (user: User) => {
-    if (user.user_metadata?.status === 'Suspended') return 'Suspended';
-    if (user.email_confirmed_at) return 'Active';
-    return 'KYC Pending'; // Or 'Email Unverified'
-  };
 
   return (
     <Card>
@@ -43,7 +35,7 @@ const UserManagement = () => {
           </div>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-rap">
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Add User
             </span>
           </Button>
@@ -85,20 +77,20 @@ const UserManagement = () => {
             ) : (
               users?.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.user_metadata?.full_name || 'N/A'}</TableCell>
+                  <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{format(new Date(user.created_at), "PPP")}</TableCell>
+                  <TableCell>{format(new Date(user.join_date), "PPP")}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        getUserStatus(user) === "Active"
+                        user.status === "Active"
                           ? "default"
-                          : getUserStatus(user) === "KYC Pending"
+                          : user.status === "KYC Pending"
                           ? "outline"
                           : "destructive"
                       }
                     >
-                      {getUserStatus(user)}
+                      {user.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
