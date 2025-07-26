@@ -29,7 +29,7 @@ const Register = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
-    const { error }_ = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
