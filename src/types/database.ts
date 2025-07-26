@@ -93,3 +93,10 @@ export type KycDocument = {
   status: string;
   submitted_at: string;
 };
+
+export type Referral = {
+  id: string;
+  full_name: string;
+  join_date: string;
+  kyc_status: string;
+};
