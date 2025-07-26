@@ -10,11 +10,13 @@ import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
 
-const fetchUsers = async (): Promise<AdminUserView[]> => {
-  const { data, error } = await supabase.rpc('get_all_users_details');
+const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
+  const { data, error } = await supabase.rpc('get_all_users_details', {
+    search_text: searchTerm || null
+  });
   if (error) {
     throw new Error(error.message);
   }
@@ -24,10 +26,22 @@ const fetchUsers = async (): Promise<AdminUserView[]> => {
 const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [searchTerm]);
 
   const { data: users, isLoading, isError, error } = useQuery<AdminUserView[]>({
-    queryKey: ['allUsersDetails'],
-    queryFn: fetchUsers,
+    queryKey: ['allUsersDetails', debouncedSearchTerm],
+    queryFn: () => fetchUsers(debouncedSearchTerm),
   });
 
   const handleViewDetails = (user: AdminUserView) => {
@@ -52,7 +66,11 @@ const UserManagement = () => {
             </Button>
           </div>
           <div className="mt-4">
-            <Input placeholder="Search by name or email..." />
+            <Input 
+              placeholder="Search by name or email..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent>
