@@ -10,7 +10,7 @@ export type InvestmentPlan = {
 };
 
 export type AppUser = {
-  id: string;
+  id:string;
   full_name: string;
   email: string;
   join_date: string;
@@ -33,4 +33,10 @@ export type Transaction = {
   status: string;
   description: string | null;
   created_at: string;
+};
+
+export type DashboardStats = {
+  fullName: string | null;
+  activeInvestments: number;
+  walletBalance: number;
 };
