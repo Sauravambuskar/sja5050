@@ -6,9 +6,22 @@ import { supabase } from "@/lib/supabase";
 import { UserInvestment } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { useAuth } from "../auth/AuthProvider";
 
-const fetchMyInvestments = async (): Promise<UserInvestment[]> => {
-  const { data, error } = await supabase.rpc('get_my_investments');
+const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
+  const { data, error } = await supabase
+    .from('user_investments')
+    .select(`
+      id,
+      investment_amount,
+      start_date,
+      maturity_date,
+      status,
+      investment_plans ( name )
+    `)
+    .eq('user_id', userId)
+    .order('start_date', { ascending: false });
+
   if (error) {
     throw new Error(error.message);
   }
@@ -16,9 +29,11 @@ const fetchMyInvestments = async (): Promise<UserInvestment[]> => {
 };
 
 const InvestmentHistory = () => {
+  const { user } = useAuth();
   const { data: investments, isLoading, isError, error } = useQuery<UserInvestment[]>({
-    queryKey: ['myInvestments'],
-    queryFn: fetchMyInvestments,
+    queryKey: ['userInvestments', user?.id],
+    queryFn: () => fetchUserInvestments(user!.id),
+    enabled: !!user,
   });
 
   return (
@@ -46,15 +61,19 @@ const InvestmentHistory = () => {
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-5 w-16" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                 </TableRow>
               ))
             ) : isError ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-red-500">
+                  Error: {error.message}
+                </TableCell>
+              </TableRow>
             ) : investments && investments.length > 0 ? (
               investments.map((investment) => (
                 <TableRow key={investment.id}>
-                  <TableCell className="font-medium">{investment.plan_name}</TableCell>
+                  <TableCell className="font-medium">{investment.investment_plans?.name || 'N/A'}</TableCell>
                   <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
                   <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
                   <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
@@ -66,7 +85,11 @@ const InvestmentHistory = () => {
                 </TableRow>
               ))
             ) : (
-              <TableRow><TableCell colSpan={5} className="text-center">You have no investments yet.</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  You have no investments yet.
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
