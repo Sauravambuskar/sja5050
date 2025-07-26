@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
   if (error) throw new Error(error.message);
-  return data;
+  // The RPC returns an array with one object, so we extract it.
+  return data[0];
 };
 
 const fetchRecentTransactions = async (): Promise<Transaction[]> => {
@@ -32,7 +33,7 @@ const Dashboard = () => {
   });
 
   const kpiData = [
-    { title: "Wallet Balance", value: `₹${stats?.walletBalance.toLocaleString('en-IN') ?? '0.00'}`, icon: DollarSign, change: "Available to invest" },
+    { title: "Wallet Balance", value: `₹${(stats?.walletBalance ?? 0).toLocaleString('en-IN')}`, icon: DollarSign, change: "Available to invest" },
     { title: "Active Investments", value: stats?.activeInvestments ?? 0, icon: Activity, change: "Currently growing" },
     { title: "New Referrals", value: "0", icon: Users, change: "this month" },
     { title: "KYC Status", value: "Pending", icon: CreditCard, change: "needs review" },
