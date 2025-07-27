@@ -180,3 +180,18 @@ export type NewInvestmentsReportData = {
   total_investment_amount: number;
   month: string;
 };
+
+export type Profile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  dob: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  nominee_name: string | null;
+  nominee_relationship: string | null;
+  nominee_dob: string | null;
+  role: string;
+};

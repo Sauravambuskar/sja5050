@@ -1,0 +1,158 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Profile } from "@/types/database";
+import { useEffect } from "react";
+
+const nomineeSchema = z.object({
+  nominee_name: z.string().min(2, "Name must be at least 2 characters.").max(100).nullable(),
+  nominee_relationship: z.string().min(2, "Relationship must be at least 2 characters.").max(50).nullable(),
+  nominee_dob: z.date().nullable(),
+});
+
+const updateProfile = async (values: z.infer<typeof nomineeSchema> & { profile: Profile }) => {
+  const { profile, ...nomineeValues } = values;
+  const { error } = await supabase.rpc('update_my_profile', {
+    p_full_name: profile.full_name,
+    p_phone: profile.phone,
+    p_dob: profile.dob,
+    p_address: profile.address,
+    p_city: profile.city,
+    p_state: profile.state,
+    p_pincode: profile.pincode,
+    p_nominee_name: nomineeValues.nominee_name,
+    p_nominee_relationship: nomineeValues.nominee_relationship,
+    p_nominee_dob: nomineeValues.nominee_dob ? format(nomineeValues.nominee_dob, 'yyyy-MM-dd') : null,
+  });
+
+  if (error) throw new Error(error.message);
+};
+
+export const NomineeForm = ({ profile }: { profile: Profile }) => {
+  const queryClient = useQueryClient();
+  const form = useForm<z.infer<typeof nomineeSchema>>({
+    resolver: zodResolver(nomineeSchema),
+    defaultValues: {
+      nominee_name: "",
+      nominee_relationship: "",
+      nominee_dob: null,
+    },
+  });
+
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        nominee_name: profile.nominee_name || "",
+        nominee_relationship: profile.nominee_relationship || "",
+        nominee_dob: profile.nominee_dob ? new Date(profile.nominee_dob) : null,
+      });
+    }
+  }, [profile, form]);
+
+  const mutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: () => {
+      toast.success("Nominee details updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+    },
+    onError: (error) => {
+      toast.error(`Update failed: ${error.message}`);
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof nomineeSchema>) => {
+    mutation.mutate({ ...values, profile });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nominee Details</CardTitle>
+        <CardDescription>
+          Designate a nominee for your account. This information is kept confidential.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="nominee_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nominee Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nominee_relationship"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Relationship</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Spouse" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="nominee_dob"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Nominee Date of Birth</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : "Save Nominee Details"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};
