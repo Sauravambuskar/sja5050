@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
@@ -16,6 +16,8 @@ import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/utils";
+import { format } from "date-fns";
 
 const fetchUsers = async (searchTerm: string, kycStatus: string, accountStatus: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -103,6 +105,26 @@ const UserManagement = () => {
 
   const isUserSuspended = (user: AdminUserView) => user.banned_until && new Date(user.banned_until) > new Date();
 
+  const handleExport = () => {
+    if (!users || users.length === 0) {
+      toast.warning("No user data to export.");
+      return;
+    }
+    const dataToExport = users.map(user => ({
+      UserID: user.id,
+      FullName: user.full_name,
+      Email: user.email,
+      JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'),
+      KYCStatus: user.kyc_status,
+      WalletBalance: user.wallet_balance,
+      Role: user.role,
+      IsSuspended: isUserSuspended(user) ? 'Yes' : 'No',
+    }));
+    const filename = `users_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    exportToCsv(filename, dataToExport);
+    toast.success("User data exported successfully.");
+  };
+
   return (
     <>
       <Card>
@@ -112,10 +134,16 @@ const UserManagement = () => {
               <CardTitle>User Management</CardTitle>
               <CardDescription>Search, filter, and manage client accounts.</CardDescription>
             </div>
-            <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add User</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
+                <Download className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+              </Button>
+              <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add User</span>
+              </Button>
+            </div>
           </div>
           <div className="mt-4 flex flex-col gap-4 md:flex-row">
             <Input placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-grow" />
