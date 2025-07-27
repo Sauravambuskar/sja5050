@@ -12,6 +12,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { UserGrowthReportData, CommissionPayoutReportData, NewInvestmentsReportData } from "@/types/database";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ReportType = 'user_growth' | 'commission_payouts' | 'new_investments';
 type ReportData = (UserGrowthReportData | CommissionPayoutReportData | NewInvestmentsReportData)[];
@@ -159,6 +161,45 @@ const Reporting = () => {
                 </BarChart>
               )}
             </ResponsiveContainer>
+          </div>
+          <div className="mt-6">
+            <h3 className="text-lg font-medium">Report Data</h3>
+            <div className="mt-2 rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead className="text-right">{currentChartConfig.name}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isReportLoading ? (
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : reportData && reportData.length > 0 ? (
+                    reportData.map((row, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{(row as any).month}</TableCell>
+                        <TableCell className="text-right">
+                          {currentChartConfig.unit}
+                          {(row as any)[currentChartConfig.dataKey].toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="h-24 text-center">
+                        No data for the selected criteria.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
