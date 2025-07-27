@@ -32,6 +32,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
 const WithdrawalManagement = () => {
   const queryClient = useQueryClient();
   const [detailsRequest, setDetailsRequest] = useState<AdminWithdrawalRequest | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminWithdrawalRequest; status: 'Completed' | 'Rejected' } | null>(null);
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminWithdrawalRequest[]>({
     queryKey: ['allWithdrawalRequests'],
@@ -49,11 +50,14 @@ const WithdrawalManagement = () => {
     onError: (error) => {
       toast.error(`Action failed: ${error.message}`);
     },
+    onSettled: () => {
+      setActionToConfirm(null);
+    }
   });
 
-  const handleProcessRequest = (requestId: string, status: 'Completed' | 'Rejected') => {
+  const handleProcessRequest = (request: AdminWithdrawalRequest, status: 'Completed' | 'Rejected') => {
     const notes = status === 'Completed' ? 'Approved by admin.' : 'Rejected by admin.';
-    mutation.mutate({ requestId, status, notes });
+    mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
   return (
@@ -108,8 +112,8 @@ const WithdrawalManagement = () => {
                       {request.status === 'Pending' && (
                         <div className="flex justify-end gap-2">
                           <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> View Details</Button>
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request.request_id, 'Completed')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleProcessRequest(request.request_id, 'Rejected')} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                          <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                          <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActionToConfirm({ request, status: 'Rejected' })} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                         </div>
                       )}
                     </TableCell>
@@ -134,6 +138,24 @@ const WithdrawalManagement = () => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to <span className="font-bold">{actionToConfirm?.status.toLowerCase()}</span> this withdrawal request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name}</span>?
+              {actionToConfirm?.status === 'Completed' && <p className="mt-2 text-sm text-destructive">Please ensure you have completed the bank transfer before proceeding.</p>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleProcessRequest(actionToConfirm!.request, actionToConfirm!.status)} disabled={mutation.isPending}>
+              {mutation.isPending ? "Processing..." : "Confirm"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
