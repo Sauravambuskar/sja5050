@@ -10,16 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InvestmentPlan } from "@/types/database";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Skeleton } from "../ui/skeleton";
 
 interface InvestDialogProps {
   plan: InvestmentPlan;
   isOpen: boolean;
   onClose: () => void;
 }
+
+const fetchWalletBalance = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_my_wallet_balance');
+  if (error) throw new Error(error.message);
+  return data;
+};
 
 const invest = async ({ planId, amount }: { planId: string; amount: number }) => {
   const { data, error } = await supabase.rpc("invest_in_plan", {
@@ -37,12 +44,18 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
   const [amount, setAmount] = useState("");
   const queryClient = useQueryClient();
 
+  const { data: walletBalance, isLoading: isBalanceLoading } = useQuery<number>({
+    queryKey: ['walletBalance'],
+    queryFn: fetchWalletBalance,
+    enabled: isOpen, // Only fetch when the dialog is open
+  });
+
   const mutation = useMutation({
     mutationFn: invest,
     onSuccess: () => {
       toast.success("Investment successful!");
       queryClient.invalidateQueries({ queryKey: ["userInvestments"] });
-      queryClient.invalidateQueries({ queryKey: ["walletBalance"] }); // To update wallet later
+      queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
       onClose();
     },
     onError: (error) => {
@@ -60,6 +73,10 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
       toast.error(`Amount must be at least ₹${plan.min_investment.toLocaleString()}`);
       return;
     }
+    if (walletBalance !== undefined && numericAmount > walletBalance) {
+      toast.error("Investment amount cannot exceed your wallet balance.");
+      return;
+    }
     mutation.mutate({ planId: plan.id, amount: numericAmount });
   };
 
@@ -73,7 +90,17 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
             Enter the amount you wish to invest.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="text-sm text-muted-foreground">
+          Available to invest: 
+          {isBalanceLoading ? (
+            <Skeleton className="inline-block h-4 w-20 ml-1" />
+          ) : (
+            <span className="font-semibold text-foreground ml-1">
+              ₹{walletBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          )}
+        </div>
+        <div className="grid gap-4 py-2">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="amount" className="text-right">
               Amount (₹)
