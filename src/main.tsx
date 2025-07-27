@@ -1,20 +1,13 @@
-import { createRoot } from "react-dom/client";
+import React from "react";
+import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import "./globals.css";
-import { ThemeProvider } from "./components/theme/ThemeProvider";
-import { AuthProvider } from "./components/auth/AuthProvider";
+import "./index.css";
+import { AuthProvider } from "./providers/AuthProvider.tsx";
 
-createRoot(document.getElementById("root")!).render(
-  <ThemeProvider
-    attribute="class"
-    defaultTheme="system"
-    enableSystem
-    disableTransitionOnChange
-    storageKey="sja-ui-theme"
-    themes={['light', 'dark', 'warm', 'system']}
-  >
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
     <AuthProvider>
       <App />
     </AuthProvider>
-  </ThemeProvider>
+  </React.StrictMode>
 );

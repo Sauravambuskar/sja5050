@@ -1,19 +1,17 @@
-import { Outlet } from "react-router-dom";
-import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { Sidebar } from "./Sidebar";
+import { Outlet } from "react-router-dom";
 
-export function PageLayout() {
+export const PageLayout = () => {
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <Sidebar className="w-full" />
-      </div>
-      <div className="flex flex-col">
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className="flex flex-1 flex-col">
         <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
     </div>
   );
-}
+};
