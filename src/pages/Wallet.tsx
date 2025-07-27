@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp, ArrowRightLeft } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Transaction } from "@/types/database";
@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositForm from "@/components/wallet/DepositForm";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useState } from "react";
+
+const PAGE_SIZE = 10;
 
 const fetchWalletBalance = async (): Promise<number> => {
   const { data, error } = await supabase.rpc('get_my_wallet_balance');
@@ -18,22 +22,41 @@ const fetchWalletBalance = async (): Promise<number> => {
   return data;
 };
 
-const fetchTransactions = async (): Promise<Transaction[]> => {
-  const { data, error } = await supabase.rpc('get_my_transactions');
+const fetchTransactions = async (page: number): Promise<Transaction[]> => {
+  const { data, error } = await supabase.rpc('get_my_transactions', {
+    page_limit: PAGE_SIZE,
+    page_offset: (page - 1) * PAGE_SIZE,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+const fetchTransactionsCount = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_my_transactions_count');
   if (error) throw new Error(error.message);
   return data;
 };
 
 const Wallet = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
     queryFn: fetchWalletBalance,
   });
 
-  const { data: transactions, isLoading: areTransactionsLoading } = useQuery<Transaction[]>({
-    queryKey: ['transactions'],
-    queryFn: fetchTransactions,
+  const { data: transactions, isLoading: areTransactionsLoading } = useQuery({
+    queryKey: ['transactions', currentPage],
+    queryFn: () => fetchTransactions(currentPage),
+    placeholderData: keepPreviousData,
   });
+
+  const { data: totalTransactions } = useQuery<number>({
+    queryKey: ['transactionsCount'],
+    queryFn: fetchTransactionsCount,
+  });
+
+  const pageCount = totalTransactions ? Math.ceil(totalTransactions / PAGE_SIZE) : 0;
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -123,8 +146,8 @@ const Wallet = () => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {areTransactionsLoading ? (
-                      [...Array(4)].map((_, i) => (
+                    {areTransactionsLoading && !transactions ? (
+                      [...Array(PAGE_SIZE)].map((_, i) => (
                         <TableRow key={i}>
                           <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                           <TableCell><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></TableCell>
@@ -155,6 +178,25 @@ const Wallet = () => {
                     )}
                 </TableBody>
                 </Table>
+                {pageCount > 1 && (
+                  <Pagination className="mt-6">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
+                      </PaginationItem>
+                      {[...Array(pageCount)].map((_, i) => (
+                        <PaginationItem key={i}>
+                          <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1); }} isActive={currentPage === i + 1}>
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
             </CardContent>
           </Card>
         </TabsContent>
