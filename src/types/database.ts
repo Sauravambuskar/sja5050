@@ -53,6 +53,9 @@ export type AdminWithdrawalRequest = {
   amount: number;
   requested_at: string;
   status: string;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
 };
 
 export type CommissionRule = {
@@ -194,4 +197,7 @@ export type Profile = {
   nominee_relationship: string | null;
   nominee_dob: string | null;
   role: string;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
 };

@@ -49,7 +49,7 @@ const Profile = () => {
           <PersonalDetailsForm profile={profile} />
         </TabsContent>
         <TabsContent value="bank" className="mt-6">
-          <BankDetailsForm />
+          <BankDetailsForm profile={profile} />
         </TabsContent>
         <TabsContent value="nominee" className="mt-6">
           <NomineeForm profile={profile} />
