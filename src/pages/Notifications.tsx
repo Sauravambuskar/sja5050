@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const fetchNotifications = async (): Promise<NotificationType[]> => {
   const { data, error } = await supabase.rpc('get_my_notifications');
@@ -29,6 +30,7 @@ const iconMap = {
 
 const Notifications = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: notifications, isLoading } = useQuery<NotificationType[]>({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
@@ -37,14 +39,20 @@ const Notifications = () => {
   const mutation = useMutation({
     mutationFn: markAsRead,
     onSuccess: () => {
+      // Invalidate both the notifications list and the unread count for the sidebar badge
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['unreadNotificationsCount', user.id] });
+      }
     },
   });
 
   useEffect(() => {
     // Mark notifications as read when the component mounts
-    mutation.mutate();
-  }, []);
+    if (user) {
+      mutation.mutate();
+    }
+  }, [user]);
 
   return (
     <>
