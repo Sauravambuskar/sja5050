@@ -19,28 +19,30 @@ const ReferralCode = () => {
     queryFn: fetchReferralCode,
   });
 
+  const referralLink = referralCode ? `${window.location.origin}/register?ref=${referralCode}` : "";
+
   const handleCopy = () => {
-    if (!referralCode) return;
-    navigator.clipboard.writeText(referralCode);
-    toast.success("Referral code copied to clipboard!");
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink);
+    toast.success("Referral link copied to clipboard!");
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your Referral Code</CardTitle>
-        <CardDescription>Share this code with others to invite them to the platform.</CardDescription>
+        <CardTitle>Your Referral Link</CardTitle>
+        <CardDescription>Share this link with others. When they sign up, you'll earn a commission.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex w-full max-w-sm items-center space-x-2">
+          <div className="flex w-full max-w-md items-center space-x-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-10" />
           </div>
         ) : (
-          <div className="flex w-full max-w-sm items-center space-x-2">
-            <Input type="text" value={referralCode || "Not available"} readOnly />
-            <Button type="button" size="icon" onClick={handleCopy} disabled={!referralCode}>
+          <div className="flex w-full max-w-md items-center space-x-2">
+            <Input type="text" value={referralLink || "Not available"} readOnly />
+            <Button type="button" size="icon" onClick={handleCopy} disabled={!referralLink}>
               <Copy className="h-4 w-4" />
             </Button>
           </div>
