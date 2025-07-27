@@ -15,6 +15,7 @@ serve(async (req) => {
   }
 
   try {
+    // This uses the SERVICE_ROLE_KEY and should only be used for this initial setup.
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -25,7 +26,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Email and password are required.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Find user by email
+    // Check if user already exists
     const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({ email })
     if (listError) throw listError
 
@@ -33,17 +34,12 @@ serve(async (req) => {
     let message: string;
 
     if (users && users.length > 0) {
-      // User exists, update them
+      // User exists, update their password
       const existingUser = users[0];
       userId = existingUser.id;
-
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: password,
-        email_confirm: true, // Ensure user is confirmed
-      })
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, { password })
       if (updateError) throw updateError
-      message = `Admin user ${email} already existed and has been updated.`;
-
+      message = `Admin user ${email} already existed and password has been updated.`;
     } else {
       // User does not exist, create them
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -54,19 +50,20 @@ serve(async (req) => {
       })
       if (createError) throw createError
       if (!newUser || !newUser.user) throw new Error("User creation failed unexpectedly.")
-      
       userId = newUser.user.id;
       message = `Admin user ${email} created successfully.`;
     }
 
-    // In both cases, ensure the profile has the admin role
-    const { error: profileUpdateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ role: 'admin' })
-      .eq('id', userId)
+    // Ensure the profile has the admin role
+    const { data: profile, error: profileSelectError } = await supabaseAdmin.from('profiles').select('id').eq('id', userId).single()
+    if (profileSelectError && profileSelectError.code !== 'PGRST116') throw profileSelectError;
 
-    if (profileUpdateError) {
-      throw new Error(`Failed to set admin role: ${profileUpdateError.message}`)
+    if (profile) {
+        const { error: profileUpdateError } = await supabaseAdmin.from('profiles').update({ role: 'admin' }).eq('id', userId)
+        if (profileUpdateError) throw profileUpdateError
+    } else {
+        const { error: profileInsertError } = await supabaseAdmin.from('profiles').upsert({ id: userId, role: 'admin', full_name: 'Admin' }, { onConflict: 'id' })
+        if (profileInsertError) throw profileInsertError
     }
     
     message += ' Role set to admin.'
