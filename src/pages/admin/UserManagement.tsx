@@ -123,6 +123,7 @@ const UserManagement = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>KYC Status</TableHead>
+                <TableHead className="text-right">Wallet Balance</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
@@ -134,11 +135,12 @@ const UserManagement = () => {
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                   </TableRow>
                 ))
               ) : isError ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>
               ) : (
                 users?.map((user) => (
                   <TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
@@ -155,6 +157,9 @@ const UserManagement = () => {
                       <Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>
                         {user.kyc_status || 'Not Submitted'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      ₹{user.wallet_balance.toLocaleString('en-IN')}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
