@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { Loader2, ArrowDown, ArrowUp, ArrowRightLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface UserDetailsSheetProps {
   userId: string | null;
@@ -35,6 +37,8 @@ const adjustmentSchema = z.object({
   amount: z.coerce.number().refine(val => val !== 0, { message: "Amount cannot be zero." }),
   description: z.string().min(5, "Description must be at least 5 characters."),
 });
+
+type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
 
 const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
   const { data, error } = await supabase.rpc('get_all_users_details', { search_text: userId });
@@ -64,7 +68,8 @@ const adjustWallet = async ({ userId, amount, description }: { userId: string; a
 
 export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSheetProps) => {
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof adjustmentSchema>>({
+  const [adjustmentDetails, setAdjustmentDetails] = useState<AdjustmentFormValues | null>(null);
+  const form = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
     defaultValues: { amount: 0, description: "" },
   });
@@ -95,16 +100,24 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
       queryClient.invalidateQueries({ queryKey: ['userTransactionHistory', userId] });
       form.reset();
+      setAdjustmentDetails(null);
     },
-    onError: (error) => { toast.error(`Adjustment failed: ${error.message}`); },
+    onError: (error) => { 
+      toast.error(`Adjustment failed: ${error.message}`); 
+      setAdjustmentDetails(null);
+    },
   });
 
-  const onAdjustmentSubmit = (values: z.infer<typeof adjustmentSchema>) => {
-    if (!userId) return;
+  const onAdjustmentSubmit = (values: AdjustmentFormValues) => {
+    setAdjustmentDetails(values);
+  };
+
+  const handleConfirmAdjustment = () => {
+    if (!userId || !adjustmentDetails) return;
     adjustmentMutation.mutate({
       userId,
-      amount: values.amount,
-      description: values.description,
+      amount: adjustmentDetails.amount,
+      description: adjustmentDetails.description,
     });
   };
 
@@ -164,7 +177,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
               <Form {...form}><form onSubmit={form.handleSubmit(onAdjustmentSubmit)} className="space-y-4">
                 <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Reason / Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <Button type="submit" disabled={adjustmentMutation.isPending}>{adjustmentMutation.isPending ? "Processing..." : "Submit Adjustment"}</Button>
+                <Button type="submit" disabled={adjustmentMutation.isPending}>Submit Adjustment</Button>
               </form></Form>
             </CardContent></Card>
           </TabsContent>
@@ -174,16 +187,38 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{isUserLoading ? <Skeleton className="h-6 w-40" /> : user?.full_name || "User Details"}</SheetTitle>
-          <SheetDescription>A complete overview of the user's account and activity.</SheetDescription>
-        </SheetHeader>
-        <div className="mt-6">
-          {renderContent()}
-        </div>
-      </SheetContent>
-    </Sheet>
+    <>
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{isUserLoading ? <Skeleton className="h-6 w-40" /> : user?.full_name || "User Details"}</SheetTitle>
+            <SheetDescription>A complete overview of the user's account and activity.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            {renderContent()}
+          </div>
+        </SheetContent>
+      </Sheet>
+      <AlertDialog open={!!adjustmentDetails} onOpenChange={(isOpen) => !isOpen && setAdjustmentDetails(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Wallet Adjustment</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to {adjustmentDetails?.amount ?? 0 > 0 ? 'credit' : 'debit'} the wallet for <span className="font-semibold">{user?.full_name}</span> by <span className="font-semibold">₹{Math.abs(adjustmentDetails?.amount ?? 0).toLocaleString()}</span>.
+              <br />
+              Reason: "{adjustmentDetails?.description}"
+              <br /><br />
+              Are you sure you want to proceed? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAdjustment} disabled={adjustmentMutation.isPending}>
+              {adjustmentMutation.isPending ? "Processing..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
