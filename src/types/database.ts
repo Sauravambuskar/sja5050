@@ -16,6 +16,7 @@ export type AdminUserView = {
   join_date: string;
   kyc_status: string | null;
   wallet_balance: number;
+  role: 'user' | 'admin';
 };
 
 export type AdminInvestmentView = {

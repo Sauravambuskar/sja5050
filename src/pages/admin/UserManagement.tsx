@@ -9,10 +9,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
+import { EditUserDialog } from "@/components/admin/EditUserDialog";
 
 const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -28,6 +28,7 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -49,6 +50,11 @@ const UserManagement = () => {
   const handleViewDetails = (user: AdminUserView) => {
     setSelectedUser(user);
     setIsSheetOpen(true);
+  };
+
+  const handleEditUser = (user: AdminUserView) => {
+    setSelectedUser(user);
+    setIsEditUserDialogOpen(true);
   };
 
   return (
@@ -81,7 +87,7 @@ const UserManagement = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Wallet Balance</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>KYC Status</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -94,7 +100,7 @@ const UserManagement = () => {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                   </TableRow>
@@ -110,7 +116,11 @@ const UserManagement = () => {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>₹{user.wallet_balance.toLocaleString('en-IN')}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -135,7 +145,7 @@ const UserManagement = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleViewDetails(user)}>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit User</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-red-600">Suspend</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -156,6 +166,11 @@ const UserManagement = () => {
       <AddUserDialog
         isOpen={isAddUserDialogOpen}
         onOpenChange={setIsAddUserDialogOpen}
+      />
+      <EditUserDialog
+        user={selectedUser}
+        isOpen={isEditUserDialogOpen}
+        onOpenChange={setIsEditUserDialogOpen}
       />
     </>
   );
