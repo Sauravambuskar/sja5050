@@ -10,13 +10,13 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContaine
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { UserGrowthReportData, CommissionPayoutReportData, NewInvestmentsReportData } from "@/types/database";
+import { UserGrowthReportData, CommissionPayoutReportData, NewInvestmentsReportData, AumGrowthReportData } from "@/types/database";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type ReportType = 'user_growth' | 'commission_payouts' | 'new_investments';
-type ReportData = (UserGrowthReportData | CommissionPayoutReportData | NewInvestmentsReportData)[];
+type ReportType = 'user_growth' | 'commission_payouts' | 'new_investments' | 'aum_growth';
+type ReportData = (UserGrowthReportData | CommissionPayoutReportData | NewInvestmentsReportData | AumGrowthReportData)[];
 
 const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate?: Date): Promise<ReportData> => {
   let rpcName: string;
@@ -29,6 +29,9 @@ const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate
       break;
     case 'new_investments':
       rpcName = 'get_new_investments_report';
+      break;
+    case 'aum_growth':
+      rpcName = 'get_aum_growth_report';
       break;
     default:
       throw new Error('Invalid report type');
@@ -62,6 +65,7 @@ const Reporting = () => {
     user_growth: { dataKey: 'user_count', name: 'New Users', unit: '' },
     commission_payouts: { dataKey: 'total_commission', name: 'Commission Paid', unit: '₹' },
     new_investments: { dataKey: 'total_investment_amount', name: 'New Investment Volume', unit: '₹' },
+    aum_growth: { dataKey: 'total_aum', name: 'Assets Under Management', unit: '₹' },
   };
 
   const currentChartConfig = chartConfig[reportType];
@@ -106,7 +110,7 @@ const Reporting = () => {
                 <SelectItem value="user_growth">User Growth</SelectItem>
                 <SelectItem value="commission_payouts">Commission Payouts</SelectItem>
                 <SelectItem value="new_investments">New Investments</SelectItem>
-                <SelectItem value="aum" disabled>AUM Growth (soon)</SelectItem>
+                <SelectItem value="aum_growth">AUM Growth</SelectItem>
               </SelectContent>
             </Select>
             <Popover>

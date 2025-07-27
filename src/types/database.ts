@@ -187,6 +187,12 @@ export type NewInvestmentsReportData = {
   month: string;
 };
 
+export type AumGrowthReportData = {
+  month_start: string;
+  total_aum: number;
+  month: string;
+};
+
 export type Profile = {
   id: string;
   full_name: string | null;
