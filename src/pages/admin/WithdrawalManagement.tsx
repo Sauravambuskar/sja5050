@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminWithdrawalRequest } from "@/types/database";
@@ -68,6 +69,7 @@ const WithdrawalManagement = () => {
               <TableRow>
                 <TableHead>User Name</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Wallet Balance</TableHead>
                 <TableHead>Requested Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -76,15 +78,30 @@ const WithdrawalManagement = () => {
             <TableBody>
               {isLoading ? (
                 [...Array(4)].map((_, i) => (
-                  <TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell></TableRow>
+                  <TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell></TableRow>
                 ))
               ) : isError ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
               ) : (
                 requests?.map((request) => (
                   <TableRow key={request.request_id}>
                     <TableCell className="font-medium">{request.user_name}</TableCell>
                     <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="flex items-center gap-2">
+                      <span>₹{request.wallet_balance.toLocaleString('en-IN')}</span>
+                      {request.amount > request.wallet_balance && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertTriangle className="h-4 w-4 text-destructive" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Insufficient funds for this withdrawal.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </TableCell>
                     <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
                     <TableCell><Badge variant={request.status === "Completed" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                     <TableCell className="text-right">
