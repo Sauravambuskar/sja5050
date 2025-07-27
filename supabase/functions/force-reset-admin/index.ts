@@ -33,7 +33,6 @@ serve(async (req) => {
       console.log(`Found existing admin user (${existingUser.id}), deleting for a clean slate.`)
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(existingUser.id)
       if (deleteError) {
-        // If deletion fails, it's a critical issue, but we'll still try to proceed.
         console.error(`Failed to delete existing admin user. Error: ${deleteError.message}`)
       }
     }
