@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
+import { AddUserDialog } from "@/components/admin/AddUserDialog";
 
 const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -26,6 +27,7 @@ const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
 const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -58,7 +60,7 @@ const UserManagement = () => {
               <CardTitle>User Management</CardTitle>
               <CardDescription>Search, filter, and manage client accounts.</CardDescription>
             </div>
-            <Button size="sm" className="gap-1">
+            <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Add User
@@ -150,6 +152,10 @@ const UserManagement = () => {
         user={selectedUser}
         isOpen={isSheetOpen}
         onOpenChange={setIsSheetOpen}
+      />
+      <AddUserDialog
+        isOpen={isAddUserDialogOpen}
+        onOpenChange={setIsAddUserDialogOpen}
       />
     </>
   );
