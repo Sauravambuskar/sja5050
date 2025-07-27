@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Profile } from "@/types/database";
 import { useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const nomineeSchema = z.object({
   nominee_name: z.string().min(2, "Name must be at least 2 characters.").max(100).nullable(),
@@ -101,9 +102,20 @@ export const NomineeForm = ({ profile }: { profile: Profile }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Relationship</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Spouse" {...field} value={field.value || ''} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a relationship" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Spouse">Spouse</SelectItem>
+                        <SelectItem value="Child">Child</SelectItem>
+                        <SelectItem value="Parent">Parent</SelectItem>
+                        <SelectItem value="Sibling">Sibling</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
