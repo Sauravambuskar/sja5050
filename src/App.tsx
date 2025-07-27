@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Layouts
 import { PageLayout } from "./components/layout/PageLayout";
-import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Auth
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -51,13 +50,9 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/referrals" element={<Referrals />} />
               <Route path="/notifications" element={<Notifications />} />
-            </Route>
-          </Route>
-
-          {/* Admin Portal */}
-          <Route path="/admin" element={<ProtectedRoute />}>
-            <Route element={<AdminRoute />}>
-              <Route element={<AdminLayout />}>
+              
+              {/* Admin Portal Routes */}
+              <Route path="/admin" element={<AdminRoute />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="investments" element={<InvestmentManagement />} />
