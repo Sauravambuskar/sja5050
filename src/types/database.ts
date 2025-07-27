@@ -17,6 +17,7 @@ export type AdminUserView = {
   kyc_status: string | null;
   wallet_balance: number;
   role: 'user' | 'admin';
+  banned_until: string | null;
 };
 
 export type AdminInvestmentView = {
