@@ -74,7 +74,9 @@ export function Header() {
             <DropdownMenuItem asChild>
               <Link to="/profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="mailto:support@sja-foundation.com">Support</a>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               Logout
