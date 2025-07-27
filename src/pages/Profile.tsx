@@ -8,6 +8,7 @@ import { Profile as ProfileType } from "@/types/database";
 import { Loader2 } from "lucide-react";
 import { NomineeForm } from "@/components/profile/NomineeForm";
 import { useSearchParams } from "react-router-dom";
+import SecuritySettings from "@/components/profile/SecuritySettings";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -39,11 +40,12 @@ const Profile = () => {
         Manage your personal information, bank details, and KYC status.
       </p>
       <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="personal">Personal Info</TabsTrigger>
           <TabsTrigger value="bank">Bank Details</TabsTrigger>
           <TabsTrigger value="nominee">Nominee</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         <TabsContent value="personal" className="mt-6">
           <PersonalDetailsForm profile={profile} />
@@ -56,6 +58,9 @@ const Profile = () => {
         </TabsContent>
         <TabsContent value="kyc" className="mt-6">
           <KycDocuments />
+        </TabsContent>
+        <TabsContent value="security" className="mt-6">
+          <SecuritySettings />
         </TabsContent>
       </Tabs>
     </>
