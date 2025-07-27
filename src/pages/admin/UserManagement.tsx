@@ -40,7 +40,8 @@ const suspendUser = async ({ userId, suspend }: { userId: string; suspend: boole
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
-  const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUserView | null>(null);
+  const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
@@ -79,13 +80,13 @@ const UserManagement = () => {
     },
   });
 
-  const handleViewDetails = (user: AdminUserView) => {
-    setSelectedUser(user);
+  const handleViewDetails = (userId: string) => {
+    setSelectedUserIdForSheet(userId);
     setIsSheetOpen(true);
   };
 
   const handleEditUser = (user: AdminUserView) => {
-    setSelectedUser(user);
+    setSelectedUserForEdit(user);
     setIsEditUserDialogOpen(true);
   };
 
@@ -195,7 +196,7 @@ const UserManagement = () => {
                         <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleViewDetails(user)}>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewDetails(user.id)}>View Details</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>
@@ -211,9 +212,9 @@ const UserManagement = () => {
           </Table>
         </CardContent>
       </Card>
-      <UserDetailsSheet user={selectedUser} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
+      <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
       <AddUserDialog isOpen={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen} />
-      <EditUserDialog user={selectedUser} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
+      <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
       <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
