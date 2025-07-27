@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -16,9 +17,11 @@ import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { toast } from "sonner";
 
-const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
+const fetchUsers = async (searchTerm: string, kycStatus: string, accountStatus: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
-    search_text: searchTerm || null
+    search_text: searchTerm || null,
+    kyc_status_filter: kycStatus === 'all' ? null : kycStatus,
+    account_status_filter: accountStatus === 'all' ? null : accountStatus,
   });
   if (error) {
     throw new Error(error.message);
@@ -45,6 +48,8 @@ const UserManagement = () => {
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [kycStatusFilter, setKycStatusFilter] = useState("all");
+  const [accountStatusFilter, setAccountStatusFilter] = useState("all");
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -55,8 +60,8 @@ const UserManagement = () => {
   }, [searchTerm]);
 
   const { data: users, isLoading, isError, error } = useQuery<AdminUserView[]>({
-    queryKey: ['allUsersDetails', debouncedSearchTerm],
-    queryFn: () => fetchUsers(debouncedSearchTerm),
+    queryKey: ['allUsersDetails', debouncedSearchTerm, kycStatusFilter, accountStatusFilter],
+    queryFn: () => fetchUsers(debouncedSearchTerm, kycStatusFilter, accountStatusFilter),
   });
 
   const suspendMutation = useMutation({
@@ -111,8 +116,32 @@ const UserManagement = () => {
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add User</span>
             </Button>
           </div>
-          <div className="mt-4">
-            <Input placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <div className="mt-4 flex flex-col gap-4 md:flex-row">
+            <Input placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-grow" />
+            <div className="flex gap-4">
+              <Select value={kycStatusFilter} onValueChange={setKycStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Filter by KYC" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All KYC Statuses</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Pending Review">Pending Review</SelectItem>
+                  <SelectItem value="Not Submitted">Not Submitted</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={accountStatusFilter} onValueChange={setAccountStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Account Statuses</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
