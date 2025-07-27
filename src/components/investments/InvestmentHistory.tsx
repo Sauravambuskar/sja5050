@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { UserInvestment } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../auth/AuthProvider";
 
 const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
