@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
+import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -29,6 +30,7 @@ const adminNavItems = [
 export function Sidebar({ className }: { className?: string }) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
+  const { pendingKycCount, pendingWithdrawalsCount } = useAdminActionCounts();
 
   return (
     <aside className={cn("flex h-full flex-col border-r bg-background p-4", className)}>
@@ -84,15 +86,27 @@ export function Sidebar({ className }: { className?: string }) {
               end={item.to === "/admin"}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )
               }
             >
-              <item.icon className="mr-3 h-5 w-5" />
-              <span>{item.label}</span>
+              <div className="flex items-center">
+                <item.icon className="mr-3 h-5 w-5" />
+                <span>{item.label}</span>
+              </div>
+              {item.label === "KYC Toolkit" && pendingKycCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {pendingKycCount}
+                </Badge>
+              )}
+              {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {pendingWithdrawalsCount}
+                </Badge>
+              )}
             </NavLink>
           ))}
         </div>

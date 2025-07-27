@@ -40,7 +40,8 @@ const KycManagement = () => {
     onSuccess: (_, variables) => {
       toast.success(`Request has been ${variables.status.toLowerCase()}.`);
       queryClient.invalidateQueries({ queryKey: ['allKycRequests'] });
-      queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] }); // To update user status on user mgmt page
+      queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
     },
     onError: (error) => {
       toast.error(`Action failed: ${error.message}`);
