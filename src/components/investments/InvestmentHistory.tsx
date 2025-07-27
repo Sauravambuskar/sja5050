@@ -17,7 +17,7 @@ const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> =
       start_date,
       maturity_date,
       status,
-      investment_plans ( name )
+      investment_plans ( name, annual_rate )
     `)
     .eq('user_id', userId)
     .order('start_date', { ascending: false });
@@ -48,6 +48,7 @@ const InvestmentHistory = () => {
             <TableRow>
               <TableHead>Plan Name</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Daily Earnings</TableHead>
               <TableHead>Start Date</TableHead>
               <TableHead>Maturity Date</TableHead>
               <TableHead className="text-right">Status</TableHead>
@@ -59,6 +60,7 @@ const InvestmentHistory = () => {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
@@ -66,27 +68,37 @@ const InvestmentHistory = () => {
               ))
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-red-500">
+                <TableCell colSpan={6} className="text-center text-red-500">
                   Error: {error.message}
                 </TableCell>
               </TableRow>
             ) : investments && investments.length > 0 ? (
-              investments.map((investment) => (
-                <TableRow key={investment.id}>
-                  <TableCell className="font-medium">{investment.investment_plans?.[0]?.name || 'N/A'}</TableCell>
-                  <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
-                  <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
-                  <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant={investment.status === "Active" ? "default" : "secondary"}>
-                      {investment.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
+              investments.map((investment) => {
+                const plan = investment.investment_plans?.[0];
+                const dailyEarnings = plan && investment.status === 'Active'
+                  ? (investment.investment_amount * (plan.annual_rate / 100 / 365))
+                  : null;
+
+                return (
+                  <TableRow key={investment.id}>
+                    <TableCell className="font-medium">{plan?.name || 'N/A'}</TableCell>
+                    <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-green-600 font-medium">
+                      {dailyEarnings !== null ? `₹${dailyEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    </TableCell>
+                    <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
+                    <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={investment.status === "Active" ? "default" : "secondary"}>
+                        {investment.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   You have no investments yet.
                 </TableCell>
               </TableRow>

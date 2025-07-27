@@ -86,6 +86,7 @@ export type UserInvestment = {
   status: string;
   investment_plans: {
     name: string;
+    annual_rate: number;
   }[] | null;
 };
 
