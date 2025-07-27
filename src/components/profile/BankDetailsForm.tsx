@@ -17,22 +17,13 @@ const bankDetailsSchema = z.object({
   bank_ifsc_code: z.string().min(4, "IFSC code is too short").max(15).nullable(),
 });
 
-const updateProfile = async (values: z.infer<typeof bankDetailsSchema> & { profile: Profile }) => {
-  const { profile, ...bankValues } = values;
-  const { error } = await supabase.rpc('update_my_profile', {
-    p_full_name: profile.full_name,
-    p_phone: profile.phone,
-    p_dob: profile.dob,
-    p_address: profile.address,
-    p_city: profile.city,
-    p_state: profile.state,
-    p_pincode: profile.pincode,
-    p_nominee_name: profile.nominee_name,
-    p_nominee_relationship: profile.nominee_relationship,
-    p_nominee_dob: profile.nominee_dob,
-    p_bank_account_holder_name: bankValues.bank_account_holder_name,
-    p_bank_account_number: bankValues.bank_account_number,
-    p_bank_ifsc_code: bankValues.bank_ifsc_code,
+type BankDetailsFormValues = z.infer<typeof bankDetailsSchema>;
+
+const updateBankDetails = async (values: BankDetailsFormValues) => {
+  const { error } = await supabase.rpc('update_my_bank_details', {
+    p_bank_account_holder_name: values.bank_account_holder_name,
+    p_bank_account_number: values.bank_account_number,
+    p_bank_ifsc_code: values.bank_ifsc_code,
   });
 
   if (error) throw new Error(error.message);
@@ -56,7 +47,7 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
   }, [profile, form]);
 
   const mutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: updateBankDetails,
     onSuccess: () => {
       toast.success("Bank details updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
@@ -67,7 +58,7 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
   });
 
   const onSubmit = (values: z.infer<typeof bankDetailsSchema>) => {
-    mutation.mutate({ ...values, profile });
+    mutation.mutate(values);
   };
 
   return (

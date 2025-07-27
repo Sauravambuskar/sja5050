@@ -26,19 +26,17 @@ const profileSchema = z.object({
   pincode: z.string().max(10).nullable(),
 });
 
-const updateProfile = async (values: z.infer<typeof profileSchema> & { profile: Profile }) => {
-  const { profile, ...newValues } = values;
-  const { error } = await supabase.rpc('update_my_profile', {
-    p_full_name: newValues.full_name,
-    p_phone: newValues.phone,
-    p_dob: newValues.dob ? format(newValues.dob, 'yyyy-MM-dd') : null,
-    p_address: newValues.address,
-    p_city: newValues.city,
-    p_state: newValues.state,
-    p_pincode: newValues.pincode,
-    p_nominee_name: profile.nominee_name,
-    p_nominee_relationship: profile.nominee_relationship,
-    p_nominee_dob: profile.nominee_dob,
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const updatePersonalDetails = async (values: ProfileFormValues) => {
+  const { error } = await supabase.rpc('update_my_personal_details', {
+    p_full_name: values.full_name,
+    p_phone: values.phone,
+    p_dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null,
+    p_address: values.address,
+    p_city: values.city,
+    p_state: values.state,
+    p_pincode: values.pincode,
   });
 
   if (error) throw new Error(error.message);
@@ -46,7 +44,7 @@ const updateProfile = async (values: z.infer<typeof profileSchema> & { profile: 
 
 const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof profileSchema>>({
+  const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {},
   });
@@ -66,7 +64,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
   }, [profile, form]);
 
   const mutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: updatePersonalDetails,
     onSuccess: () => {
       toast.success("Profile updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
@@ -76,8 +74,8 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof profileSchema>) => {
-    mutation.mutate({ ...values, profile });
+  const onSubmit = (values: ProfileFormValues) => {
+    mutation.mutate(values);
   };
 
   return (

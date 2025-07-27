@@ -22,19 +22,13 @@ const nomineeSchema = z.object({
   nominee_dob: z.date().nullable(),
 });
 
-const updateProfile = async (values: z.infer<typeof nomineeSchema> & { profile: Profile }) => {
-  const { profile, ...nomineeValues } = values;
-  const { error } = await supabase.rpc('update_my_profile', {
-    p_full_name: profile.full_name,
-    p_phone: profile.phone,
-    p_dob: profile.dob,
-    p_address: profile.address,
-    p_city: profile.city,
-    p_state: profile.state,
-    p_pincode: profile.pincode,
-    p_nominee_name: nomineeValues.nominee_name,
-    p_nominee_relationship: nomineeValues.nominee_relationship,
-    p_nominee_dob: nomineeValues.nominee_dob ? format(nomineeValues.nominee_dob, 'yyyy-MM-dd') : null,
+type NomineeFormValues = z.infer<typeof nomineeSchema>;
+
+const updateNomineeDetails = async (values: NomineeFormValues) => {
+  const { error } = await supabase.rpc('update_my_nominee_details', {
+    p_nominee_name: values.nominee_name,
+    p_nominee_relationship: values.nominee_relationship,
+    p_nominee_dob: values.nominee_dob ? format(values.nominee_dob, 'yyyy-MM-dd') : null,
   });
 
   if (error) throw new Error(error.message);
@@ -42,7 +36,7 @@ const updateProfile = async (values: z.infer<typeof nomineeSchema> & { profile: 
 
 export const NomineeForm = ({ profile }: { profile: Profile }) => {
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof nomineeSchema>>({
+  const form = useForm<NomineeFormValues>({
     resolver: zodResolver(nomineeSchema),
     defaultValues: {
       nominee_name: "",
@@ -62,7 +56,7 @@ export const NomineeForm = ({ profile }: { profile: Profile }) => {
   }, [profile, form]);
 
   const mutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: updateNomineeDetails,
     onSuccess: () => {
       toast.success("Nominee details updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
@@ -72,8 +66,8 @@ export const NomineeForm = ({ profile }: { profile: Profile }) => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof nomineeSchema>) => {
-    mutation.mutate({ ...values, profile });
+  const onSubmit = (values: NomineeFormValues) => {
+    mutation.mutate(values);
   };
 
   return (
