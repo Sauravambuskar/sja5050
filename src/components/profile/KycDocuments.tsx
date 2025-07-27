@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { FileUp, AlertCircle, CheckCircle, XCircle, Info } from "lucide-react";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { KycDocument } from "@/types/database";

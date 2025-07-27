@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 const fetchNotifications = async (): Promise<NotificationType[]> => {
   const { data, error } = await supabase.rpc('get_my_notifications');
