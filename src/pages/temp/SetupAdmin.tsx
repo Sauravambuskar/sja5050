@@ -28,7 +28,8 @@ const SetupAdmin = () => {
       toast.success('Admin account configured successfully! Redirecting to login...', { id: toastId });
       setTimeout(() => navigate('/admin/login'), 2000);
 
-    } catch (error: any)      toast.error(`Setup failed: ${error.message}`, { id: toastId });
+    } catch (error: any) {
+      toast.error(`Setup failed: ${error.message}`, { id: toastId });
     } finally {
       setLoading(false);
     }
