@@ -6,6 +6,7 @@ import { AdminDashboardStats, AdminUserView, AdminHighValueTransaction } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
+import UserGrowthChart from "@/components/admin/UserGrowthChart";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -80,6 +81,10 @@ const AdminDashboard = () => {
             </Card>
           ))
         )}
+      </div>
+
+      <div className="mt-6">
+        <UserGrowthChart />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
