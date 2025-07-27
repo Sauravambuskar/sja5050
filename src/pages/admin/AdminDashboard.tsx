@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import UserGrowthChart from "@/components/admin/UserGrowthChart";
 import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
+import { Link } from "react-router-dom";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -45,10 +46,10 @@ const AdminDashboard = () => {
   });
 
   const kpiData = [
-    { title: "Total Users", value: stats?.total_users.toLocaleString() ?? "0", icon: Users },
-    { title: "Assets Under Management", value: `₹${stats?.aum.toLocaleString('en-IN') ?? "0"}`, icon: DollarSign },
-    { title: "Pending KYC Verifications", value: stats?.pending_kyc.toLocaleString() ?? "0", icon: UserCheck },
-    { title: "Pending Withdrawals", value: `${stats?.pending_withdrawals_count ?? "0"} (₹${stats?.pending_withdrawals_value.toLocaleString('en-IN') ?? "0"})`, icon: Hourglass },
+    { title: "Total Users", value: stats?.total_users.toLocaleString() ?? "0", icon: Users, to: "/admin/users" },
+    { title: "Assets Under Management", value: `₹${stats?.aum.toLocaleString('en-IN') ?? "0"}`, icon: DollarSign, to: "/admin/investments" },
+    { title: "Pending KYC Verifications", value: stats?.pending_kyc.toLocaleString() ?? "0", icon: UserCheck, to: "/admin/kyc" },
+    { title: "Pending Withdrawals", value: `${stats?.pending_withdrawals_count ?? "0"} (₹${stats?.pending_withdrawals_value.toLocaleString('en-IN') ?? "0"})`, icon: Hourglass, to: "/admin/withdrawals" },
   ];
 
   const getInitials = (name: string | null | undefined) => {
@@ -71,15 +72,17 @@ const AdminDashboard = () => {
           ))
         ) : (
           kpiData.map((kpi, index) => (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-              </CardContent>
-            </Card>
+            <Link to={kpi.to} key={index}>
+              <Card className="transition-all hover:bg-accent hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
+                  <kpi.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{kpi.value}</div>
+                </CardContent>
+              </Card>
+            </Link>
           ))
         )}
       </div>
