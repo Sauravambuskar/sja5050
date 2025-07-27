@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import DailyIncome from "@/components/dashboard/DailyIncome";
 import IncomeChart from "@/components/dashboard/IncomeChart";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
@@ -33,13 +35,6 @@ const Dashboard = () => {
     queryKey: ['recentTransactions'],
     queryFn: fetchRecentTransactions,
   });
-
-  const kpiData = [
-    { title: "Wallet Balance", value: `₹${(stats?.walletBalance ?? 0).toLocaleString('en-IN')}`, icon: DollarSign, change: "Available to invest" },
-    { title: "Active Investments", value: stats?.activeInvestments ?? 0, icon: Activity, change: "Currently growing" },
-    { title: "Total Referrals", value: stats?.referralCount ?? 0, icon: Users, change: "All time" },
-    { title: "KYC Status", value: stats?.kycStatus || 'Not Submitted', icon: CreditCard, change: "View Profile to update" },
-  ];
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -99,18 +94,67 @@ const Dashboard = () => {
         {statsLoading ? (
           [...Array(4)].map((_, i) => <Card key={i}><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent></Card>)
         ) : (
-          kpiData.map((kpi, index) => (
-            <Card key={index}>
+          <>
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-                <p className="text-xs text-muted-foreground">{kpi.change}</p>
+                <div className="text-2xl font-bold">₹{(stats?.walletBalance ?? 0).toLocaleString('en-IN')}</div>
+                <p className="text-xs text-muted-foreground">Available to invest</p>
               </CardContent>
             </Card>
-          ))
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {stats && stats.activeInvestments > 0 ? (
+                  <>
+                    <div className="text-2xl font-bold">{stats.activeInvestments}</div>
+                    <p className="text-xs text-muted-foreground">Currently growing</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">Get Started</div>
+                    <p className="text-xs text-muted-foreground">Make your first investment</p>
+                    <Button asChild size="sm" className="mt-2">
+                      <Link to="/investments">Browse Plans</Link>
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.referralCount ?? 0}</div>
+                <p className="text-xs text-muted-foreground">All time</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">KYC Status</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.kycStatus || 'Not Submitted'}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.kycStatus === 'Approved' ? 'Your account is verified' : 'Verification required'}
+                </p>
+                {stats?.kycStatus !== 'Approved' && (
+                  <Button asChild size="sm" className="mt-2">
+                    <Link to="/profile?tab=kyc">Complete KYC</Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
 
