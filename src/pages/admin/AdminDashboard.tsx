@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import UserGrowthChart from "@/components/admin/UserGrowthChart";
 import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -30,6 +32,9 @@ const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]
 };
 
 const AdminDashboard = () => {
+  const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   const { data: stats, isLoading: statsLoading } = useQuery<AdminDashboardStats>({
     queryKey: ['adminDashboardStats'],
     queryFn: fetchAdminStats,
@@ -44,6 +49,11 @@ const AdminDashboard = () => {
     queryKey: ['highValueTransactions'],
     queryFn: fetchHighValueTransactions,
   });
+
+  const handleViewDetails = (userId: string) => {
+    setSelectedUserIdForSheet(userId);
+    setIsSheetOpen(true);
+  };
 
   const kpiData = [
     { title: "Total Users", value: stats?.total_users.toLocaleString() ?? "0", icon: Users, to: "/admin/users" },
@@ -105,7 +115,7 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {recentUsers?.map((user) => (
-                  <div key={user.id} className="flex items-center">
+                  <button key={user.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewDetails(user.id)}>
                     <Avatar className="h-9 w-9">
                       <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
                     </Avatar>
@@ -116,7 +126,7 @@ const AdminDashboard = () => {
                     <div className="ml-auto text-sm text-muted-foreground">
                       {format(new Date(user.join_date), "PPP")}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -134,7 +144,7 @@ const AdminDashboard = () => {
             ) : highValueTransactions && highValueTransactions.length > 0 ? (
               <div className="space-y-4">
                 {highValueTransactions.map((txn) => (
-                  <div key={txn.id} className="flex items-center">
+                  <button key={txn.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewDetails(txn.user_id)}>
                     <Avatar className="h-9 w-9">
                       <AvatarFallback>{getInitials(txn.user_name)}</AvatarFallback>
                     </Avatar>
@@ -145,7 +155,7 @@ const AdminDashboard = () => {
                     <div className="ml-auto font-medium">
                       +₹{txn.amount.toLocaleString('en-IN')}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -156,6 +166,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+      <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
     </>
   );
 };
