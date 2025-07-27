@@ -2,7 +2,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "./components/theme/ThemeProvider";
 
 // Layouts
 import { PageLayout } from "./components/layout/PageLayout";
@@ -39,54 +38,46 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-      themes={['light', 'dark', 'warm', 'system']}
-    >
-      <TooltipProvider>
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Client Portal */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<PageLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/investments" element={<Investments />} />
-                <Route path="/wallet" element={<Wallet />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/referrals" element={<Referrals />} />
-                <Route path="/notifications" element={<Notifications />} />
+    <TooltipProvider>
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          {/* Client Portal */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<PageLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/investments" element={<Investments />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/referrals" element={<Referrals />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Route>
+          </Route>
+
+          {/* Admin Portal */}
+          <Route path="/admin" element={<ProtectedRoute />}>
+            <Route element={<AdminRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="investments" element={<InvestmentManagement />} />
+                <Route path="withdrawals" element={<WithdrawalManagement />} />
+                <Route path="kyc" element={<KycManagement />} />
+                <Route path="commissions" element={<CommissionRules />} />
+                <Route path="reports" element={<Reporting />} />
               </Route>
             </Route>
+          </Route>
 
-            {/* Admin Portal */}
-            <Route path="/admin" element={<ProtectedRoute />}>
-              <Route element={<AdminRoute />}>
-                <Route element={<AdminLayout />}>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="users" element={<UserManagement />} />
-                  <Route path="investments" element={<InvestmentManagement />} />
-                  <Route path="withdrawals" element={<WithdrawalManagement />} />
-                  <Route path="kyc" element={<KycManagement />} />
-                  <Route path="commissions" element={<CommissionRules />} />
-                  <Route path="reports" element={<Reporting />} />
-                </Route>
-              </Route>
-            </Route>
-
-            {/* Auth & Fallback */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+          {/* Auth & Fallback */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
