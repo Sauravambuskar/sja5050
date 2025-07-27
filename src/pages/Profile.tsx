@@ -1,12 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PersonalDetailsForm from "@/components/profile/PersonalDetailsForm";
 import BankDetailsForm from "@/components/profile/BankDetailsForm";
-import KycTab from "@/components/profile/KycTab";
+import KycDocuments from "@/components/profile/KycDocuments";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Profile as ProfileType } from "@/types/database";
 import { Loader2 } from "lucide-react";
 import { NomineeForm } from "@/components/profile/NomineeForm";
+import { useSearchParams } from "react-router-dom";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -15,6 +16,9 @@ const fetchMyProfile = async (): Promise<ProfileType> => {
 };
 
 const Profile = () => {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'personal';
+
   const { data: profile, isLoading, isError, error } = useQuery<ProfileType>({
     queryKey: ['myProfile'],
     queryFn: fetchMyProfile,
@@ -34,7 +38,7 @@ const Profile = () => {
       <p className="text-muted-foreground">
         Manage your personal information, bank details, and KYC status.
       </p>
-      <Tabs defaultValue="personal" className="mt-6">
+      <Tabs defaultValue={defaultTab} className="mt-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="personal">Personal Info</TabsTrigger>
           <TabsTrigger value="bank">Bank Details</TabsTrigger>
@@ -51,7 +55,7 @@ const Profile = () => {
           <NomineeForm profile={profile} />
         </TabsContent>
         <TabsContent value="kyc" className="mt-6">
-          <KycTab />
+          <KycDocuments />
         </TabsContent>
       </Tabs>
     </>
