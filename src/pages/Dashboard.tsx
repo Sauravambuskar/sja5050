@@ -107,14 +107,14 @@ const Dashboard = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {stats && stats.activeInvestments > 0 ? (
+                {stats && stats.totalInvested > 0 ? (
                   <>
-                    <div className="text-2xl font-bold">{stats.activeInvestments}</div>
-                    <p className="text-xs text-muted-foreground">Currently growing</p>
+                    <div className="text-2xl font-bold">₹{(stats?.totalInvested ?? 0).toLocaleString('en-IN')}</div>
+                    <p className="text-xs text-muted-foreground">{stats.activeInvestmentsCount} active investments</p>
                   </>
                 ) : (
                   <>

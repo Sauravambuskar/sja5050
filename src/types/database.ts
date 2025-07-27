@@ -96,7 +96,8 @@ export type Transaction = {
 
 export type DashboardStats = {
   fullName: string | null;
-  activeInvestments: number;
+  activeInvestmentsCount: number;
+  totalInvested: number;
   walletBalance: number;
   kycStatus: string | null;
   referralCount: number;
