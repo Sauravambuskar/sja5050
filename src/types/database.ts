@@ -173,3 +173,9 @@ export type IncomeHistoryReportData = {
   total_income: number;
   day: string;
 };
+
+export type NewInvestmentsReportData = {
+  month_start: string;
+  total_investment_amount: number;
+  month: string;
+};

@@ -10,14 +10,28 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContaine
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { UserGrowthReportData, CommissionPayoutReportData } from "@/types/database";
+import { UserGrowthReportData, CommissionPayoutReportData, NewInvestmentsReportData } from "@/types/database";
 import { toast } from "sonner";
 
-type ReportType = 'user_growth' | 'commission_payouts';
-type ReportData = UserGrowthReportData[] | CommissionPayoutReportData[];
+type ReportType = 'user_growth' | 'commission_payouts' | 'new_investments';
+type ReportData = (UserGrowthReportData | CommissionPayoutReportData | NewInvestmentsReportData)[];
 
 const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate?: Date): Promise<ReportData> => {
-  const rpcName = reportType === 'user_growth' ? 'get_user_growth_report' : 'get_commission_payout_report';
+  let rpcName: string;
+  switch (reportType) {
+    case 'user_growth':
+      rpcName = 'get_user_growth_report';
+      break;
+    case 'commission_payouts':
+      rpcName = 'get_commission_payout_report';
+      break;
+    case 'new_investments':
+      rpcName = 'get_new_investments_report';
+      break;
+    default:
+      throw new Error('Invalid report type');
+  }
+
   const params = {
     start_date_filter: startDate ? format(startDate, 'yyyy-MM-dd') : null,
     end_date_filter: endDate ? format(endDate, 'yyyy-MM-dd') : null,
@@ -26,10 +40,9 @@ const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate
   const { data, error } = await supabase.rpc(rpcName, params);
   if (error) throw new Error(error.message);
 
-  const key = reportType === 'user_growth' ? 'month_start' : 'month_start';
   return data.map((item: any) => ({
     ...item,
-    month: format(new Date(item[key]), "MMM yyyy"),
+    month: format(new Date(item.month_start), "MMM yyyy"),
   }));
 };
 
@@ -46,6 +59,7 @@ const Reporting = () => {
   const chartConfig = {
     user_growth: { dataKey: 'user_count', name: 'New Users', unit: '' },
     commission_payouts: { dataKey: 'total_commission', name: 'Commission Paid', unit: '₹' },
+    new_investments: { dataKey: 'total_investment_amount', name: 'New Investment Volume', unit: '₹' },
   };
 
   const currentChartConfig = chartConfig[reportType];
@@ -56,7 +70,7 @@ const Reporting = () => {
       return;
     }
     const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCsv(filename, reportData);
+    exportToCsv(filename, reportData as object[]);
     toast.success("Report exported successfully.");
   };
 
@@ -89,8 +103,8 @@ const Reporting = () => {
               <SelectContent>
                 <SelectItem value="user_growth">User Growth</SelectItem>
                 <SelectItem value="commission_payouts">Commission Payouts</SelectItem>
+                <SelectItem value="new_investments">New Investments</SelectItem>
                 <SelectItem value="aum" disabled>AUM Growth (soon)</SelectItem>
-                <SelectItem value="investments" disabled>New Investments (soon)</SelectItem>
               </SelectContent>
             </Select>
             <Popover>
