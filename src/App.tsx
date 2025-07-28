@@ -33,6 +33,10 @@ import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
 
+// Temporary Setup Page
+import MasterReset from "./pages/temp/MasterReset";
+
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,6 +45,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* ONE-TIME SETUP ROUTE */}
+          <Route path="/master-reset" element={<MasterReset />} />
+
           {/* Client Portal */}
           <Route element={<ProtectedRoute />}>
             <Route element={<PageLayout />}>
