@@ -63,6 +63,23 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
     },
   });
 
+  const handleQuickSelect = (type: 'min' | 'half' | 'max') => {
+    if (walletBalance === undefined) return;
+    let calculatedAmount = 0;
+    switch (type) {
+      case 'min':
+        calculatedAmount = plan.min_investment;
+        break;
+      case 'half':
+        calculatedAmount = walletBalance / 2;
+        break;
+      case 'max':
+        calculatedAmount = walletBalance;
+        break;
+    }
+    setAmount(String(Math.floor(calculatedAmount)));
+  };
+
   const handleSubmit = () => {
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
@@ -100,7 +117,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
             </span>
           )}
         </div>
-        <div className="grid gap-4 py-2">
+        <div className="grid gap-2 py-2">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="amount" className="text-right">
               Amount (₹)
@@ -113,6 +130,13 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
               className="col-span-3"
               placeholder={`e.g., ${plan.min_investment}`}
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <div className="col-start-2 col-span-3 flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleQuickSelect('min')}>Min</Button>
+              <Button variant="outline" size="sm" onClick={() => handleQuickSelect('half')} disabled={walletBalance === undefined}>50%</Button>
+              <Button variant="outline" size="sm" onClick={() => handleQuickSelect('max')} disabled={walletBalance === undefined}>Max</Button>
+            </div>
           </div>
         </div>
         <DialogFooter>
