@@ -1,9 +1,10 @@
 import { useAuth } from './AuthProvider';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -14,7 +15,7 @@ export const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => 
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?redirect_to=${location.pathname}`} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

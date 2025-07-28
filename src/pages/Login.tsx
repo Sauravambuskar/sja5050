@@ -2,24 +2,22 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
 
 function Login() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect_to');
+
   useEffect(() => {
     if (session) {
-      navigate("/");
+      navigate(redirectTo || "/");
     }
-  }, [session, navigate]);
+  }, [session, navigate, redirectTo]);
 
   return (
     <AuthLayout>
