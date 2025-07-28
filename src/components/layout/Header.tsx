@@ -5,7 +5,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "./Sidebar";
 import { Link, useNavigate } from "react-router-dom";
-import { ModeToggle } from "./ModeToggle";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -57,7 +56,6 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">
