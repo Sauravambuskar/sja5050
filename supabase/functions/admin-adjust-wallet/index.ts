@@ -36,63 +36,20 @@ serve(async (req) => {
     if (amount === 0) {
       return new Response(JSON.stringify({ error: 'Adjustment amount cannot be zero.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
-
-    // Can't adjust own wallet
     if (userId === adminUser.id) {
         return new Response(JSON.stringify({ error: 'Admins cannot adjust their own wallet.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Use pg_try_advisory_xact_lock to prevent race conditions on the wallet
-    const { error: lockError } = await supabaseAdmin.rpc('pg_try_advisory_xact_lock', { p_key: userId })
-    if (lockError) throw new Error(`Could not acquire lock on wallet: ${lockError.message}`)
-
-    // Update wallet balance
-    const { data: wallet, error: walletError } = await supabaseAdmin
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', userId)
-      .single()
-
-    if (walletError) throw new Error(`Could not fetch wallet: ${walletError.message}`)
-
-    const newBalance = wallet.balance + amount;
-    if (newBalance < 0) {
-        return new Response(JSON.stringify({ error: 'Adjustment would result in a negative balance.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    const { error: updateError } = await supabaseAdmin
-      .from('wallets')
-      .update({ balance: newBalance })
-      .eq('user_id', userId)
-
-    if (updateError) throw new Error(`Could not update wallet: ${updateError.message}`)
-
-    // Log the transaction
-    const transactionType = amount > 0 ? 'Adjustment (Credit)' : 'Adjustment (Debit)';
-    const { error: transactionError } = await supabaseAdmin
-      .from('transactions')
-      .insert({
-        user_id: userId,
-        type: transactionType,
-        amount: Math.abs(amount),
-        status: 'Completed',
-        description: `Admin: ${description}`
-      })
-
-    if (transactionError) throw new Error(`Could not log transaction: ${transactionError.message}`)
-    
-    // Send notification
-    const notificationTitle = amount > 0 ? 'Wallet Credited' : 'Wallet Debited';
-    const notificationDescription = `An administrator has adjusted your wallet balance by ₹${amount.toLocaleString()}. Reason: ${description}`;
-    await supabaseAdmin.from('notifications').insert({
-        user_id: userId,
-        title: notificationTitle,
-        description: notificationDescription,
-        type: 'info',
-        link_to: '/wallet'
+    // Call the secure RPC function
+    const { data: message, error: rpcError } = await supabaseAdmin.rpc('admin_adjust_wallet_balance', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_description: description
     })
 
-    return new Response(JSON.stringify({ message: 'Wallet adjusted successfully', newBalance }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    if (rpcError) throw rpcError
+
+    return new Response(JSON.stringify({ message }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

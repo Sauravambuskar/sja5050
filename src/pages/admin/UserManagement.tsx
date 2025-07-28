@@ -6,14 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, PlusCircle, Download } from "lucide-react";
+import { MoreHorizontal, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
-import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils";
@@ -46,7 +45,6 @@ const UserManagement = () => {
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -138,10 +136,6 @@ const UserManagement = () => {
               <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
                 <Download className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
-              </Button>
-              <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add User</span>
               </Button>
             </div>
           </div>
@@ -241,7 +235,6 @@ const UserManagement = () => {
         </CardContent>
       </Card>
       <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
-      <AddUserDialog isOpen={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen} />
       <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
       <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
         <AlertDialogContent>
