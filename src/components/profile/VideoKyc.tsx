@@ -61,12 +61,17 @@ export const VideoKyc = () => {
   });
 
   const startRecording = useCallback(async () => {
+    // Reset previous recording if any
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl);
+      setVideoUrl(null);
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.muted = true; // Mute self-preview
       }
 
       const options = {
@@ -87,8 +92,13 @@ export const VideoKyc = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
         const file = new File([blob], 'video-kyc.webm', { type: 'video/webm' });
         setRecordedVideo(file);
-        setVideoUrl(URL.createObjectURL(blob));
+        const url = URL.createObjectURL(blob);
+        setVideoUrl(url);
         setRecordingStatus('recorded');
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+          videoRef.current.src = url;
+        }
       };
 
       mediaRecorder.start();
@@ -97,7 +107,7 @@ export const VideoKyc = () => {
       console.error("Error accessing media devices.", err);
       toast.error("Could not access camera/microphone. Please check permissions.");
     }
-  }, []);
+  }, [videoUrl]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -106,9 +116,6 @@ export const VideoKyc = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
     }
   }, []);
 
@@ -124,6 +131,10 @@ export const VideoKyc = () => {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl(null);
     }
+    if (videoRef.current) {
+      videoRef.current.src = "";
+      videoRef.current.srcObject = null;
+    }
     setRecordingStatus('idle');
   };
 
@@ -134,8 +145,22 @@ export const VideoKyc = () => {
         <CardDescription>Record a short video of yourself holding your ID for verification.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="w-full aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
-          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" src={videoUrl || undefined}></video>
+        <div className="w-full aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center relative">
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            controls={recordingStatus === 'recorded'}
+            muted={recordingStatus !== 'recorded'}
+            className="w-full h-full object-cover"
+          >
+          </video>
+          {recordingStatus === 'idle' && (
+            <div className="absolute text-center text-white pointer-events-none">
+              <Video className="mx-auto h-12 w-12 mb-2" />
+              <p>Click "Start Video KYC" to begin</p>
+            </div>
+          )}
         </div>
         <div className="mt-4 flex justify-center gap-4">
           {recordingStatus === 'idle' && (
