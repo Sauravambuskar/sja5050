@@ -16,6 +16,10 @@ import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
 import { VideoKyc } from "./VideoKyc";
 
+// --- Constants ---
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+
 // --- API Functions ---
 
 const fetchKycDocuments = async (userId: string): Promise<KycDocument[]> => {
@@ -92,6 +96,33 @@ const KycDocuments = () => {
     },
   });
 
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setFile(null);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File is too large. Maximum size is 5MB.");
+      event.target.value = ""; // Clear the input
+      setFile(null);
+      return;
+    }
+
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a JPG, PNG, or PDF.");
+      event.target.value = ""; // Clear the input
+      setFile(null);
+      return;
+    }
+
+    setFile(file);
+  };
+
   const handleUpload = (documentType: 'Aadhaar Card' | 'PAN Card') => {
     const file = documentType === 'Aadhaar Card' ? aadhaarFile : panFile;
     if (!user || !file) {
@@ -125,11 +156,11 @@ const KycDocuments = () => {
         <Card>
           <CardHeader>
             <CardTitle>Upload KYC Documents</CardTitle>
-            <CardDescription>Upload your documents for verification. Ensure files are clear and legible.</CardDescription>
+            <CardDescription>Upload your documents for verification. Max 5MB. (JPG, PNG, PDF)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2"><Label htmlFor="aadhaar">Aadhaar Card (Front & Back)</Label><div className="flex items-center gap-2"><Input id="aadhaar" type="file" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('Aadhaar Card')} disabled={!aadhaarFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
-            <div className="space-y-2"><Label htmlFor="pan">PAN Card</Label><div className="flex items-center gap-2"><Input id="pan" type="file" onChange={(e) => setPanFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('PAN Card')} disabled={!panFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
+            <div className="space-y-2"><Label htmlFor="aadhaar">Aadhaar Card (Front & Back)</Label><div className="flex items-center gap-2"><Input id="aadhaar" type="file" onChange={(e) => handleFileChange(e, setAadhaarFile)} /><Button onClick={() => handleUpload('Aadhaar Card')} disabled={!aadhaarFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
+            <div className="space-y-2"><Label htmlFor="pan">PAN Card</Label><div className="flex items-center gap-2"><Input id="pan" type="file" onChange={(e) => handleFileChange(e, setPanFile)} /><Button onClick={() => handleUpload('PAN Card')} disabled={!panFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
             {mutation.isPending && <p className="text-sm text-muted-foreground">Uploading file, please wait...</p>}
             {profileLoading ? <Skeleton className="h-12 w-full" /> : (
               <div className={cn("mt-4 flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>

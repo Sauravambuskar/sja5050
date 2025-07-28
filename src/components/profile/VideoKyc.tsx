@@ -1,11 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../auth/AuthProvider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Video, StopCircle, Upload, RefreshCw, Loader2 } from 'lucide-react';
+import { Video, StopCircle, Upload, RefreshCw, Loader2, VideoOff } from 'lucide-react';
 
 const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) => {
   const fileName = `${userId}/video-kyc-${Date.now()}.webm`;
@@ -39,12 +39,21 @@ const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) 
 export const VideoKyc = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isSupported, setIsSupported] = useState(true);
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'recorded' | 'uploading'>('idle');
   const [recordedVideo, setRecordedVideo] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    setIsSupported(supported);
+    if (!supported) {
+      toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
+    }
+  }, []);
 
   const mutation = useMutation({
     mutationFn: uploadVideoKyc,
@@ -61,7 +70,6 @@ export const VideoKyc = () => {
   });
 
   const startRecording = useCallback(async () => {
-    // Reset previous recording if any
     if (videoUrl) {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl(null);
@@ -137,6 +145,23 @@ export const VideoKyc = () => {
     }
     setRecordingStatus('idle');
   };
+
+  if (!isSupported) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Video KYC</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border rounded-md">
+            <VideoOff className="h-12 w-12 mb-4" />
+            <p className="font-semibold">Video Recording Not Supported</p>
+            <p className="text-sm">To complete Video KYC, please use a modern browser like Chrome or Firefox.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
