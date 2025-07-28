@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
+import { VideoKyc } from "./VideoKyc";
 
 // --- API Functions ---
 
@@ -119,43 +120,46 @@ const KycDocuments = () => {
   };
 
   return (
-    <div className="grid gap-6 pt-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload KYC Documents</CardTitle>
-          <CardDescription>Upload your documents for verification. Ensure files are clear and legible.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2"><Label htmlFor="aadhaar">Aadhaar Card (Front & Back)</Label><div className="flex items-center gap-2"><Input id="aadhaar" type="file" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('Aadhaar Card')} disabled={!aadhaarFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
-          <div className="space-y-2"><Label htmlFor="pan">PAN Card</Label><div className="flex items-center gap-2"><Input id="pan" type="file" onChange={(e) => setPanFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('PAN Card')} disabled={!panFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
-          {mutation.isPending && <p className="text-sm text-muted-foreground">Uploading file, please wait...</p>}
-          {profileLoading ? <Skeleton className="h-12 w-full" /> : (
-            <div className={cn("mt-4 flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Submitted Documents</CardTitle><CardDescription>History of your submitted documents.</CardDescription></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Document Name</TableHead><TableHead>Submission Date</TableHead><TableHead className="text-right">Status</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {docsLoading ? ([...Array(2)].map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell className="text-right"><Skeleton className="h-6 w-20 ml-auto" /></TableCell></TableRow>))) : documents && documents.length > 0 ? (
-                documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell>
-                      <div className="font-medium">{doc.document_type}</div>
-                      {doc.status === 'Rejected' && doc.admin_notes && (<p className="text-xs text-destructive mt-1">Note: {doc.admin_notes}</p>)}
-                    </TableCell>
-                    <TableCell>{format(new Date(doc.submitted_at), "PPP")}</TableCell>
-                    <TableCell className="text-right"><Badge variant={doc.status === "Approved" ? "default" : doc.status === "Pending" ? "outline" : "destructive"}>{doc.status}</Badge></TableCell>
-                  </TableRow>
-                ))
-              ) : (<TableRow><TableCell colSpan={3} className="h-24 text-center">No documents submitted yet.</TableCell></TableRow>)}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid gap-6 pt-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload KYC Documents</CardTitle>
+            <CardDescription>Upload your documents for verification. Ensure files are clear and legible.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2"><Label htmlFor="aadhaar">Aadhaar Card (Front & Back)</Label><div className="flex items-center gap-2"><Input id="aadhaar" type="file" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('Aadhaar Card')} disabled={!aadhaarFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
+            <div className="space-y-2"><Label htmlFor="pan">PAN Card</Label><div className="flex items-center gap-2"><Input id="pan" type="file" onChange={(e) => setPanFile(e.target.files?.[0] || null)} /><Button onClick={() => handleUpload('PAN Card')} disabled={!panFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
+            {mutation.isPending && <p className="text-sm text-muted-foreground">Uploading file, please wait...</p>}
+            {profileLoading ? <Skeleton className="h-12 w-full" /> : (
+              <div className={cn("mt-4 flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Submitted Documents</CardTitle><CardDescription>History of your submitted documents.</CardDescription></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Document Name</TableHead><TableHead>Submission Date</TableHead><TableHead className="text-right">Status</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {docsLoading ? ([...Array(2)].map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell className="text-right"><Skeleton className="h-6 w-20 ml-auto" /></TableCell></TableRow>))) : documents && documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>
+                        <div className="font-medium">{doc.document_type}</div>
+                        {doc.status === 'Rejected' && doc.admin_notes && (<p className="text-xs text-destructive mt-1">Note: {doc.admin_notes}</p>)}
+                      </TableCell>
+                      <TableCell>{format(new Date(doc.submitted_at), "PPP")}</TableCell>
+                      <TableCell className="text-right"><Badge variant={doc.status === "Approved" ? "default" : doc.status === "Pending" ? "outline" : "destructive"}>{doc.status}</Badge></TableCell>
+                    </TableRow>
+                  ))
+                ) : (<TableRow><TableCell colSpan={3} className="h-24 text-center">No documents submitted yet.</TableCell></TableRow>)}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+      <VideoKyc />
     </div>
   );
 };
