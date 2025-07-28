@@ -64,6 +64,28 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
+
+  .warm {
+    --background: 39 53% 96%;
+    --foreground: 25 45% 25%;
+    --card: 39 53% 96%;
+    --card-foreground: 25 45% 25%;
+    --popover: 39 53% 96%;
+    --popover-foreground: 25 45% 25%;
+    --primary: 24 84% 50%;
+    --primary-foreground: 30 100% 98%;
+    --secondary: 30 20% 40%;
+    --secondary-foreground: 30 100% 98%;
+    --muted: 40 50% 94%;
+    --muted-foreground: 30 10% 50%;
+    --accent: 40 50% 90%;
+    --accent-foreground: 25 45% 25%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 30 100% 98%;
+    --border: 30 20% 85%;
+    --input: 30 20% 85%;
+    --ring: 24 84% 50%;
+  }
 }
 
 @layer base {
