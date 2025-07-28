@@ -9,6 +9,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { ModeToggle } from "./ModeToggle";
 
 export function Header() {
   const { user } = useAuth();
@@ -56,6 +57,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">

@@ -7,7 +7,9 @@ import { AuthProvider } from "./components/auth/AuthProvider";
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider
     attribute="class"
-    forcedTheme="light"
+    defaultTheme="system"
+    enableSystem
+    disableTransitionOnChange
   >
     <AuthProvider>
       <App />
