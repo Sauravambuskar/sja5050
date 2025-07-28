@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { NomineeForm } from "@/components/profile/NomineeForm";
 import { useSearchParams } from "react-router-dom";
 import SecuritySettings from "@/components/profile/SecuritySettings";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -39,30 +40,34 @@ const Profile = () => {
       <p className="text-muted-foreground">
         Manage your personal information, bank details, and KYC status.
       </p>
-      <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="personal">Personal Info</TabsTrigger>
-          <TabsTrigger value="bank">Bank Details</TabsTrigger>
-          <TabsTrigger value="nominee">Nominee</TabsTrigger>
-          <TabsTrigger value="kyc">KYC</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
-        <TabsContent value="personal" className="mt-6">
-          <PersonalDetailsForm profile={profile} />
-        </TabsContent>
-        <TabsContent value="bank" className="mt-6">
-          <BankDetailsForm profile={profile} />
-        </TabsContent>
-        <TabsContent value="nominee" className="mt-6">
-          <NomineeForm profile={profile} />
-        </TabsContent>
-        <TabsContent value="kyc" className="mt-6">
-          <KycDocuments />
-        </TabsContent>
-        <TabsContent value="security" className="mt-6">
-          <SecuritySettings />
-        </TabsContent>
-      </Tabs>
+      
+      <div className="mt-6 space-y-6">
+        <ProfileAvatar />
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="personal">Personal Info</TabsTrigger>
+            <TabsTrigger value="bank">Bank Details</TabsTrigger>
+            <TabsTrigger value="nominee">Nominee</TabsTrigger>
+            <TabsTrigger value="kyc">KYC</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+          </TabsList>
+          <TabsContent value="personal" className="mt-6">
+            <PersonalDetailsForm profile={profile} />
+          </TabsContent>
+          <TabsContent value="bank" className="mt-6">
+            <BankDetailsForm profile={profile} />
+          </TabsContent>
+          <TabsContent value="nominee" className="mt-6">
+            <NomineeForm profile={profile} />
+          </TabsContent>
+          <TabsContent value="kyc" className="mt-6">
+            <KycDocuments />
+          </TabsContent>
+          <TabsContent value="security" className="mt-6">
+            <SecuritySettings />
+          </TabsContent>
+        </Tabs>
+      </div>
     </>
   );
 };
