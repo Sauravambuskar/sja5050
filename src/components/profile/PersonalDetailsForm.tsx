@@ -45,6 +45,7 @@ const updatePersonalDetails = async (values: ProfileFormValues) => {
   });
 
   if (error) throw new Error(error.message);
+  return values; // Pass values to onSuccess
 };
 
 const uploadAvatar = async ({ userId, file }: { userId: string; file: File }) => {
@@ -85,9 +86,20 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
 
   const detailsMutation = useMutation({
     mutationFn: updatePersonalDetails,
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast.success("Profile updated successfully!");
+      
+      // Also update the auth user metadata for immediate UI feedback
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: data.full_name }
+      });
+
+      if (error) {
+        toast.error("Could not update name in header: " + error.message);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
     },
     onError: (error) => {
       toast.error(`Update failed: ${error.message}`);
