@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositForm from "@/components/wallet/DepositForm";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { useState } from "react";
+import { usePagination, DOTS } from "@/hooks/usePagination";
 
 const PAGE_SIZE = 10;
 
@@ -54,6 +55,12 @@ const Wallet = () => {
   const { data: totalTransactions } = useQuery<number>({
     queryKey: ['transactionsCount'],
     queryFn: fetchTransactionsCount,
+  });
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: totalTransactions || 0,
+    pageSize: PAGE_SIZE,
   });
 
   const pageCount = totalTransactions ? Math.ceil(totalTransactions / PAGE_SIZE) : 0;
@@ -184,13 +191,18 @@ const Wallet = () => {
                       <PaginationItem>
                         <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
                       </PaginationItem>
-                      {[...Array(pageCount)].map((_, i) => (
-                        <PaginationItem key={i}>
-                          <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1); }} isActive={currentPage === i + 1}>
-                            {i + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
+                      {paginationRange?.map((pageNumber, index) => {
+                        if (pageNumber === DOTS) {
+                          return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
+                        }
+                        return (
+                          <PaginationItem key={pageNumber}>
+                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
+                              {pageNumber}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
                       <PaginationItem>
                         <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
                       </PaginationItem>
