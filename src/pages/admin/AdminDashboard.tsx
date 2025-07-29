@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import UserGrowthChart from "@/components/admin/UserGrowthChart";
-import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
+import AumGrowthChart from "@/components/admin/AumGrowthChart";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
@@ -99,7 +99,7 @@ const AdminDashboard = () => {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <UserGrowthChart />
-        <CommissionPayoutChart />
+        <AumGrowthChart />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
