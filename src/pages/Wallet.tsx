@@ -14,6 +14,7 @@ import DepositForm from "@/components/wallet/DepositForm";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { useState } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
+import { useSearchParams } from "react-router-dom";
 
 const PAGE_SIZE = 10;
 
@@ -39,7 +40,9 @@ const fetchTransactionsCount = async (): Promise<number> => {
 };
 
 const Wallet = () => {
+  const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
+  const defaultTab = searchParams.get("tab") || "history";
 
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
@@ -131,7 +134,7 @@ const Wallet = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="history" className="mt-6">
+      <Tabs defaultValue={defaultTab} className="mt-6">
         <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="deposit">Deposit</TabsTrigger>
