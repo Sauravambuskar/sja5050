@@ -130,6 +130,7 @@ export type Referral = {
   full_name: string;
   join_date: string;
   kyc_status: string;
+  has_invested: boolean;
 };
 
 export type UserGrowthReportData = {

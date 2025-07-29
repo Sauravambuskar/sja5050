@@ -33,7 +33,8 @@ const ReferralTree = () => {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Join Date</TableHead>
-              <TableHead className="text-right">KYC Status</TableHead>
+              <TableHead>KYC Status</TableHead>
+              <TableHead className="text-right">Investment Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -42,7 +43,8 @@ const ReferralTree = () => {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-6 w-20 ml-auto" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-24 ml-auto" /></TableCell>
                 </TableRow>
               ))
             ) : referrals && referrals.length > 0 ? (
@@ -50,16 +52,21 @@ const ReferralTree = () => {
                 <TableRow key={referral.id}>
                   <TableCell className="font-medium">{referral.full_name}</TableCell>
                   <TableCell>{format(new Date(referral.join_date), "PPP")}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
                     <Badge variant={referral.kyc_status === "Approved" ? "default" : "outline"}>
                       {referral.kyc_status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={referral.has_invested ? "default" : "secondary"}>
+                      {referral.has_invested ? "Active" : "No Investments"}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">You haven't referred anyone yet.</TableCell>
+                <TableCell colSpan={4} className="h-24 text-center">You haven't referred anyone yet.</TableCell>
               </TableRow>
             )}
           </TableBody>
