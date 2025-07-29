@@ -11,6 +11,7 @@ import DailyIncome from "@/components/dashboard/DailyIncome";
 import IncomeChart from "@/components/dashboard/IncomeChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { KycAlertBanner } from "@/components/dashboard/KycAlertBanner";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
@@ -96,6 +97,8 @@ const Dashboard = () => {
       <p className="text-muted-foreground">
         Here's a summary of your portfolio and activities.
       </p>
+
+      {!statsLoading && <KycAlertBanner status={stats?.kycStatus} />}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
