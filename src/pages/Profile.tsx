@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { NomineeForm } from "@/components/profile/NomineeForm";
 import { useSearchParams } from "react-router-dom";
 import SecuritySettings from "@/components/profile/SecuritySettings";
+import { useMemo } from "react";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -18,12 +19,22 @@ const fetchMyProfile = async (): Promise<ProfileType> => {
 
 const Profile = () => {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'personal';
+  const tabFromUrl = searchParams.get('tab');
 
   const { data: profile, isLoading, isError, error } = useQuery<ProfileType>({
     queryKey: ['myProfile'],
     queryFn: fetchMyProfile,
   });
+
+  const defaultTab = useMemo(() => {
+    if (tabFromUrl) {
+      return tabFromUrl;
+    }
+    if (profile && profile.kyc_status !== 'Approved') {
+      return 'kyc';
+    }
+    return 'personal';
+  }, [tabFromUrl, profile]);
 
   if (isLoading) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;

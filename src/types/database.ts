@@ -203,6 +203,7 @@ export type Profile = {
   city: string | null;
   state: string | null;
   pincode: string | null;
+  kyc_status: string | null;
   nominee_name: string | null;
   nominee_relationship: string | null;
   nominee_dob: string | null;
