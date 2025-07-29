@@ -29,10 +29,8 @@ const InvestmentPlans = () => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 mt-1 w-1/2" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 mb-2" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-5 w-full mt-2" /></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>
-        ))}
+      <div className="flex justify-center pt-4">
+        <Skeleton className="h-80 w-full max-w-md" />
       </div>
     );
   }
@@ -43,11 +41,11 @@ const InvestmentPlans = () => {
 
   return (
     <>
-      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="flex justify-center pt-4">
         {plans?.map((plan) => {
           const monthlyRate = plan.annual_rate / 12;
           return (
-            <Card key={plan.id} className="flex flex-col">
+            <Card key={plan.id} className="flex w-full max-w-md flex-col">
               <CardHeader>
                 <CardTitle>{plan.name}</CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
