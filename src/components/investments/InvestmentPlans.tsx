@@ -53,16 +53,16 @@ const InvestmentPlans = () => {
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
-                <div className="text-3xl font-bold">{plan.annual_rate}%</div>
+                <div className="text-3xl font-bold">{monthlyRate.toFixed(2)}%</div>
                 <p className="text-sm text-muted-foreground">
-                  Annually ({monthlyRate.toFixed(2)}% Monthly) for {plan.duration_months} Months
+                  Monthly Return for {plan.duration_months} Months
                 </p>
                 <p className="text-sm font-semibold mt-2">
                   ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}
                 </p>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Invest Now</Button>
+                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Deposit Now</Button>
               </CardFooter>
             </Card>
           );

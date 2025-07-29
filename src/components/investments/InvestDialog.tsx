@@ -53,13 +53,13 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
   const mutation = useMutation({
     mutationFn: invest,
     onSuccess: () => {
-      toast.success("Investment successful!");
+      toast.success("Deposit successful!");
       queryClient.invalidateQueries({ queryKey: ["userInvestments"] });
       queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
       onClose();
     },
     onError: (error) => {
-      toast.error(`Investment failed: ${error.message}`);
+      toast.error(`Deposit failed: ${error.message}`);
     },
   });
 
@@ -83,7 +83,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
   const handleSubmit = () => {
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      toast.error("Please enter a valid investment amount.");
+      toast.error("Please enter a valid deposit amount.");
       return;
     }
     if (numericAmount < plan.min_investment) {
@@ -95,7 +95,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
       return;
     }
     if (walletBalance !== undefined && numericAmount > walletBalance) {
-      toast.error("Investment amount cannot exceed your wallet balance.");
+      toast.error("Deposit amount cannot exceed your wallet balance.");
       return;
     }
     mutation.mutate({ planId: plan.id, amount: numericAmount });
@@ -107,14 +107,14 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invest in {plan.name}</DialogTitle>
+          <DialogTitle>Deposit into {plan.name}</DialogTitle>
           <DialogDescription>
-            Return: {plan.annual_rate}% annually ({monthlyRate.toFixed(2)}% monthly).
-            Investment Range: ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}.
+            Return: {monthlyRate.toFixed(2)}% monthly.
+            Deposit Range: ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}.
           </DialogDescription>
         </DialogHeader>
         <div className="text-sm text-muted-foreground">
-          Available to invest: 
+          Available to deposit: 
           {isBalanceLoading ? (
             <Skeleton className="inline-block h-4 w-20 ml-1" />
           ) : (
@@ -148,7 +148,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={mutation.isPending}>
-            {mutation.isPending ? "Investing..." : "Confirm Investment"}
+            {mutation.isPending ? "Depositing..." : "Deposit Now"}
           </Button>
         </DialogFooter>
       </DialogContent>
