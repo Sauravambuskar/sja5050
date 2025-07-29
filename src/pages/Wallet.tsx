@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp, ArrowRightLeft } from "lucide-react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +14,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { useSearchParams } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const PAGE_SIZE = 10;
 
@@ -43,6 +43,7 @@ const Wallet = () => {
   const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const defaultTab = searchParams.get("tab") || "history";
+  const isMobile = useIsMobile();
 
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
@@ -70,44 +71,125 @@ const Wallet = () => {
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'Deposit':
-        return <ArrowDown className="h-4 w-4 text-green-500" />;
-      case 'Withdrawal':
-        return <ArrowUp className="h-4 w-4 text-red-500" />;
-      case 'Investment':
-        return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
-      case 'Commission':
-        return <ArrowDown className="h-4 w-4 text-green-500" />;
-      default:
-        return <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />;
+      case 'Deposit': case 'Commission': return <ArrowDown className="h-5 w-5 text-green-500" />;
+      case 'Withdrawal': case 'Investment': return <ArrowUp className="h-5 w-5 text-red-500" />;
+      default: return <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
   const getTransactionAmountClass = (type: string) => {
     switch (type) {
-      case 'Deposit':
-      case 'Commission':
-        return 'text-green-600';
-      case 'Withdrawal':
-      case 'Investment':
-        return 'text-destructive';
-      default:
-        return '';
+      case 'Deposit': case 'Commission': return 'text-green-600';
+      case 'Withdrawal': case 'Investment': return 'text-destructive';
+      default: return '';
     }
   };
 
   const getTransactionAmountPrefix = (type: string) => {
     switch (type) {
-      case 'Deposit':
-      case 'Commission':
-        return '+';
-      case 'Withdrawal':
-      case 'Investment':
-        return '-';
-      default:
-        return '';
+      case 'Deposit': case 'Commission': return '+';
+      case 'Withdrawal': case 'Investment': return '-';
+      default: return '';
     }
   };
+
+  const renderPagination = () => (
+    pageCount > 1 && (
+      <Pagination className="mt-6">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+          {paginationRange?.map((pageNumber, index) => {
+            if (pageNumber === DOTS) {
+              return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
+            }
+            return (
+              <PaginationItem key={pageNumber}>
+                <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+          <PaginationItem>
+            <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    )
+  );
+
+  const renderDesktopView = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[50px] text-center">Type</TableHead>
+          <TableHead>Details</TableHead>
+          <TableHead className="text-right">Amount</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {areTransactionsLoading && !transactions ? (
+          [...Array(PAGE_SIZE)].map((_, i) => (
+            <TableRow key={i}>
+              <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></TableCell>
+              <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+            </TableRow>
+          ))
+        ) : transactions && transactions.length > 0 ? (
+          transactions.map((txn) => (
+            <TableRow key={txn.id}>
+              <TableCell>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                  {getTransactionIcon(txn.type)}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="font-medium">{txn.description || txn.type}</div>
+                <div className="text-sm text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
+              </TableCell>
+              <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
+                {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={3} className="text-center h-24">No transactions yet.</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const renderMobileView = () => (
+    <div className="space-y-3">
+      {areTransactionsLoading && !transactions ? (
+        [...Array(PAGE_SIZE)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+      ) : transactions && transactions.length > 0 ? (
+        transactions.map((txn) => (
+          <Card key={txn.id}>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted flex-shrink-0">
+                {getTransactionIcon(txn.type)}
+              </div>
+              <div className="flex-grow space-y-0.5">
+                <div className="font-medium">{txn.description || txn.type}</div>
+                <div className="text-xs text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
+              </div>
+              <div className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
+                {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No transactions yet.</div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -147,71 +229,8 @@ const Wallet = () => {
                 <CardDescription>A record of all your wallet activities.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px] text-center">Type</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {areTransactionsLoading && !transactions ? (
-                      [...Array(PAGE_SIZE)].map((_, i) => (
-                        <TableRow key={i}>
-                          <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
-                          <TableCell><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></TableCell>
-                          <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : transactions && transactions.length > 0 ? (
-                      transactions.map((txn) => (
-                        <TableRow key={txn.id}>
-                          <TableCell>
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                              {getTransactionIcon(txn.type)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{txn.description || txn.type}</div>
-                            <div className="text-sm text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
-                          </TableCell>
-                          <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
-                            {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24">No transactions yet.</TableCell>
-                      </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-                {pageCount > 1 && (
-                  <Pagination className="mt-6">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
-                      </PaginationItem>
-                      {paginationRange?.map((pageNumber, index) => {
-                        if (pageNumber === DOTS) {
-                          return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
-                        }
-                        return (
-                          <PaginationItem key={pageNumber}>
-                            <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
-                              {pageNumber}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-                      <PaginationItem>
-                        <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
+              {isMobile ? renderMobileView() : renderDesktopView()}
+              {renderPagination()}
             </CardContent>
           </Card>
         </TabsContent>
