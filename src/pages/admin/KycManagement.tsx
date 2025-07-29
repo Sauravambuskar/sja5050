@@ -12,6 +12,9 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState } from "react";
 import { KycViewerDialog } from "@/components/admin/KycViewerDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const fetchKycRequests = async (): Promise<AdminKycRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_kyc_requests');
@@ -31,6 +34,8 @@ const processKycRequest = async ({ requestId, status, notes }: { requestId: stri
 const KycManagement = () => {
   const queryClient = useQueryClient();
   const [viewingRequest, setViewingRequest] = useState<AdminKycRequest | null>(null);
+  const [rejectionRequest, setRejectionRequest] = useState<AdminKycRequest | null>(null);
+  const [rejectionNotes, setRejectionNotes] = useState("");
 
   const { data: kycRequests, isLoading, isError, error } = useQuery<AdminKycRequest[]>({
     queryKey: ['allKycRequests'],
@@ -44,15 +49,29 @@ const KycManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['allKycRequests'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
+      setRejectionRequest(null);
     },
     onError: (error) => {
       toast.error(`Action failed: ${error.message}`);
     },
   });
 
-  const handleProcessRequest = (requestId: string, status: 'Approved' | 'Rejected') => {
-    const notes = status === 'Rejected' ? 'Document not clear.' : 'Document verified.';
+  const handleProcessRequest = (requestId: string, status: 'Approved' | 'Rejected', notes: string) => {
     mutation.mutate({ requestId, status, notes });
+  };
+
+  const handleRejectClick = (request: AdminKycRequest) => {
+    setRejectionNotes("");
+    setRejectionRequest(request);
+  };
+
+  const handleConfirmRejection = () => {
+    if (!rejectionRequest) return;
+    if (rejectionNotes.trim().length < 10) {
+      toast.error("Please provide a clear reason for rejection (min. 10 characters).");
+      return;
+    }
+    handleProcessRequest(rejectionRequest.request_id, 'Rejected', rejectionNotes);
   };
 
   return (
@@ -123,14 +142,14 @@ const KycManagement = () => {
                             <>
                               <DropdownMenuItem
                                 className="text-green-600"
-                                onClick={() => handleProcessRequest(request.request_id, 'Approved')}
+                                onClick={() => handleProcessRequest(request.request_id, 'Approved', 'Document verified.')}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Approve
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
-                                onClick={() => handleProcessRequest(request.request_id, 'Rejected')}
+                                onClick={() => handleRejectClick(request)}
                               >
                                 <XCircle className="mr-2 h-4 w-4" />
                                 Reject
@@ -152,6 +171,32 @@ const KycManagement = () => {
         isOpen={!!viewingRequest}
         onClose={() => setViewingRequest(null)}
       />
+      <AlertDialog open={!!rejectionRequest} onOpenChange={() => setRejectionRequest(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject KYC Submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please provide a reason for rejecting this document. This note will be visible to the user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rejection-notes">Rejection Notes</Label>
+            <Textarea
+              id="rejection-notes"
+              placeholder="e.g., Document is expired, photo is not clear..."
+              value={rejectionNotes}
+              onChange={(e) => setRejectionNotes(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>
+              {mutation.isPending ? "Submitting..." : "Confirm Rejection"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
