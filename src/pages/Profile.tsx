@@ -10,6 +10,7 @@ import { NomineeForm } from "@/components/profile/NomineeForm";
 import { useSearchParams } from "react-router-dom";
 import SecuritySettings from "@/components/profile/SecuritySettings";
 import { useMemo } from "react";
+import { ProfileCompleteness } from "@/components/profile/ProfileCompleteness";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -52,6 +53,7 @@ const Profile = () => {
       </p>
       
       <div className="mt-6">
+        <ProfileCompleteness profile={profile} />
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
