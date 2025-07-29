@@ -204,6 +204,7 @@ export type Profile = {
   state: string | null;
   pincode: string | null;
   kyc_status: string | null;
+  referrer_id: string | null;
   nominee_name: string | null;
   nominee_relationship: string | null;
   nominee_dob: string | null;

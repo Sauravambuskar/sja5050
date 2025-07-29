@@ -73,10 +73,36 @@ const adjustWallet = async ({ userId, amount, description }: { userId: string; a
   return data;
 };
 
-const DetailRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+const fetchReferrerName = async (referrerId: string | null): Promise<string | null> => {
+  if (!referrerId) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', referrerId)
+    .single();
+  if (error) {
+    console.error("Error fetching referrer name:", error);
+    return 'Unknown';
+  }
+  return data?.full_name || 'Unknown';
+};
+
+const fetchReferralCount = async (userId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('referrer_id', userId);
+  if (error) {
+    console.error("Error fetching referral count:", error);
+    return 0;
+  }
+  return count || 0;
+};
+
+const DetailRow = ({ label, value, isLoading }: { label: string; value: string | number | null | undefined, isLoading?: boolean }) => (
   <div className="flex justify-between text-sm py-1.5 border-b border-dashed">
     <span className="text-muted-foreground">{label}:</span>
-    <span className="font-medium text-right">{value || 'N/A'}</span>
+    {isLoading ? <Skeleton className="h-4 w-24" /> : <span className="font-medium text-right">{value || 'N/A'}</span>}
   </div>
 );
 
@@ -109,6 +135,18 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
   const { data: transactions, isLoading: areTransactionsLoading } = useQuery({
     queryKey: ['userTransactionHistory', userId],
     queryFn: () => fetchUserTransactions(userId!),
+    enabled: !!userId && isOpen,
+  });
+
+  const { data: referrerName, isLoading: isReferrerLoading } = useQuery({
+    queryKey: ['referrerName', profile?.referrer_id],
+    queryFn: () => fetchReferrerName(profile!.referrer_id),
+    enabled: !!profile?.referrer_id && isOpen,
+  });
+
+  const { data: referralCount, isLoading: isReferralCountLoading } = useQuery({
+    queryKey: ['referralCount', userId],
+    queryFn: () => fetchReferralCount(userId!),
     enabled: !!userId && isOpen,
   });
 
@@ -197,6 +235,11 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
                       <DetailRow label="Nominee Name" value={profile.nominee_name} />
                       <DetailRow label="Relationship" value={profile.nominee_relationship} />
                       <DetailRow label="Nominee DOB" value={profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : null} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 mt-4">Referral Details</h4>
+                      <DetailRow label="Referred By" value={referrerName || 'Direct Signup'} isLoading={isReferrerLoading} />
+                      <DetailRow label="Total Referrals" value={referralCount} isLoading={isReferralCountLoading} />
                     </div>
                   </div>
                 ) : <p>Could not load profile.</p>}
