@@ -26,6 +26,7 @@ const planSchema = z.object({
   annual_rate: z.coerce.number().min(0, "Rate cannot be negative."),
   duration_months: z.coerce.number().int().min(1, "Duration must be at least 1 month."),
   min_investment: z.coerce.number().min(0, "Minimum investment cannot be negative."),
+  max_investment: z.coerce.number().min(0, "Maximum investment cannot be negative.").nullable().optional(),
   is_active: z.boolean(),
 });
 
@@ -45,6 +46,7 @@ const upsertPlan = async (values: PlanFormValues & { id: string }) => {
     p_annual_rate: values.annual_rate,
     p_duration_months: values.duration_months,
     p_min_investment: values.min_investment,
+    p_max_investment: values.max_investment,
     p_is_active: values.is_active,
   });
   if (error) throw new Error(error.message);
@@ -66,6 +68,7 @@ export const InvestmentPlanDialog = ({ plan, isOpen, onClose }: InvestmentPlanDi
         annual_rate: 0,
         duration_months: 12,
         min_investment: 1000,
+        max_investment: 100000,
         is_active: true,
       });
     }
@@ -105,15 +108,20 @@ export const InvestmentPlanDialog = ({ plan, isOpen, onClose }: InvestmentPlanDi
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField control={form.control} name="annual_rate" render={({ field }) => (
                 <FormItem><FormLabel>Annual Rate (%)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="duration_months" render={({ field }) => (
                 <FormItem><FormLabel>Duration (Months)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField control={form.control} name="min_investment" render={({ field }) => (
                 <FormItem><FormLabel>Min. Investment (₹)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="max_investment" render={({ field }) => (
+                <FormItem><FormLabel>Max. Investment (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
             <FormField control={form.control} name="is_active" render={({ field }) => (

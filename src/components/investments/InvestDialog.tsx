@@ -90,6 +90,10 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
       toast.error(`Amount must be at least ₹${plan.min_investment.toLocaleString()}`);
       return;
     }
+    if (plan.max_investment && numericAmount > plan.max_investment) {
+      toast.error(`Amount cannot exceed ₹${plan.max_investment.toLocaleString()}`);
+      return;
+    }
     if (walletBalance !== undefined && numericAmount > walletBalance) {
       toast.error("Investment amount cannot exceed your wallet balance.");
       return;
@@ -103,8 +107,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
         <DialogHeader>
           <DialogTitle>Invest in {plan.name}</DialogTitle>
           <DialogDescription>
-            Minimum investment: ₹{plan.min_investment.toLocaleString('en-IN')}. 
-            Enter the amount you wish to invest.
+            Investment Range: ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}.
           </DialogDescription>
         </DialogHeader>
         <div className="text-sm text-muted-foreground">

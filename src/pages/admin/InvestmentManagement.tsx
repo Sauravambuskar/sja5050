@@ -38,6 +38,7 @@ const upsertPlan = async (plan: InvestmentPlan) => {
     p_annual_rate: plan.annual_rate,
     p_duration_months: plan.duration_months,
     p_min_investment: plan.min_investment,
+    p_max_investment: plan.max_investment,
     p_is_active: plan.is_active,
   });
   if (error) throw new Error(error.message);
@@ -124,6 +125,7 @@ const InvestmentManagement = () => {
                       <TableHead>Annual Rate</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Min. Investment</TableHead>
+                      <TableHead>Max. Investment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead><span className="sr-only">Actions</span></TableHead>
                     </TableRow>
@@ -135,6 +137,7 @@ const InvestmentManagement = () => {
                         <TableCell>{plan.annual_rate}%</TableCell>
                         <TableCell>{plan.duration_months} Months</TableCell>
                         <TableCell>₹{plan.min_investment.toLocaleString('en-IN')}</TableCell>
+                        <TableCell>₹{plan.max_investment?.toLocaleString('en-IN') ?? 'No Limit'}</TableCell>
                         <TableCell><Badge variant={plan.is_active ? "default" : "secondary"}>{plan.is_active ? "Active" : "Disabled"}</Badge></TableCell>
                         <TableCell>
                           <DropdownMenu>

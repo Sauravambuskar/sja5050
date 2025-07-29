@@ -5,6 +5,7 @@ export type InvestmentPlan = {
   annual_rate: number;
   duration_months: number;
   min_investment: number;
+  max_investment: number | null;
   is_active: boolean;
   created_at: string;
 };

@@ -29,9 +29,9 @@ const InvestmentPlans = () => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 mt-1 w-1/2" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>
+      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 mt-1 w-1/2" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 mb-2" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-5 w-full mt-2" /></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>
         ))}
       </div>
     );
@@ -43,16 +43,19 @@ const InvestmentPlans = () => {
 
   return (
     <>
-      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-3">
         {plans?.map((plan) => (
-          <Card key={plan.id}>
+          <Card key={plan.id} className="flex flex-col">
             <CardHeader>
               <CardTitle>{plan.name}</CardTitle>
               <CardDescription>{plan.description}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow">
               <div className="text-3xl font-bold">{plan.annual_rate}%</div>
               <p className="text-sm text-muted-foreground">Annually for {plan.duration_months} Months</p>
+              <p className="text-sm font-semibold mt-2">
+                ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}
+              </p>
             </CardContent>
             <CardFooter>
               <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Invest Now</Button>
