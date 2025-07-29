@@ -5,7 +5,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { AdminUserView, AdminUserInvestmentHistoryItem, Transaction } from "@/types/database";
+import { AdminUserView, AdminUserInvestmentHistoryItem, Transaction, Profile } from "@/types/database";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "../ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,13 @@ const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
   return data[0];
 };
 
+const fetchUserProfileForAdmin = async (userId: string): Promise<Profile> => {
+  const { data, error } = await supabase.rpc('get_user_profile_for_admin', { user_id_to_fetch: userId });
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("User profile not found.");
+  return data[0];
+};
+
 const fetchUserInvestmentHistory = async (userId: string): Promise<AdminUserInvestmentHistoryItem[]> => {
   const { data, error } = await supabase.rpc('get_user_investment_history_for_admin', { user_id_to_fetch: userId });
   if (error) throw new Error(error.message);
@@ -66,6 +73,13 @@ const adjustWallet = async ({ userId, amount, description }: { userId: string; a
   return data;
 };
 
+const DetailRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+  <div className="flex justify-between text-sm py-1.5 border-b border-dashed">
+    <span className="text-muted-foreground">{label}:</span>
+    <span className="font-medium text-right">{value || 'N/A'}</span>
+  </div>
+);
+
 export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSheetProps) => {
   const queryClient = useQueryClient();
   const [adjustmentDetails, setAdjustmentDetails] = useState<AdjustmentFormValues | null>(null);
@@ -77,6 +91,12 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
   const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ['userDetails', userId],
     queryFn: () => fetchUserDetails(userId!),
+    enabled: !!userId && isOpen,
+  });
+
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['userProfileForAdmin', userId],
+    queryFn: () => fetchUserProfileForAdmin(userId!),
     enabled: !!userId && isOpen,
   });
 
@@ -147,11 +167,42 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
         </div>
         
         <Tabs defaultValue="transactions">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="investments">Investments</TabsTrigger>
             <TabsTrigger value="adjust">Adjust Wallet</TabsTrigger>
           </TabsList>
+          <TabsContent value="profile" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>User Profile Details</CardTitle></CardHeader>
+              <CardContent>
+                {isProfileLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : profile ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Personal Details</h4>
+                      <DetailRow label="Full Name" value={profile.full_name} />
+                      <DetailRow label="Phone" value={profile.phone} />
+                      <DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} />
+                      <DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Bank Details</h4>
+                      <DetailRow label="Account Holder" value={profile.bank_account_holder_name} />
+                      <DetailRow label="Account Number" value={profile.bank_account_number} />
+                      <DetailRow label="IFSC Code" value={profile.bank_ifsc_code} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Nominee Details</h4>
+                      <DetailRow label="Nominee Name" value={profile.nominee_name} />
+                      <DetailRow label="Relationship" value={profile.nominee_relationship} />
+                      <DetailRow label="Nominee DOB" value={profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : null} />
+                    </div>
+                  </div>
+                ) : <p>Could not load profile.</p>}
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="transactions" className="mt-4">
             <Card><CardHeader><CardTitle>Transaction History</CardTitle></CardHeader><CardContent>
               <Table>
