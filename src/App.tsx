@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import UpdatePassword from "./pages/UpdatePassword";
+import LoginMfa from "./pages/LoginMfa";
 
 // Client Pages
 import Dashboard from "./pages/Dashboard";
@@ -68,6 +69,7 @@ const App = () => (
 
           {/* Auth & Fallback */}
           <Route path="/login" element={<Login />} />
+          <Route path="/login/mfa" element={<LoginMfa />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
