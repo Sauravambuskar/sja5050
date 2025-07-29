@@ -101,12 +101,15 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
     mutation.mutate({ planId: plan.id, amount: numericAmount });
   };
 
+  const monthlyRate = plan.annual_rate / 12;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invest in {plan.name}</DialogTitle>
           <DialogDescription>
+            Return: {plan.annual_rate}% annually ({monthlyRate.toFixed(2)}% monthly).
             Investment Range: ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}.
           </DialogDescription>
         </DialogHeader>

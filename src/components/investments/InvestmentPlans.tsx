@@ -44,24 +44,29 @@ const InvestmentPlans = () => {
   return (
     <>
       <div className="grid gap-6 pt-4 md:grid-cols-2 lg:grid-cols-3">
-        {plans?.map((plan) => (
-          <Card key={plan.id} className="flex flex-col">
-            <CardHeader>
-              <CardTitle>{plan.name}</CardTitle>
-              <CardDescription>{plan.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="text-3xl font-bold">{plan.annual_rate}%</div>
-              <p className="text-sm text-muted-foreground">Annually for {plan.duration_months} Months</p>
-              <p className="text-sm font-semibold mt-2">
-                ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Invest Now</Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {plans?.map((plan) => {
+          const monthlyRate = plan.annual_rate / 12;
+          return (
+            <Card key={plan.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle>{plan.name}</CardTitle>
+                <CardDescription>{plan.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <div className="text-3xl font-bold">{plan.annual_rate}%</div>
+                <p className="text-sm text-muted-foreground">
+                  Annually ({monthlyRate.toFixed(2)}% Monthly) for {plan.duration_months} Months
+                </p>
+                <p className="text-sm font-semibold mt-2">
+                  ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Invest Now</Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
       {selectedPlan && (
         <InvestDialog
