@@ -25,7 +25,7 @@ import { toast } from "sonner";
 const fetchCommissionHistory = async (): Promise<CommissionHistoryItem[]> => {
   const { data, error } = await supabase.rpc('get_my_commission_history');
   if (error) throw new Error(error.message);
-  return data;
+  return data || [];
 };
 
 const PayoutsTable = () => {
@@ -37,7 +37,7 @@ const PayoutsTable = () => {
   const ADMIN_FEE_RATE = 0.10; // 10%
   const TDS_RATE = 0.00; // 0%
 
-  const processedPayouts = payouts?.map(payout => {
+  const processedPayouts = (payouts || []).map(payout => {
     const gross = payout.amount;
     const adminFee = gross * ADMIN_FEE_RATE;
     const tds = gross * TDS_RATE;
