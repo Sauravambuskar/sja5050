@@ -165,28 +165,26 @@ const Wallet = () => {
   );
 
   const renderMobileView = () => (
-    <div className="space-y-3">
+    <div className="space-y-0">
       {areTransactionsLoading && !transactions ? (
         [...Array(PAGE_SIZE)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
       ) : transactions && transactions.length > 0 ? (
         transactions.map((txn) => (
-          <Card key={txn.id}>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted flex-shrink-0">
-                {getTransactionIcon(txn.type)}
-              </div>
-              <div className="flex-grow space-y-0.5">
-                <div className="font-medium">{txn.description || txn.type}</div>
-                <div className="text-xs text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
-              </div>
-              <div className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
-                {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
-              </div>
-            </CardContent>
-          </Card>
+          <div key={txn.id} className="flex items-center gap-4 border-b p-4 last:border-b-0">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+              {getTransactionIcon(txn.type)}
+            </div>
+            <div className="flex-grow space-y-0.5">
+              <div className="font-medium">{txn.description || txn.type}</div>
+              <div className="text-xs text-muted-foreground">{format(new Date(txn.created_at), "PPP p")}</div>
+            </div>
+            <div className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
+              {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
+            </div>
+          </div>
         ))
       ) : (
-        <div className="text-center h-24 flex items-center justify-center text-muted-foreground">No transactions yet.</div>
+        <div className="flex h-24 items-center justify-center text-center text-muted-foreground">No transactions yet.</div>
       )}
     </div>
   );
@@ -228,7 +226,7 @@ const Wallet = () => {
                 <CardTitle>Transaction History</CardTitle>
                 <CardDescription>A record of all your wallet activities.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6">
               {isMobile ? renderMobileView() : renderDesktopView()}
               {renderPagination()}
             </CardContent>
