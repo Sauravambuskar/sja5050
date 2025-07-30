@@ -214,3 +214,9 @@ export type Profile = {
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
 };
+
+export type InvestmentSummary = {
+  total_invested: number;
+  active_investments_count: number;
+  estimated_daily_earnings: number;
+};

@@ -1,5 +1,6 @@
 import InvestmentPlans from "@/components/investments/InvestmentPlans";
 import InvestmentHistory from "@/components/investments/InvestmentHistory";
+import InvestmentSummary from "@/components/investments/InvestmentSummary";
 
 const Investments = () => {
   return (
@@ -12,6 +13,7 @@ const Investments = () => {
       </p>
 
       <div className="mt-6 space-y-8">
+        <InvestmentSummary />
         <InvestmentPlans />
         <InvestmentHistory />
       </div>
