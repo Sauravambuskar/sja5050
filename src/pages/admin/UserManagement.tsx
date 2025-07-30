@@ -16,7 +16,7 @@ import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 const fetchUsers = async (searchTerm: string, kycStatus: string, accountStatus: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -113,6 +113,7 @@ const UserManagement = () => {
       FullName: user.full_name,
       Email: user.email,
       JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'),
+      LastLogin: user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm') : 'Never',
       KYCStatus: user.kyc_status,
       WalletBalance: user.wallet_balance,
       Role: user.role,
@@ -172,9 +173,9 @@ const UserManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>KYC Status</TableHead>
+                <TableHead>Last Login</TableHead>
                 <TableHead className="text-right">Wallet Balance</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
@@ -184,9 +185,9 @@ const UserManagement = () => {
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                   </TableRow>
@@ -196,8 +197,10 @@ const UserManagement = () => {
               ) : (
                 users?.map((user) => (
                   <TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
-                    <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{user.full_name || 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                    </TableCell>
                     <TableCell>
                       {isUserSuspended(user) ? (
                         <Badge variant="destructive">Suspended</Badge>
@@ -209,6 +212,9 @@ const UserManagement = () => {
                       <Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>
                         {user.kyc_status || 'Not Submitted'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       ₹{user.wallet_balance.toLocaleString('en-IN')}
@@ -255,4 +261,5 @@ const UserManagement = () => {
     </>
   );
 };
+
 export default UserManagement;

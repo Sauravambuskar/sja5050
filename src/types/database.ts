@@ -19,6 +19,7 @@ export type AdminUserView = {
   wallet_balance: number;
   role: 'user' | 'admin';
   banned_until: string | null;
+  last_sign_in_at: string | null;
 };
 
 export type AdminInvestmentView = {
