@@ -23,7 +23,6 @@ import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
-import Payouts from "./pages/Payouts";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -49,7 +48,6 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/investments" element={<Investments />} />
               <Route path="/wallet" element={<Wallet />} />
-              <Route path="/payouts" element={<Payouts />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/referrals" element={<Referrals />} />
               <Route path="/notifications" element={<Notifications />} />
