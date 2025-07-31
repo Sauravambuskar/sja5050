@@ -1,76 +1,75 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Referral } from "@/types/database";
+import { ReferralTreeUser } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
-import { format } from "date-fns";
+import { ReferralTreeNode } from "./ReferralTreeNode";
+import { useMemo } from "react";
 
-const fetchMyReferrals = async (): Promise<Referral[]> => {
-  const { data, error } = await supabase.rpc('get_my_referrals');
+const fetchMyReferralTree = async (): Promise<ReferralTreeUser[]> => {
+  const { data, error } = await supabase.rpc('get_my_referral_tree');
   if (error) throw new Error(error.message);
   return data;
 };
 
-const ReferralTree = () => {
-  const { data: referrals, isLoading } = useQuery<Referral[]>({
-    queryKey: ['myReferrals'],
-    queryFn: fetchMyReferrals,
+// Helper function to build the tree
+const buildTree = (list: ReferralTreeUser[]): ReferralTreeUser[] => {
+  const map: { [key: string]: ReferralTreeUser } = {};
+  const roots: ReferralTreeUser[] = [];
+
+  list.forEach(node => {
+    map[node.id] = { ...node, children: [] };
   });
+
+  list.forEach(node => {
+    if (node.level === 1) {
+      roots.push(map[node.id]);
+    } else {
+      const parent = map[node.parent_id];
+      if (parent) {
+        parent.children.push(map[node.id]);
+      }
+    }
+  });
+
+  return roots;
+};
+
+const ReferralTree = () => {
+  const { data: flatList, isLoading } = useQuery<ReferralTreeUser[]>({
+    queryKey: ['myReferralTree'],
+    queryFn: fetchMyReferralTree,
+  });
+
+  const treeData = useMemo(() => {
+    if (!flatList) return [];
+    return buildTree(flatList);
+  }, [flatList]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your Referrals</CardTitle>
+        <CardTitle>Your Referral Network</CardTitle>
         <CardDescription>
-          A list of users you have successfully referred to the platform.
+          A tree view of your multi-level referral network.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Join Date</TableHead>
-              <TableHead>KYC Status</TableHead>
-              <TableHead className="text-right">Investment Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(3)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-6 w-24 ml-auto" /></TableCell>
-                </TableRow>
-              ))
-            ) : referrals && referrals.length > 0 ? (
-              referrals.map((referral) => (
-                <TableRow key={referral.id}>
-                  <TableCell className="font-medium">{referral.full_name}</TableCell>
-                  <TableCell>{format(new Date(referral.join_date), "PPP")}</TableCell>
-                  <TableCell>
-                    <Badge variant={referral.kyc_status === "Approved" ? "default" : "outline"}>
-                      {referral.kyc_status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant={referral.has_invested ? "default" : "secondary"}>
-                      {referral.has_invested ? "Active" : "No Investments"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">You haven't referred anyone yet.</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : treeData && treeData.length > 0 ? (
+          <div className="border rounded-md">
+            {treeData.map((node) => (
+              <ReferralTreeNode key={node.id} node={node} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground p-8">
+            You haven't referred anyone yet.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

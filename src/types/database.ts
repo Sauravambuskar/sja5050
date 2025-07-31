@@ -134,6 +134,17 @@ export type Referral = {
   has_invested: boolean;
 };
 
+export type ReferralTreeUser = {
+  id: string;
+  full_name: string;
+  join_date: string;
+  kyc_status: string;
+  has_invested: boolean;
+  level: number;
+  parent_id: string;
+  children: ReferralTreeUser[];
+};
+
 export type UserGrowthReportData = {
   month_start: string;
   user_count: number;
