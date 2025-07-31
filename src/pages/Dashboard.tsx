@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { DashboardStats, Transaction, Profile } from "@/types/database";
+import { DashboardStats, Transaction } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -11,7 +11,7 @@ import DailyIncome from "@/components/dashboard/DailyIncome";
 import IncomeChart from "@/components/dashboard/IncomeChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ProfileCompletenessCard } from "@/components/dashboard/ProfileCompletenessCard";
+import { KycAlertBanner } from "@/components/dashboard/KycAlertBanner";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
@@ -25,12 +25,6 @@ const fetchRecentTransactions = async (): Promise<Transaction[]> => {
   return data.slice(0, 5);
 };
 
-const fetchMyProfile = async (): Promise<Profile> => {
-  const { data, error } = await supabase.rpc('get_my_profile');
-  if (error) throw new Error(error.message);
-  return data[0];
-};
-
 const Dashboard = () => {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboardStats'],
@@ -40,11 +34,6 @@ const Dashboard = () => {
   const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['recentTransactions'],
     queryFn: fetchRecentTransactions,
-  });
-
-  const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
-    queryKey: ['myProfile'],
-    queryFn: fetchMyProfile,
   });
 
   const getGreeting = () => {
@@ -108,7 +97,7 @@ const Dashboard = () => {
         Here's a summary of your portfolio and activities.
       </p>
 
-      {!profileLoading && profile && <ProfileCompletenessCard profile={profile} />}
+      <KycAlertBanner status={stats?.kycStatus} />
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
