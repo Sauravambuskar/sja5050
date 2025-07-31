@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { DashboardStats, Transaction } from "@/types/database";
+import { DashboardStats, Transaction, Profile } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -11,19 +11,24 @@ import DailyIncome from "@/components/dashboard/DailyIncome";
 import IncomeChart from "@/components/dashboard/IncomeChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { KycAlertBanner } from "@/components/dashboard/KycAlertBanner";
+import { ProfileCompletenessCard } from "@/components/dashboard/ProfileCompletenessCard";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
   if (error) throw new Error(error.message);
-  // The RPC returns an array with one object, so we extract it.
   return data[0];
 };
 
 const fetchRecentTransactions = async (): Promise<Transaction[]> => {
   const { data, error } = await supabase.rpc('get_my_transactions');
   if (error) throw new Error(error.message);
-  return data.slice(0, 5); // Get top 5 recent transactions
+  return data.slice(0, 5);
+};
+
+const fetchMyProfile = async (): Promise<Profile> => {
+  const { data, error } = await supabase.rpc('get_my_profile');
+  if (error) throw new Error(error.message);
+  return data[0];
 };
 
 const Dashboard = () => {
@@ -35,6 +40,11 @@ const Dashboard = () => {
   const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['recentTransactions'],
     queryFn: fetchRecentTransactions,
+  });
+
+  const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
+    queryKey: ['myProfile'],
+    queryFn: fetchMyProfile,
   });
 
   const getGreeting = () => {
@@ -98,7 +108,7 @@ const Dashboard = () => {
         Here's a summary of your portfolio and activities.
       </p>
 
-      {!statsLoading && <KycAlertBanner status={stats?.kycStatus} />}
+      {!profileLoading && profile && <ProfileCompletenessCard profile={profile} />}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
