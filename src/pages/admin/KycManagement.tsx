@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, CheckCircle, XCircle, Eye } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Eye, Download } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminKycRequest } from "@/types/database";
@@ -15,6 +15,7 @@ import { KycViewerDialog } from "@/components/admin/KycViewerDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { exportToCsv } from "@/lib/utils";
 
 const fetchKycRequests = async (): Promise<AdminKycRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_kyc_requests');
@@ -74,12 +75,38 @@ const KycManagement = () => {
     handleProcessRequest(rejectionRequest.request_id, 'Rejected', rejectionNotes);
   };
 
+  const handleExport = () => {
+    if (!kycRequests || kycRequests.length === 0) {
+      toast.warning("No KYC data to export.");
+      return;
+    }
+    const dataToExport = kycRequests.map(req => ({
+      RequestID: req.request_id,
+      UserID: req.user_id,
+      UserName: req.user_name,
+      DocumentType: req.document_type,
+      SubmittedAt: format(new Date(req.submitted_at), 'yyyy-MM-dd HH:mm'),
+      Status: req.status,
+    }));
+    const filename = `kyc_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    exportToCsv(filename, dataToExport);
+    toast.success("KYC data exported successfully.");
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>KYC Toolkit</CardTitle>
-          <CardDescription>Review and process client KYC submissions.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>KYC Toolkit</CardTitle>
+              <CardDescription>Review and process client KYC submissions.</CardDescription>
+            </div>
+            <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>

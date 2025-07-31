@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Eye, AlertTriangle, Download } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminWithdrawalRequest } from "@/types/database";
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState } from "react";
+import { exportToCsv } from "@/lib/utils";
 
 const fetchWithdrawalRequests = async (): Promise<AdminWithdrawalRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_withdrawal_requests');
@@ -60,12 +61,41 @@ const WithdrawalManagement = () => {
     mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
+  const handleExport = () => {
+    if (!requests || requests.length === 0) {
+      toast.warning("No withdrawal data to export.");
+      return;
+    }
+    const dataToExport = requests.map(req => ({
+      RequestID: req.request_id,
+      UserName: req.user_name,
+      Amount: req.amount,
+      WalletBalance: req.wallet_balance,
+      RequestedAt: format(new Date(req.requested_at), 'yyyy-MM-dd HH:mm'),
+      Status: req.status,
+      AccountHolder: req.bank_account_holder_name,
+      AccountNumber: req.bank_account_number,
+      IFSC: req.bank_ifsc_code,
+    }));
+    const filename = `withdrawal_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    exportToCsv(filename, dataToExport);
+    toast.success("Withdrawal data exported successfully.");
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Withdrawal Management</CardTitle>
-          <CardDescription>Review and process all user withdrawal requests.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Withdrawal Management</CardTitle>
+              <CardDescription>Review and process all user withdrawal requests.</CardDescription>
+            </div>
+            <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
