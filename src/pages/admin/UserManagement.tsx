@@ -17,6 +17,7 @@ import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const fetchUsers = async (searchTerm: string, kycStatus: string, accountStatus: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -41,6 +42,7 @@ const suspendUser = async ({ userId, suspend }: { userId: string; suspend: boole
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUserView | null>(null);
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
@@ -124,6 +126,73 @@ const UserManagement = () => {
     toast.success("User data exported successfully.");
   };
 
+  const renderDesktopView = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>KYC Status</TableHead>
+          <TableHead>Last Login</TableHead>
+          <TableHead className="text-right">Wallet Balance</TableHead>
+          <TableHead><span className="sr-only">Actions</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          [...Array(5)].map((_, i) => (
+            <TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-6 w-16" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell></TableRow>
+          ))
+        ) : isError ? (
+          <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>
+        ) : (
+          users?.map((user) => (
+            <TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
+              <TableCell className="font-medium"><div>{user.full_name || 'N/A'}</div><div className="text-xs text-muted-foreground">{user.email}</div></TableCell>
+              <TableCell>{isUserSuspended(user) ? (<Badge variant="destructive">Suspended</Badge>) : (<Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>{user.role}</Badge>)}</TableCell>
+              <TableCell><Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>{user.kyc_status || 'Not Submitted'}</Badge></TableCell>
+              <TableCell className="text-sm text-muted-foreground">{user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}</TableCell>
+              <TableCell className="text-right font-mono">₹{user.wallet_balance.toLocaleString('en-IN')}</TableCell>
+              <TableCell>
+                <DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => handleViewDetails(user.id)}>View Details</DropdownMenuItem><DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>{isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const renderMobileView = () => (
+    <div className="space-y-4">
+      {isLoading ? (
+        [...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
+      ) : isError ? (
+        <div className="text-center text-red-500">Error fetching users: {error.message}</div>
+      ) : (
+        users?.map((user) => (
+          <Card key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>{user.full_name || 'N/A'}</CardTitle>
+                  <CardDescription>{user.email}</CardDescription>
+                </div>
+                <DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => handleViewDetails(user.id)}>View Details</DropdownMenuItem><DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>{isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Status</span>{isUserSuspended(user) ? (<Badge variant="destructive">Suspended</Badge>) : (<Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>{user.role}</Badge>)}</div>
+              <div className="flex justify-between"><span className="text-muted-foreground">KYC</span><Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>{user.kyc_status || 'Not Submitted'}</Badge></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Last Login</span><span>{user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Wallet</span><span className="font-mono">₹{user.wallet_balance.toLocaleString('en-IN')}</span></div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+
   return (
     <>
       <Card>
@@ -169,75 +238,7 @@ const UserManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>KYC Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead className="text-right">Wallet Balance</TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
-                  </TableRow>
-                ))
-              ) : isError ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>
-              ) : (
-                users?.map((user) => (
-                  <TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
-                    <TableCell className="font-medium">
-                      <div>{user.full_name || 'N/A'}</div>
-                      <div className="text-xs text-muted-foreground">{user.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      {isUserSuspended(user) ? (
-                        <Badge variant="destructive">Suspended</Badge>
-                      ) : (
-                        <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>{user.role}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>
-                        {user.kyc_status || 'Not Submitted'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      ₹{user.wallet_balance.toLocaleString('en-IN')}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleViewDetails(user.id)}>View Details</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>
-                            {isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          {isMobile ? renderMobileView() : renderDesktopView()}
         </CardContent>
       </Card>
       <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
