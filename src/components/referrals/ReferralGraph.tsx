@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ReferralTreeUser } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
-import { ReferralTreeNode } from "./ReferralTreeNode";
+import { ReferralGraphNode } from "./ReferralGraphNode";
 import { useMemo } from "react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const fetchMyReferralTree = async (): Promise<ReferralTreeUser[]> => {
   const { data, error } = await supabase.rpc('get_my_referral_tree');
@@ -35,7 +36,7 @@ const buildTree = (list: ReferralTreeUser[]): ReferralTreeUser[] => {
   return roots;
 };
 
-const ReferralTree = () => {
+const ReferralGraph = () => {
   const { data: flatList, isLoading } = useQuery<ReferralTreeUser[]>({
     queryKey: ['myReferralTree'],
     queryFn: fetchMyReferralTree,
@@ -51,28 +52,33 @@ const ReferralTree = () => {
       <CardHeader>
         <CardTitle>Your Referral Network</CardTitle>
         <CardDescription>
-          A tree view of your multi-level referral network.
+          A visual representation of your multi-level referral network.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+          <div className="flex justify-center p-8">
+            {isLoading ? (
+              <Skeleton className="h-40 w-80" />
+            ) : treeData && treeData.length > 0 ? (
+              <div className="relative flex">
+                {treeData.map((node) => (
+                  <div key={node.id} className="px-4">
+                    <ReferralGraphNode node={node} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground p-8">
+                You haven't referred anyone yet.
+              </div>
+            )}
           </div>
-        ) : treeData && treeData.length > 0 ? (
-          <div className="border rounded-md">
-            {treeData.map((node) => (
-              <ReferralTreeNode key={node.id} node={node} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground p-8">
-            You haven't referred anyone yet.
-          </div>
-        )}
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </CardContent>
     </Card>
   );
 };
 
-export default ReferralTree;
+export default ReferralGraph;

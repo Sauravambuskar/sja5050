@@ -1,5 +1,5 @@
 import ReferralCode from "@/components/referrals/ReferralCode";
-import ReferralTree from "@/components/referrals/ReferralTree";
+import ReferralGraph from "@/components/referrals/ReferralGraph";
 import CommissionAnalytics from "@/components/referrals/CommissionAnalytics";
 import DirectReferralsList from "@/components/referrals/DirectReferralsList";
 
@@ -17,7 +17,7 @@ const Referrals = () => {
         <ReferralCode />
         <DirectReferralsList />
         <CommissionAnalytics />
-        <ReferralTree />
+        <ReferralGraph />
       </div>
     </>
   );

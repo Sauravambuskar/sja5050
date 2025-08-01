@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ReferralTreeUser } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
-import { ReferralTreeNode } from "../referrals/ReferralTreeNode";
+import { ReferralGraphNode } from "../referrals/ReferralGraphNode";
 import { useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
 
@@ -74,7 +74,7 @@ export const AdminReferralTree = ({ userId }: AdminReferralTreeProps) => {
       {treeData && treeData.length > 0 ? (
         <div className="border rounded-md">
           {treeData.map((node) => (
-            <ReferralTreeNode key={node.id} node={node} />
+            <ReferralGraphNode key={node.id} node={node} />
           ))}
         </div>
       ) : (
