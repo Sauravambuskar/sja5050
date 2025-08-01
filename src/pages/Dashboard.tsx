@@ -11,7 +11,7 @@ import DailyIncome from "@/components/dashboard/DailyIncome";
 import IncomeChart from "@/components/dashboard/IncomeChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ProfileCompletenessCard } from "@/components/dashboard/ProfileCompletenessCard";
+import { GettingStartedGuide } from "@/components/dashboard/GettingStartedGuide";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
@@ -165,7 +165,7 @@ const Dashboard = () => {
         Here's a summary of your portfolio and activities.
       </p>
 
-      {profile && !profileLoading && <ProfileCompletenessCard profile={profile} />}
+      {profile && stats && !profileLoading && !statsLoading && <GettingStartedGuide profile={profile} stats={stats} />}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
