@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { UserInvestment } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { useAuth } from "../auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
@@ -43,11 +43,9 @@ const InvestmentHistory = () => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Plan Name</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Daily Earnings</TableHead>
-          <TableHead>Start Date</TableHead>
-          <TableHead>Maturity Date</TableHead>
+          <TableHead>Plan & Amount</TableHead>
+          <TableHead>Earnings (Daily / Total)</TableHead>
+          <TableHead className="w-[25%]">Progress</TableHead>
           <TableHead className="text-right">Status</TableHead>
         </TableRow>
       </TableHeader>
@@ -57,28 +55,58 @@ const InvestmentHistory = () => {
             <TableRow key={i}>
               <TableCell><Skeleton className="h-5 w-24" /></TableCell>
               <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-full" /></TableCell>
               <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
             </TableRow>
           ))
         ) : investments && investments.length > 0 ? (
           investments.map((investment) => {
             const plan = investment.investment_plans?.[0];
+            const startDate = new Date(investment.start_date);
+            const maturityDate = new Date(investment.maturity_date);
+            
             const dailyEarnings = plan && investment.status === 'Active'
               ? (investment.investment_amount * (plan.annual_rate / 100 / 365))
               : null;
 
+            const durationInDays = differenceInDays(maturityDate, startDate);
+            const totalProfit = dailyEarnings ? dailyEarnings * durationInDays : 0;
+            const totalReturn = investment.investment_amount + totalProfit;
+
+            const today = new Date();
+            const totalDuration = maturityDate.getTime() - startDate.getTime();
+            const elapsedDuration = today.getTime() - startDate.getTime();
+            const progress = totalDuration > 0 ? Math.min(100, (elapsedDuration / totalDuration) * 100) : (investment.status === 'Matured' ? 100 : 0);
+
             return (
               <TableRow key={investment.id}>
-                <TableCell className="font-medium">{plan?.name || 'N/A'}</TableCell>
-                <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="text-green-600 font-medium">
-                  {dailyEarnings !== null ? `₹${dailyEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                <TableCell>
+                  <div className="font-medium">{plan?.name || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">₹{investment.investment_amount.toLocaleString('en-IN')}</div>
                 </TableCell>
-                <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
-                <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
+                <TableCell>
+                  <div className="font-medium text-green-600">
+                    {dailyEarnings !== null ? `₹${dailyEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Est. Total: ₹{totalReturn.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {investment.status === 'Active' ? (
+                    <>
+                      <Progress value={progress} className="h-2" />
+                      <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                        <span>{format(startDate, "d MMM")}</span>
+                        <span>{format(maturityDate, "d MMM yyyy")}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Matured on {format(maturityDate, "PPP")}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <Badge variant={investment.status === "Active" ? "default" : "secondary"}>
                     {investment.status}
@@ -89,7 +117,7 @@ const InvestmentHistory = () => {
           })
         ) : (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+            <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
               You have no investments yet.
             </TableCell>
           </TableRow>
