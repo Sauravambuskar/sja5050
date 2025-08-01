@@ -191,6 +191,8 @@ export type DailyIncomeStats = {
 
 export type IncomeHistoryReportData = {
   report_date: string;
+  investment_income: number;
+  commission_income: number;
   total_income: number;
   day: string;
 };
