@@ -27,7 +27,13 @@ interface UserDetailsSheetProps {
 }
 
 const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
-  const { data, error } = await supabase.rpc('get_all_users_details', { search_text: userId });
+  const { data, error } = await supabase.rpc('get_all_users_details', {
+    search_text: userId,
+    kyc_status_filter: null,
+    account_status_filter: null,
+    page_limit: 1,
+    page_offset: 0
+  });
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error("User not found.");
   return data[0];

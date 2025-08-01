@@ -23,6 +23,10 @@ const fetchUsers = async (searchTerm: string): Promise<AdminUserView[]> => {
   if (!searchTerm) return [];
   const { data, error } = await supabase.rpc('get_all_users_details', {
     search_text: searchTerm,
+    kyc_status_filter: null,
+    account_status_filter: null,
+    page_limit: 10,
+    page_offset: 0
   });
   if (error) {
     throw new Error(error.message);

@@ -22,9 +22,15 @@ const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
 };
 
 const fetchRecentUsers = async (): Promise<AdminUserView[]> => {
-  const { data, error } = await supabase.rpc('get_all_users_details');
+  const { data, error } = await supabase.rpc('get_all_users_details', {
+    search_text: null,
+    kyc_status_filter: null,
+    account_status_filter: null,
+    page_limit: 5,
+    page_offset: 0
+  });
   if (error) throw new Error(error.message);
-  return data.slice(0, 5);
+  return data;
 };
 
 const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]> => {
