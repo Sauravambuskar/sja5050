@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import TwoFactorAuth from "./TwoFactorAuth";
+import ActiveSessions from "./ActiveSessions";
 
 const passwordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters."),
@@ -93,6 +94,7 @@ export const SecuritySettings = () => {
         </CardContent>
       </Card>
       <TwoFactorAuth />
+      <ActiveSessions />
     </div>
   );
 };
