@@ -96,7 +96,7 @@ const UserManagement = () => {
     suspendMutation.mutate({ userId: userToSuspend.id, suspend: !isCurrentlySuspended });
   };
 
-  const isUserSuspended = (user: AdminUserView) => user.banned_until && new Date(user.banned_until) > new Date();
+  const isUserSuspended = (user: AdminUserView | null) => user && user.banned_until && new Date(user.banned_until) > new Date();
 
   const handleExport = () => {
     if (!users || users.length === 0) {
@@ -255,7 +255,7 @@ const UserManagement = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will {isUserSuspended(userToSuspend!) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend!) ? 'be able to' : 'not be able to'} log in.
+              This action will {isUserSuspended(userToSuspend) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend) ? 'be able to' : 'not be able to'} log in.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

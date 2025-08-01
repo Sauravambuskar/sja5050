@@ -21,9 +21,12 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 const fetchRecentTransactions = async (): Promise<Transaction[]> => {
-  const { data, error } = await supabase.rpc('get_my_transactions');
+  const { data, error } = await supabase.rpc('get_my_transactions', {
+    page_limit: 5,
+    page_offset: 0,
+  });
   if (error) throw new Error(error.message);
-  return data.slice(0, 5);
+  return data;
 };
 
 const fetchMyProfile = async (): Promise<Profile> => {
