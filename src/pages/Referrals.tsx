@@ -1,6 +1,7 @@
 import ReferralCode from "@/components/referrals/ReferralCode";
 import ReferralTree from "@/components/referrals/ReferralTree";
 import CommissionAnalytics from "@/components/referrals/CommissionAnalytics";
+import DirectReferralsList from "@/components/referrals/DirectReferralsList";
 
 const Referrals = () => {
   return (
@@ -14,6 +15,7 @@ const Referrals = () => {
 
       <div className="mt-6 space-y-6">
         <ReferralCode />
+        <DirectReferralsList />
         <CommissionAnalytics />
         <ReferralTree />
       </div>
