@@ -11,6 +11,7 @@ import AumGrowthChart from "@/components/admin/AumGrowthChart";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
+import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -69,8 +70,13 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      <p className="text-muted-foreground">Overview of platform KPIs and activities.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Overview of platform KPIs and activities.</p>
+        </div>
+        <AdminUserSearch onUserSelect={handleViewDetails} />
+      </div>
       
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
