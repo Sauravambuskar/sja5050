@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -212,8 +212,16 @@ const Dashboard = () => {
       </div>
 
       <div className="mt-6">
-        <h2 className="text-2xl font-bold">Recent Transactions</h2>
-        <Card className="mt-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>A summary of your latest wallet activity.</CardDescription>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/wallet">View All</Link>
+            </Button>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
