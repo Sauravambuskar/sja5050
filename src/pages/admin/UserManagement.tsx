@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Download, XCircle } from "lucide-react";
+import { MoreHorizontal, Download, XCircle, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
@@ -68,6 +68,7 @@ const UserManagement = () => {
   const [kycStatusFilter, setKycStatusFilter] = useState("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: users, isLoading, isError, error } = useQuery<AdminUserView[]>({
     queryKey: ['allUsersDetails', debouncedSearchTerm, kycStatusFilter, accountStatusFilter, currentPage],
@@ -103,12 +104,45 @@ const UserManagement = () => {
   const handleConfirmSuspend = () => { if (!userToSuspend) return; const isCurrentlySuspended = userToSuspend.banned_until && new Date(userToSuspend.banned_until) > new Date(); suspendMutation.mutate({ userId: userToSuspend.id, suspend: !isCurrentlySuspended }); };
   const isUserSuspended = (user: AdminUserView | null) => user && user.banned_until && new Date(user.banned_until) > new Date();
 
-  const handleExport = () => {
-    if (!users || users.length === 0) { toast.warning("No user data to export."); return; }
-    const dataToExport = users.map(user => ({ UserID: user.id, FullName: user.full_name, Email: user.email, JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'), LastLogin: user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm') : 'Never', KYCStatus: user.kyc_status, WalletBalance: user.wallet_balance, Role: user.role, IsSuspended: isUserSuspended(user) ? 'Yes' : 'No' }));
-    const filename = `users_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCsv(filename, dataToExport);
-    toast.success("User data exported successfully.");
+  const handleExport = async () => {
+    setIsExporting(true);
+    toast.info("Preparing user data for export...");
+
+    try {
+      const { data: usersToExport, error: exportError } = await supabase.rpc('export_all_users_details', {
+        search_text: debouncedSearchTerm || null,
+        kyc_status_filter: kycStatusFilter === 'all' ? null : kycStatusFilter,
+        account_status_filter: accountStatusFilter === 'all' ? null : accountStatusFilter,
+      });
+
+      if (exportError) throw exportError;
+
+      if (!usersToExport || usersToExport.length === 0) {
+        toast.warning("No user data found for the current filters.");
+        return;
+      }
+
+      const dataToExport = usersToExport.map((user: AdminUserView) => ({
+        UserID: user.id,
+        FullName: user.full_name,
+        Email: user.email,
+        JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'),
+        LastLogin: user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm') : 'Never',
+        KYCStatus: user.kyc_status,
+        WalletBalance: user.wallet_balance,
+        Role: user.role,
+        IsSuspended: isUserSuspended(user) ? 'Yes' : 'No',
+      }));
+
+      const filename = `users_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCsv(filename, dataToExport);
+      toast.success("User data exported successfully.");
+
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleClearFilters = () => { setSearchTerm(""); setKycStatusFilter("all"); setAccountStatusFilter("all"); };
@@ -150,7 +184,14 @@ const UserManagement = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div><CardTitle>User Management</CardTitle><CardDescription>Search, filter, and manage client accounts.</CardDescription></div>
-            <div className="flex items-center gap-2"><Button size="sm" variant="outline" className="gap-1" onClick={handleExport}><Download className="h-3.5 w-3.5" /><span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span></Button></div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
+                {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  {isExporting ? "Exporting..." : "Export"}
+                </span>
+              </Button>
+            </div>
           </div>
           <div className="mt-4 flex flex-col gap-4 md:flex-row">
             <Input placeholder="Search by name, email, or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-grow" />
