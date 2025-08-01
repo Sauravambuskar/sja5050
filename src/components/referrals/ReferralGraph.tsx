@@ -64,7 +64,7 @@ const ReferralGraph = () => {
               <div className="relative flex">
                 {treeData.map((node) => (
                   <div key={node.id} className="px-4">
-                    <ReferralGraphNode node={node} />
+                    <ReferralGraphNode node={node} isRoot />
                   </div>
                 ))}
               </div>

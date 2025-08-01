@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { ReferralTreeUser } from "@/types/database";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCheck, UserX } from "lucide-react";
+import { UserCheck, UserX, PlusCircle, MinusCircle } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface ReferralGraphNodeProps {
   node: ReferralTreeUser;
+  isRoot?: boolean;
 }
 
 const getInitials = (name: string | null | undefined) => {
@@ -12,15 +15,26 @@ const getInitials = (name: string | null | undefined) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase();
 }
 
-export const ReferralGraphNode = ({ node }: ReferralGraphNodeProps) => {
+export const ReferralGraphNode = ({ node, isRoot = false }: ReferralGraphNodeProps) => {
   const hasChildren = node.children && node.children.length > 0;
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <div className="relative flex flex-col items-center">
-      {/* Connecting line from parent */}
-      <div className="absolute -top-4 h-4 w-px bg-muted-foreground" />
+      {/* Connecting line from parent, not for root nodes */}
+      {!isRoot && <div className="absolute -top-4 h-4 w-px bg-muted-foreground" />}
       
-      <div className="z-10 flex w-48 flex-col items-center rounded-lg border bg-card p-3 shadow-sm">
+      <div className="relative z-10 flex w-48 flex-col items-center rounded-lg border bg-card p-3 shadow-sm">
+        {hasChildren && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-background"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <MinusCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" /> : <PlusCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />}
+          </Button>
+        )}
         <Avatar className="h-12 w-12 text-lg"><AvatarFallback>{getInitials(node.full_name)}</AvatarFallback></Avatar>
         <p className="mt-2 text-center font-semibold leading-tight">{node.full_name}</p>
         <p className="text-xs text-muted-foreground">Level {node.level}</p>
@@ -35,7 +49,7 @@ export const ReferralGraphNode = ({ node }: ReferralGraphNodeProps) => {
         </div>
       </div>
 
-      {hasChildren && (
+      {isExpanded && hasChildren && (
         <>
           {/* Connecting line down to children */}
           <div className="h-4 w-px bg-muted-foreground" />

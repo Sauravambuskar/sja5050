@@ -5,6 +5,7 @@ import { Skeleton } from "../ui/skeleton";
 import { ReferralGraphNode } from "../referrals/ReferralGraphNode";
 import { useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface AdminReferralTreeProps {
   userId: string;
@@ -72,11 +73,18 @@ export const AdminReferralTree = ({ userId }: AdminReferralTreeProps) => {
   return (
     <div>
       {treeData && treeData.length > 0 ? (
-        <div className="border rounded-md">
-          {treeData.map((node) => (
-            <ReferralGraphNode key={node.id} node={node} />
-          ))}
-        </div>
+        <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+          <div className="flex justify-center p-8">
+            <div className="relative flex">
+              {treeData.map((node) => (
+                <div key={node.id} className="px-4">
+                  <ReferralGraphNode node={node} isRoot />
+                </div>
+              ))}
+            </div>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       ) : (
         <div className="text-center text-muted-foreground p-8 border rounded-md">
           This user has not referred anyone.
