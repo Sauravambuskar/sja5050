@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Loader2, Edit, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,14 +43,19 @@ const fetchUserProfileForAdmin = async (userId: string): Promise<Profile> => {
   return data[0];
 };
 
-const DetailRow = ({ label, value, isLoading }: { label: string; value: string | number | null | undefined, isLoading?: boolean }) => (
-  <div className="flex justify-between text-sm py-1.5 border-b border-dashed">
+const DetailRow = ({ label, value, children }: { label: string; value?: string | number | null | undefined, children?: React.ReactNode }) => (
+  <div className="flex justify-between items-center text-sm py-1.5 border-b border-dashed">
     <span className="text-muted-foreground">{label}:</span>
-    {isLoading ? <Skeleton className="h-4 w-24" /> : <span className="font-medium text-right">{value || 'N/A'}</span>}
+    {children ? <div className="text-right">{children}</div> : <span className="font-medium text-right">{value || 'N/A'}</span>}
   </div>
 );
 
-export const AdminUserProfileTab = ({ userId }: { userId: string }) => {
+interface AdminUserProfileTabProps {
+  userId: string;
+  onViewUser: (userId: string) => void;
+}
+
+export const AdminUserProfileTab = ({ userId, onViewUser }: AdminUserProfileTabProps) => {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
@@ -143,6 +148,7 @@ export const AdminUserProfileTab = ({ userId }: { userId: string }) => {
           </Form>
         ) : (
           <div className="space-y-4">
+            <div><h4 className="font-semibold mb-2">Account Details</h4><DetailRow label="Referral Code" value={profile.referral_code} /><DetailRow label="Referred By">{profile.referrer_id && profile.referrer_full_name ? (<Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>{profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" /></Button>) : (<span>N/A</span>)}</DetailRow></div>
             <div><h4 className="font-semibold mb-2">Personal Details</h4><DetailRow label="Full Name" value={profile.full_name} /><DetailRow label="Phone" value={profile.phone} /><DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} /><DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} /></div>
             <div><h4 className="font-semibold mb-2">Bank Details</h4><DetailRow label="Account Holder" value={profile.bank_account_holder_name} /><DetailRow label="Account Number" value={profile.bank_account_number} /><DetailRow label="IFSC Code" value={profile.bank_ifsc_code} /></div>
             <div><h4 className="font-semibold mb-2">Nominee Details</h4><DetailRow label="Nominee Name" value={profile.nominee_name} /><DetailRow label="Relationship" value={profile.nominee_relationship} /><DetailRow label="Nominee DOB" value={profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : null} /></div>

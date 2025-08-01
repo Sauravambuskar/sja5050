@@ -175,7 +175,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-      <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} />
+      <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} onViewUser={handleViewDetails} />
     </>
   );
 };

@@ -217,6 +217,7 @@ export type Profile = {
   state: string | null;
   pincode: string | null;
   kyc_status: string | null;
+  referral_code: string | null;
   referrer_id: string | null;
   nominee_name: string | null;
   nominee_relationship: string | null;
@@ -225,6 +226,7 @@ export type Profile = {
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
+  referrer_full_name: string | null;
 };
 
 export type InvestmentSummary = {

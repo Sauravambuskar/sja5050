@@ -23,6 +23,7 @@ interface UserDetailsSheetProps {
   userId: string | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onViewUser: (userId: string) => void;
 }
 
 const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
@@ -32,7 +33,7 @@ const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
   return data[0];
 };
 
-export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSheetProps) => {
+export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: UserDetailsSheetProps) => {
   const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ['userDetails', userId],
     queryFn: () => fetchUserDetails(userId!),
@@ -63,7 +64,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange }: UserDetailsSh
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="adjust">Adjust Wallet</TabsTrigger>
           </TabsList>
-          <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} /></TabsContent>
+          <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} onViewUser={onViewUser} /></TabsContent>
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
           <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} /></TabsContent>
