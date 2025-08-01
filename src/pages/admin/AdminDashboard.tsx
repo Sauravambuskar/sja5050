@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import UserGrowthChart from "@/components/admin/UserGrowthChart";
 import AumGrowthChart from "@/components/admin/AumGrowthChart";
+import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
+import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
@@ -16,14 +18,13 @@ import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
   if (error) throw new Error(error.message);
-  // The RPC returns an array with one object, so we extract it.
   return data[0];
 };
 
 const fetchRecentUsers = async (): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details');
   if (error) throw new Error(error.message);
-  return data.slice(0, 5); // Get the 5 most recent users
+  return data.slice(0, 5);
 };
 
 const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]> => {
@@ -103,9 +104,11 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <UserGrowthChart />
         <AumGrowthChart />
+        <NewInvestmentsChart />
+        <CommissionPayoutChart />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
