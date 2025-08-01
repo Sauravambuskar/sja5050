@@ -46,9 +46,9 @@ export const ProfileCompleteness = ({ profile }: ProfileCompletenessProps) => {
       <CardContent>
         <Progress value={completionPercentage} className="mb-4" />
         <div className="space-y-2">
-          <p className="text-sm font-medium">Next Steps:</p>
+          <p className="text-sm font-medium">To-Do List:</p>
           <ul className="list-disc list-inside space-y-1 text-sm">
-            {incompleteItems.slice(0, 3).map(item => ( // Show up to 3 items
+            {incompleteItems.map(item => (
               <li key={item.key}>
                 <Link to={`/profile?tab=${item.tab}`} className="text-primary hover:underline inline-flex items-center">
                   {item.label}
