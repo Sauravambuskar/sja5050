@@ -1,12 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, ArrowRightLeft } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowRightLeft, Download, Loader2 } from "lucide-react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Transaction } from "@/types/database";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, exportToCsv } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositForm from "@/components/wallet/DepositForm";
@@ -15,6 +15,8 @@ import { useState } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
 
@@ -42,6 +44,7 @@ const fetchTransactionsCount = async (): Promise<number> => {
 const Wallet = () => {
   const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const defaultTab = searchParams.get("tab") || "history";
   const isMobile = useIsMobile();
 
@@ -68,6 +71,38 @@ const Wallet = () => {
   });
 
   const pageCount = totalTransactions ? Math.ceil(totalTransactions / PAGE_SIZE) : 0;
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    toast.info("Preparing your transaction history for export...");
+
+    try {
+      const { data, error } = await supabase.rpc('get_my_full_transaction_history');
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.warning("No transactions to export.");
+        return;
+      }
+
+      const formattedData = data.map((txn: Transaction) => ({
+        Date: format(new Date(txn.created_at), 'yyyy-MM-dd HH:mm:ss'),
+        Type: txn.type,
+        Description: txn.description || '',
+        Amount: txn.amount,
+        Status: txn.status,
+      }));
+
+      const filename = `transaction_history_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCsv(filename, formattedData);
+      toast.success("Transaction history exported successfully!");
+
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -223,8 +258,16 @@ const Wallet = () => {
         <TabsContent value="history">
           <Card className="mt-4">
             <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>A record of all your wallet activities.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Transaction History</CardTitle>
+                  <CardDescription>A record of all your wallet activities.</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Export
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6">
               {isMobile ? renderMobileView() : renderDesktopView()}
