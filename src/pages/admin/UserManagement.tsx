@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Download } from "lucide-react";
+import { MoreHorizontal, Download, XCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const fetchUsers = async (searchTerm: string, kycStatus: string, accountStatus: string): Promise<AdminUserView[]> => {
   const { data, error } = await supabase.rpc('get_all_users_details', {
@@ -50,17 +51,9 @@ const UserManagement = () => {
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [kycStatusFilter, setKycStatusFilter] = useState("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState("all");
-
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-
-    return () => clearTimeout(timerId);
-  }, [searchTerm]);
 
   const { data: users, isLoading, isError, error } = useQuery<AdminUserView[]>({
     queryKey: ['allUsersDetails', debouncedSearchTerm, kycStatusFilter, accountStatusFilter],
@@ -125,6 +118,14 @@ const UserManagement = () => {
     exportToCsv(filename, dataToExport);
     toast.success("User data exported successfully.");
   };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setKycStatusFilter("all");
+    setAccountStatusFilter("all");
+  };
+
+  const areFiltersActive = searchTerm !== "" || kycStatusFilter !== "all" || accountStatusFilter !== "all";
 
   const renderDesktopView = () => (
     <Table>
@@ -234,6 +235,12 @@ const UserManagement = () => {
                   <SelectItem value="Suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              {areFiltersActive && (
+                <Button variant="ghost" onClick={handleClearFilters}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
