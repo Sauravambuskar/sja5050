@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ const adminNavItems = [
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
   { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
+  { to: "/admin/system", label: "System", icon: ServerCog },
 ];
 
 export function Sidebar({ className }: { className?: string }) {

@@ -34,6 +34,7 @@ import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AuditLog from "./pages/admin/AuditLog";
+import SystemManagement from "./pages/admin/SystemManagement";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="commissions" element={<CommissionRules />} />
                 <Route path="reports" element={<Reporting />} />
                 <Route path="audit-log" element={<AuditLog />} />
+                <Route path="system" element={<SystemManagement />} />
               </Route>
             </Route>
           </Route>
