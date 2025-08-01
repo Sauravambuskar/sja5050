@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Download, XCircle, Loader2 } from "lucide-react";
+import { MoreHorizontal, Download, XCircle, Loader2, PlusCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
@@ -22,6 +22,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
+import { AddUserDialog } from "@/components/admin/AddUserDialog";
 
 const PAGE_SIZE = 20;
 
@@ -62,6 +63,7 @@ const UserManagement = () => {
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -191,6 +193,12 @@ const UserManagement = () => {
                   {isExporting ? "Exporting..." : "Export"}
                 </span>
               </Button>
+              <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Add User
+                </span>
+              </Button>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-4 md:flex-row">
@@ -209,6 +217,7 @@ const UserManagement = () => {
       </Card>
       <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} onViewUser={handleViewDetails} />
       <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
+      <AddUserDialog isOpen={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen} />
       <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action will {isUserSuspended(userToSuspend) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend) ? 'be able to' : 'not be able to'} log in.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmSuspend} disabled={suspendMutation.isPending}>{suspendMutation.isPending ? "Processing..." : "Confirm"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
