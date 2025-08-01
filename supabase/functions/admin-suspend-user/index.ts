@@ -20,7 +20,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify admin
     const { data: { user: adminUser } } = await supabaseAdmin.auth.getUser(req.headers.get('Authorization')?.replace('Bearer ', ''))
     if (!adminUser) throw new Error("Authentication failed.")
     const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('role').eq('id', adminUser.id).single()
@@ -28,13 +27,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Permission denied.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Get data from request
     const { userId, suspend } = await req.json()
     if (!userId || typeof suspend !== 'boolean') {
       return new Response(JSON.stringify({ error: 'Missing required fields: userId, suspend (boolean)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Prevent admin from suspending themselves
     if (userId === adminUser.id) {
       return new Response(JSON.stringify({ error: 'Admins cannot suspend their own account.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -43,6 +40,15 @@ serve(async (req) => {
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration })
 
     if (updateError) throw updateError
+
+    // Log the action
+    await supabaseAdmin.from('admin_audit_log').insert({
+        admin_id: adminUser.id,
+        admin_email: adminUser.email,
+        action: suspend ? 'suspended_user' : 'unsuspended_user',
+        target_user_id: userId,
+        details: { reason: 'Action from User Management page.' }
+    })
 
     const message = suspend ? 'User suspended successfully' : 'User unsuspended successfully'
     return new Response(JSON.stringify({ message }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

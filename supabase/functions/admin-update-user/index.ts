@@ -20,61 +20,37 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify that the user making the request is an admin
     const { data: { user: adminUser } } = await supabaseAdmin.auth.getUser(req.headers.get('Authorization')?.replace('Bearer ', ''))
     if (!adminUser) throw new Error("Authentication failed.")
 
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', adminUser.id)
-      .single()
-
+    const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('role').eq('id', adminUser.id).single()
     if (profileError || profile.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Permission denied.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      })
+      return new Response(JSON.stringify({ error: 'Permission denied.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Get data from request
     const { userId, fullName, role } = await req.json()
     if (!userId || !fullName || !role) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: userId, fullName, role' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
+      return new Response(JSON.stringify({ error: 'Missing required fields: userId, fullName, role' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     if (role !== 'user' && role !== 'admin') {
-        return new Response(JSON.stringify({ error: 'Invalid role specified.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-        })
+        return new Response(JSON.stringify({ error: 'Invalid role specified.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Update user in auth.users
-    const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
-      { user_metadata: { full_name: fullName } }
-    )
-    if (authUpdateError) throw authUpdateError
+    await supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: { full_name: fullName } })
+    await supabaseAdmin.from('profiles').update({ full_name: fullName, role: role }).eq('id', userId)
 
-    // Update user in public.profiles
-    const { error: profileUpdateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ full_name: fullName, role: role })
-      .eq('id', userId)
-    if (profileUpdateError) throw profileUpdateError
-
-    return new Response(JSON.stringify({ message: 'User updated successfully' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+    // Log the action
+    await supabaseAdmin.from('admin_audit_log').insert({
+        admin_id: adminUser.id,
+        admin_email: adminUser.email,
+        action: 'updated_user_role_and_name',
+        target_user_id: userId,
+        details: { fullName, role }
     })
+
+    return new Response(JSON.stringify({ message: 'User updated successfully' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    })
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
