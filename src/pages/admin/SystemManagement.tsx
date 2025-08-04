@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BroadcastHistory } from "@/components/admin/BroadcastHistory";
 import { IdCardCustomizer } from "@/components/admin/IdCardCustomizer";
 import { MaintenanceMode } from "@/components/admin/MaintenanceMode";
+import { CompanyBankDetails } from "@/components/admin/CompanyBankDetails";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -96,6 +97,7 @@ const SystemManagement = () => {
         <div className="space-y-6">
           <MaintenanceMode />
           <IdCardCustomizer />
+          <CompanyBankDetails />
         </div>
         <div className="space-y-6">
           <Card>
