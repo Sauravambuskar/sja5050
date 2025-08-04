@@ -53,7 +53,7 @@ export const IdCard = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const memberVerificationUrl = data?.profile.member_id ? `http://sjamicrofoundation.com/member/${data.profile.member_id}` : "";
+  const referralLink = data?.profile.referral_code ? `${window.location.origin}/register?ref=${data.profile.referral_code}` : "";
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -108,7 +108,7 @@ export const IdCard = () => {
                 <p className="font-semibold">{user?.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'N/A'}</p>
               </div>
               <div className="bg-white p-1.5 rounded-md shadow-md">
-                {memberVerificationUrl && <QRCodeCanvas value={memberVerificationUrl} size={72} />}
+                {referralLink && <QRCodeCanvas value={referralLink} size={72} />}
               </div>
             </div>
           </div>
