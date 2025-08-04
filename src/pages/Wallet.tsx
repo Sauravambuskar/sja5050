@@ -11,12 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositForm from "@/components/wallet/DepositForm";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const PAGE_SIZE = 10;
 
@@ -26,17 +27,20 @@ const fetchWalletBalance = async (): Promise<number> => {
   return data;
 };
 
-const fetchTransactions = async (page: number): Promise<Transaction[]> => {
+const fetchTransactions = async (page: number, filter: string): Promise<Transaction[]> => {
   const { data, error } = await supabase.rpc('get_my_transactions', {
     page_limit: PAGE_SIZE,
     page_offset: (page - 1) * PAGE_SIZE,
+    p_type_filter: filter === 'all' ? null : filter,
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchTransactionsCount = async (): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_my_transactions_count');
+const fetchTransactionsCount = async (filter: string): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_my_transactions_count', {
+    p_type_filter: filter === 'all' ? null : filter,
+  });
   if (error) throw new Error(error.message);
   return data;
 };
@@ -45,6 +49,7 @@ const Wallet = () => {
   const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const defaultTab = searchParams.get("tab") || "history";
   const isMobile = useIsMobile();
 
@@ -54,15 +59,19 @@ const Wallet = () => {
   });
 
   const { data: transactions, isLoading: areTransactionsLoading } = useQuery({
-    queryKey: ['transactions', currentPage],
-    queryFn: () => fetchTransactions(currentPage),
+    queryKey: ['transactions', currentPage, typeFilter],
+    queryFn: () => fetchTransactions(currentPage, typeFilter),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalTransactions } = useQuery<number>({
-    queryKey: ['transactionsCount'],
-    queryFn: fetchTransactionsCount,
+    queryKey: ['transactionsCount', typeFilter],
+    queryFn: () => fetchTransactionsCount(typeFilter),
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter]);
 
   const paginationRange = usePagination({
     currentPage,
@@ -192,7 +201,7 @@ const Wallet = () => {
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={3} className="text-center h-24">No transactions yet.</TableCell>
+            <TableCell colSpan={3} className="text-center h-24">No transactions found for this filter.</TableCell>
           </TableRow>
         )}
       </TableBody>
@@ -219,7 +228,7 @@ const Wallet = () => {
           </div>
         ))
       ) : (
-        <div className="flex h-24 items-center justify-center text-center text-muted-foreground">No transactions yet.</div>
+        <div className="flex h-24 items-center justify-center text-center text-muted-foreground">No transactions found for this filter.</div>
       )}
     </div>
   );
@@ -258,15 +267,30 @@ const Wallet = () => {
         <TabsContent value="history">
           <Card className="mt-4">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Transaction History</CardTitle>
                   <CardDescription>A record of all your wallet activities.</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
-                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                  Export
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Transactions</SelectItem>
+                      <SelectItem value="Deposit">Deposits</SelectItem>
+                      <SelectItem value="Withdrawal">Withdrawals</SelectItem>
+                      <SelectItem value="Investment">Investments</SelectItem>
+                      <SelectItem value="Commission">Commissions</SelectItem>
+                      <SelectItem value="Investment Payout">Payouts</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Export
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6">
