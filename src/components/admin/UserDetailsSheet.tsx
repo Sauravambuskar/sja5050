@@ -73,7 +73,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
           <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} onViewUser={onViewUser} /></TabsContent>
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
-          <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} /></TabsContent>
+          <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} onViewUser={onViewUser} /></TabsContent>
           <TabsContent value="adjust" className="mt-4"><AdminWalletAdjustmentTab userId={userId} user={user} /></TabsContent>
         </Tabs>
       </div>

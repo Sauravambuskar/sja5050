@@ -1,7 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminReferralTree } from "@/components/admin/AdminReferralTree";
 
-export const AdminUserReferralsTab = ({ userId }: { userId: string }) => {
+interface AdminUserReferralsTabProps {
+  userId: string;
+  onViewUser: (userId: string) => void;
+}
+
+export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferralsTabProps) => {
   return (
     <Card>
       <CardHeader>
@@ -9,7 +14,7 @@ export const AdminUserReferralsTab = ({ userId }: { userId: string }) => {
         <CardDescription>A tree view of this user's multi-level referral network.</CardDescription>
       </CardHeader>
       <CardContent>
-        <AdminReferralTree userId={userId} />
+        <AdminReferralTree userId={userId} onNodeClick={onViewUser} />
       </CardContent>
     </Card>
   );

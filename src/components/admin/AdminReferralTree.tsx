@@ -9,6 +9,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface AdminReferralTreeProps {
   userId: string;
+  onNodeClick?: (userId: string) => void;
 }
 
 const fetchUserReferralTree = async (userId: string): Promise<ReferralTreeUser[]> => {
@@ -40,7 +41,7 @@ const buildTree = (list: ReferralTreeUser[]): ReferralTreeUser[] => {
   return roots;
 };
 
-export const AdminReferralTree = ({ userId }: AdminReferralTreeProps) => {
+export const AdminReferralTree = ({ userId, onNodeClick }: AdminReferralTreeProps) => {
   const { data: flatList, isLoading, isError, error } = useQuery<ReferralTreeUser[]>({
     queryKey: ['adminReferralTree', userId],
     queryFn: () => fetchUserReferralTree(userId),
@@ -78,7 +79,7 @@ export const AdminReferralTree = ({ userId }: AdminReferralTreeProps) => {
             <div className="relative flex">
               {treeData.map((node) => (
                 <div key={node.id} className="px-4">
-                  <ReferralGraphNode node={node} isRoot />
+                  <ReferralGraphNode node={node} isRoot onNodeClick={onNodeClick} />
                 </div>
               ))}
             </div>
