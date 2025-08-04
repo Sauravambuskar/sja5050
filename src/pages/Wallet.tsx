@@ -9,7 +9,8 @@ import { format } from "date-fns";
 import { cn, exportToCsv } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
-import DepositForm from "@/components/wallet/DepositForm";
+import ManualDeposit from "@/components/wallet/ManualDeposit";
+import DepositHistory from "@/components/wallet/DepositHistory";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
@@ -300,7 +301,8 @@ const Wallet = () => {
           </Card>
         </TabsContent>
         <TabsContent value="deposit">
-          <DepositForm />
+          <ManualDeposit />
+          <DepositHistory />
         </TabsContent>
         <TabsContent value="withdraw">
           <WithdrawalRequests />

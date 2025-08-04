@@ -130,6 +130,15 @@ export type WithdrawalRequest = {
   requested_at: string;
 };
 
+export type DepositRequest = {
+  id: string;
+  amount: number;
+  reference_id: string;
+  status: string;
+  requested_at: string;
+  admin_notes: string | null;
+};
+
 export type KycDocument = {
   id: string;
   document_type: string;
