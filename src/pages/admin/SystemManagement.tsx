@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, PlayCircle, Send } from "lucide-react";
+import { Loader2, PlayCircle, Send, Cake } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,13 @@ const triggerMaturityProcessing = async () => {
   return data;
 };
 
+const triggerBirthdayCheck = async () => {
+  const { data, error } = await supabase.functions.invoke('admin-trigger-birthday-check');
+  if (error) throw new Error(error.message);
+  if (data.error) throw new Error(data.error);
+  return data;
+};
+
 const broadcastSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
@@ -47,6 +54,7 @@ const sendBroadcast = async (values: BroadcastFormValues) => {
 
 const SystemManagement = () => {
   const [isConfirmMaturityOpen, setIsConfirmMaturityOpen] = useState(false);
+  const [isConfirmBirthdayOpen, setIsConfirmBirthdayOpen] = useState(false);
   const [broadcastToConfirm, setBroadcastToConfirm] = useState<BroadcastFormValues | null>(null);
   const form = useForm<BroadcastFormValues>({ resolver: zodResolver(broadcastSchema) });
 
@@ -55,6 +63,13 @@ const SystemManagement = () => {
     onSuccess: (data) => { toast.success("Maturity processing complete.", { description: data.message }); },
     onError: (error) => { toast.error(`Processing failed: ${error.message}`); },
     onSettled: () => { setIsConfirmMaturityOpen(false); },
+  });
+
+  const birthdayMutation = useMutation({
+    mutationFn: triggerBirthdayCheck,
+    onSuccess: (data) => { toast.success("Birthday check complete.", { description: data.message }); },
+    onError: (error) => { toast.error(`Processing failed: ${error.message}`); },
+    onSettled: () => { setIsConfirmBirthdayOpen(false); },
   });
 
   const broadcastMutation = useMutation({
@@ -76,17 +91,32 @@ const SystemManagement = () => {
       <h1 className="text-3xl font-bold">System Management</h1>
       <p className="text-muted-foreground">Manually trigger system-wide jobs and processes.</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Investment Maturity Processing</CardTitle>
             <CardDescription>
-              This job finds all active investments that have reached their maturity date, calculates the final payout, credits the user's wallet, and updates the investment status to 'Matured'. This process normally runs automatically once per day.
+              This job finds all active investments that have reached their maturity date and credits the user's wallet. This normally runs automatically once per day.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => setIsConfirmMaturityOpen(true)} disabled={maturityMutation.isPending}>
               {maturityMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+              Run Manually
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Birthday Notifications</CardTitle>
+            <CardDescription>
+              This job checks for any users whose birthday is today and sends a notification to all administrators. This normally runs automatically once per day.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setIsConfirmBirthdayOpen(true)} disabled={birthdayMutation.isPending}>
+              {birthdayMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cake className="mr-2 h-4 w-4" />}
               Run Manually
             </Button>
           </CardContent>
@@ -126,6 +156,13 @@ const SystemManagement = () => {
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Confirm Manual Trigger</AlertDialogTitle><AlertDialogDescription>Are you sure you want to manually run the investment maturity process? This action is safe to run multiple times, as it will only process investments that are currently due.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => maturityMutation.mutate()} disabled={maturityMutation.isPending}>Confirm & Run</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmBirthdayOpen} onOpenChange={setIsConfirmBirthdayOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Confirm Manual Trigger</AlertDialogTitle><AlertDialogDescription>Are you sure you want to manually run the birthday check? This will send notifications to all admins for any users whose birthday is today.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => birthdayMutation.mutate()} disabled={birthdayMutation.isPending}>Confirm & Run</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
