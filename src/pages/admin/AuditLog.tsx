@@ -16,6 +16,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { AuditLogDetails } from "@/components/admin/AuditLogDetails";
 
 const PAGE_SIZE = 20;
 
@@ -132,7 +133,7 @@ const AuditLog = () => {
           <Table>
             <TableHeader><TableRow><TableHead>Timestamp</TableHead><TableHead>Admin</TableHead><TableHead>Action</TableHead><TableHead>Details</TableHead></TableRow></TableHeader>
             <TableBody>
-              {isLogsLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-5 w-32" /></TableCell><TableCell><Skeleton className="h-5 w-40" /></TableCell><TableCell><Skeleton className="h-6 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-full" /></TableCell></TableRow>))) : (logs?.map((log) => (<TableRow key={log.id}><TableCell className="text-sm text-muted-foreground">{format(new Date(log.created_at), "PPP p")}</TableCell><TableCell>{log.admin_email}</TableCell><TableCell><Badge variant="secondary">{formatAction(log.action)}</Badge></TableCell><TableCell className="text-sm font-mono">{JSON.stringify(log.details)}</TableCell></TableRow>)))}
+              {isLogsLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-5 w-32" /></TableCell><TableCell><Skeleton className="h-5 w-40" /></TableCell><TableCell><Skeleton className="h-6 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-full" /></TableCell></TableRow>))) : (logs?.map((log) => (<TableRow key={log.id}><TableCell className="text-sm text-muted-foreground">{format(new Date(log.created_at), "PPP p")}</TableCell><TableCell>{log.admin_email}</TableCell><TableCell><Badge variant="secondary">{formatAction(log.action)}</Badge></TableCell><TableCell className="text-sm"><AuditLogDetails action={log.action} details={log.details} /></TableCell></TableRow>)))}
             </TableBody>
           </Table>
           {pageCount > 1 && (
