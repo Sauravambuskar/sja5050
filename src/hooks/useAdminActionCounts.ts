@@ -23,5 +23,6 @@ export const useAdminActionCounts = () => {
   return {
     pendingKycCount: stats?.pending_kyc ?? 0,
     pendingWithdrawalsCount: stats?.pending_withdrawals_count ?? 0,
+    pendingDepositsCount: stats?.pending_deposits_count ?? 0,
   };
 };

@@ -35,6 +35,7 @@ import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AuditLog from "./pages/admin/AuditLog";
 import SystemManagement from "./pages/admin/SystemManagement";
+import DepositManagement from "./pages/admin/DepositManagement";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/admin" element={<AdminRoute />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
+                <Route path="deposits" element={<DepositManagement />} />
                 <Route path="investments" element={<InvestmentManagement />} />
                 <Route path="withdrawals" element={<WithdrawalManagement />} />
                 <Route path="kyc" element={<KycManagement />} />

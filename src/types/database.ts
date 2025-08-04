@@ -48,6 +48,8 @@ export type AdminDashboardStats = {
   pending_kyc: number;
   pending_withdrawals_count: number;
   pending_withdrawals_value: number;
+  pending_deposits_count: number;
+  pending_deposits_value: number;
 };
 
 export type AdminWithdrawalRequest = {
@@ -60,6 +62,16 @@ export type AdminWithdrawalRequest = {
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
   wallet_balance: number;
+};
+
+export type AdminDepositRequest = {
+  request_id: string;
+  user_name: string;
+  user_id: string;
+  amount: number;
+  reference_id: string;
+  requested_at: string;
+  status: string;
 };
 
 export type CommissionRule = {
@@ -261,4 +273,11 @@ export type SystemSettings = {
   maintenance_mode_enabled: boolean;
   maintenance_message: string | null;
   updated_at: string;
+  company_bank_details: {
+    bank_name: string;
+    account_holder_name: string;
+    account_number: string;
+    ifsc_code: string;
+    upi_id: string;
+  } | null;
 };

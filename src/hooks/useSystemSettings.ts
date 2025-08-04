@@ -7,7 +7,7 @@ const fetchSettings = async (): Promise<SystemSettings> => {
   if (error) {
     console.error("Failed to fetch system settings:", error);
     // Return a default "safe" state if settings can't be fetched
-    return { id: 1, maintenance_mode_enabled: false, maintenance_message: null, updated_at: new Date().toISOString() };
+    return { id: 1, maintenance_mode_enabled: false, maintenance_message: null, updated_at: new Date().toISOString(), company_bank_details: null };
   }
   return data;
 };
