@@ -10,10 +10,8 @@ import UserGrowthChart from "@/components/admin/UserGrowthChart";
 import AumGrowthChart from "@/components/admin/AumGrowthChart";
 import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
 import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
-import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
+import { Link, useOutletContext } from "react-router-dom";
+import { PageLayoutContext } from "@/components/layout/PageLayout";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -40,8 +38,7 @@ const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]
 };
 
 const AdminDashboard = () => {
-  const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { handleViewUser } = useOutletContext<PageLayoutContext>();
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminDashboardStats>({
     queryKey: ['adminDashboardStats'],
@@ -57,11 +54,6 @@ const AdminDashboard = () => {
     queryKey: ['highValueTransactions'],
     queryFn: fetchHighValueTransactions,
   });
-
-  const handleViewDetails = (userId: string) => {
-    setSelectedUserIdForSheet(userId);
-    setIsSheetOpen(true);
-  };
 
   const kpiData = [
     { title: "Total Users", value: stats?.total_users.toLocaleString() ?? "0", icon: Users, to: "/admin/users" },
@@ -82,7 +74,6 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Overview of platform KPIs and activities.</p>
         </div>
-        <AdminUserSearch onUserSelect={handleViewDetails} />
       </div>
       
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -130,7 +121,7 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {recentUsers?.map((user) => (
-                  <button key={user.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewDetails(user.id)}>
+                  <button key={user.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(user.id)}>
                     <Avatar className="h-9 w-9">
                       <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
                     </Avatar>
@@ -159,7 +150,7 @@ const AdminDashboard = () => {
             ) : highValueTransactions && highValueTransactions.length > 0 ? (
               <div className="space-y-4">
                 {highValueTransactions.map((txn) => (
-                  <button key={txn.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewDetails(txn.user_id)}>
+                  <button key={txn.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(txn.user_id)}>
                     <Avatar className="h-9 w-9">
                       <AvatarFallback>{getInitials(txn.user_name)}</AvatarFallback>
                     </Avatar>
@@ -181,7 +172,6 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-      <UserDetailsSheet userId={selectedUserIdForSheet} isOpen={isSheetOpen} onOpenChange={setIsSheetOpen} onViewUser={handleViewDetails} />
     </>
   );
 };

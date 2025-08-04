@@ -14,13 +14,16 @@ import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { AdminUserSearch } from "../admin/AdminUserSearch";
 
-export function Header() {
+export function Header({ handleViewUser }: { handleViewUser: (userId: string) => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const { count: unreadCount } = useUnreadNotifications();
+  const { isAdmin } = useIsAdmin();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -60,7 +63,7 @@ export function Header() {
         </Sheet>
 
         <div className="w-full flex-1">
-          {/* Page title can be added here */}
+          {isAdmin && <AdminUserSearch onUserSelect={handleViewUser} />}
         </div>
 
         <div className="flex items-center gap-4">
