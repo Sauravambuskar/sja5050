@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "./Sidebar";
@@ -12,12 +12,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ModeToggle } from "./ModeToggle";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { Badge } from "@/components/ui/badge";
 
 export function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const { count: unreadCount } = useUnreadNotifications();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -61,6 +64,17 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          <Link to="/notifications">
+            <Button variant="outline" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {unreadCount}
+                </Badge>
+              )}
+              <span className="sr-only">View notifications</span>
+            </Button>
+          </Link>
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
