@@ -4,7 +4,6 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
@@ -14,6 +13,7 @@ import { AdminUserView } from "@/types/database"
 import { useDebounce } from "@/hooks/useDebounce"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "../ui/button"
+import { CommandInput } from "../ui/command"
 
 interface AdminUserSearchProps {
   onUserSelect: (userId: string) => void;
