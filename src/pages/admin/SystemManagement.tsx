@@ -22,6 +22,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BroadcastHistory } from "@/components/admin/BroadcastHistory";
+import { IdCardCustomizer } from "@/components/admin/IdCardCustomizer";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -111,6 +112,10 @@ const SystemManagement = () => {
             </Form>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <IdCardCustomizer />
       </div>
 
       <div className="mt-6">

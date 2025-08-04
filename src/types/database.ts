@@ -230,6 +230,7 @@ export type Profile = {
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
   referrer_full_name: string | null;
+  member_id: string | null;
 };
 
 export type InvestmentSummary = {
@@ -244,4 +245,13 @@ export type BroadcastMessage = {
   title: string;
   description: string;
   created_at: string;
+};
+
+export type IdCardSettings = {
+  id: number;
+  company_name: string;
+  logo_url: string | null;
+  accent_color: string;
+  background_image_url: string | null;
+  updated_at: string;
 };
