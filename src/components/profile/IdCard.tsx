@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { Download, Loader2, Phone, ShieldCheck } from 'lucide-react';
+import { Download, Loader2, Phone, ShieldCheck, Mail, Calendar } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { Profile, IdCardSettings } from '@/types/database';
 import { format } from 'date-fns';
@@ -84,12 +84,20 @@ export const IdCard = () => {
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{data?.profile.phone || 'N/A'}</span>
+              <div className="flex items-center gap-2 truncate">
+                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{data?.profile.phone || 'N/A'}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 truncate">
+                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{user?.email || 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2 truncate">
+                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{data?.profile.dob ? format(new Date(data.profile.dob), 'PPP') : 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2 truncate">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <span>KYC: <Badge variant={data?.profile.kyc_status === 'Approved' ? 'default' : 'secondary'}>{data?.profile.kyc_status}</Badge></span>
               </div>
             </div>
