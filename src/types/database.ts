@@ -255,3 +255,10 @@ export type IdCardSettings = {
   background_image_url: string | null;
   updated_at: string;
 };
+
+export type SystemSettings = {
+  id: number;
+  maintenance_mode_enabled: boolean;
+  maintenance_message: string | null;
+  updated_at: string;
+};

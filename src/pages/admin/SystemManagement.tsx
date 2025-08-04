@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BroadcastHistory } from "@/components/admin/BroadcastHistory";
 import { IdCardCustomizer } from "@/components/admin/IdCardCustomizer";
+import { MaintenanceMode } from "@/components/admin/MaintenanceMode";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -89,63 +90,57 @@ const SystemManagement = () => {
   return (
     <>
       <h1 className="text-3xl font-bold">System Management</h1>
-      <p className="text-muted-foreground">Manually trigger system-wide jobs and processes.</p>
+      <p className="text-muted-foreground">Manage system-wide settings, jobs, and communications.</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Investment Maturity Processing</CardTitle>
-            <CardDescription>
-              This job finds all active investments that have reached their maturity date and credits the user's wallet. This normally runs automatically once per day.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setIsConfirmMaturityOpen(true)} disabled={maturityMutation.isPending}>
-              {maturityMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-              Run Manually
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Birthday Notifications</CardTitle>
-            <CardDescription>
-              This job checks for any users whose birthday is today and sends a notification to all administrators. This normally runs automatically once per day.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setIsConfirmBirthdayOpen(true)} disabled={birthdayMutation.isPending}>
-              {birthdayMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cake className="mr-2 h-4 w-4" />}
-              Run Manually
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Broadcast Notification</CardTitle>
-            <CardDescription>
-              Send a notification to all users on the platform. Use this for important announcements.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onBroadcastSubmit)} className="space-y-4">
-                <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Message</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <Button type="submit" disabled={broadcastMutation.isPending}>
-                  {broadcastMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  Send Broadcast
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
+          <MaintenanceMode />
+          <IdCardCustomizer />
+        </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Jobs</CardTitle>
+              <CardDescription>Manually trigger scheduled tasks. These normally run automatically once per day.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Investment Maturity Processing</h4>
+                <p className="text-sm text-muted-foreground mb-2">Credits wallets for matured investments.</p>
+                <Button onClick={() => setIsConfirmMaturityOpen(true)} disabled={maturityMutation.isPending}>
+                  {maturityMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                  Run Manually
                 </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6">
-        <IdCardCustomizer />
+              </div>
+              <div>
+                <h4 className="font-semibold">Birthday Notifications</h4>
+                <p className="text-sm text-muted-foreground mb-2">Notifies admins of user birthdays.</p>
+                <Button onClick={() => setIsConfirmBirthdayOpen(true)} disabled={birthdayMutation.isPending}>
+                  {birthdayMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cake className="mr-2 h-4 w-4" />}
+                  Run Manually
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Broadcast Notification</CardTitle>
+              <CardDescription>Send a notification to all users on the platform.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onBroadcastSubmit)} className="space-y-4">
+                  <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Message</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <Button type="submit" disabled={broadcastMutation.isPending}>
+                    {broadcastMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Send Broadcast
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="mt-6">
