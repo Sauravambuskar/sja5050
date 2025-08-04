@@ -39,6 +39,7 @@ export type AdminKycRequest = {
   file_path: string;
   submitted_at: string;
   status: string;
+  admin_notes: string | null;
 };
 
 export type AdminDashboardStats = {

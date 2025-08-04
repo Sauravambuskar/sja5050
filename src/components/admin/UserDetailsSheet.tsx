@@ -18,6 +18,7 @@ import { AdminUserTransactionsTab } from "@/components/admin/tabs/AdminUserTrans
 import { AdminUserInvestmentsTab } from "@/components/admin/tabs/AdminUserInvestmentsTab";
 import { AdminUserReferralsTab } from "@/components/admin/tabs/AdminUserReferralsTab";
 import { AdminWalletAdjustmentTab } from "@/components/admin/tabs/AdminWalletAdjustmentTab";
+import { AdminUserKycTab } from "./tabs/AdminUserKycTab";
 
 interface UserDetailsSheetProps {
   userId: string | null;
@@ -63,14 +64,16 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
           </div>
         </div>
         <Tabs defaultValue="profile">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="kyc">KYC</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="investments">Investments</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="adjust">Adjust Wallet</TabsTrigger>
           </TabsList>
           <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} onViewUser={onViewUser} /></TabsContent>
+          <TabsContent value="kyc" className="mt-4"><AdminUserKycTab userId={userId} /></TabsContent>
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
           <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} onViewUser={onViewUser} /></TabsContent>
@@ -82,7 +85,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-2xl w-full overflow-y-auto">
+      <SheetContent className="sm:max-w-3xl w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isUserLoading ? <Skeleton className="h-6 w-40" /> : user?.full_name || "User Details"}</SheetTitle>
           <SheetDescription>A complete overview of the user's account and activity.</SheetDescription>
