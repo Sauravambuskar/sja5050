@@ -1,9 +1,11 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useOutletContext } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { PageLayoutContext } from '../layout/PageLayout';
 
 export const AdminRoute = () => {
   const { isAdmin, isLoading } = useIsAdmin();
+  const context = useOutletContext<PageLayoutContext>();
 
   if (isLoading) {
     return (
@@ -18,5 +20,5 @@ export const AdminRoute = () => {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return <Outlet context={context} />;
 };
