@@ -237,3 +237,11 @@ export type InvestmentSummary = {
   active_investments_count: number;
   estimated_daily_earnings: number;
 };
+
+export type BroadcastMessage = {
+  id: string;
+  admin_email: string;
+  title: string;
+  description: string;
+  created_at: string;
+};

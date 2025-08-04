@@ -21,6 +21,7 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { BroadcastHistory } from "@/components/admin/BroadcastHistory";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -110,6 +111,10 @@ const SystemManagement = () => {
             </Form>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <BroadcastHistory />
       </div>
 
       <AlertDialog open={isConfirmMaturityOpen} onOpenChange={setIsConfirmMaturityOpen}>
