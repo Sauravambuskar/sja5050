@@ -165,7 +165,6 @@ export type ReferralTreeUser = {
   level: number;
   parent_id: string;
   children: ReferralTreeUser[];
-  avatar_url: string | null;
 };
 
 export type UserGrowthReportData = {
