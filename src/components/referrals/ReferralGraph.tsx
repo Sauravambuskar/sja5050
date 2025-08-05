@@ -3,37 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ReferralTreeUser } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
-import { ReferralGraphNode } from "./ReferralGraphNode";
-import { useMemo } from "react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ReferralCard } from "./ReferralCard";
 
 const fetchMyReferralTree = async (): Promise<ReferralTreeUser[]> => {
   const { data, error } = await supabase.rpc('get_my_referral_tree');
   if (error) throw new Error(error.message);
-  return data;
-};
-
-// Helper function to build the tree
-const buildTree = (list: ReferralTreeUser[]): ReferralTreeUser[] => {
-  const map: { [key: string]: ReferralTreeUser } = {};
-  const roots: ReferralTreeUser[] = [];
-
-  list.forEach(node => {
-    map[node.id] = { ...node, children: [] };
+  if (!data) return [];
+  // Sort by level, then by name
+  return data.sort((a, b) => {
+    if (a.level < b.level) return -1;
+    if (a.level > b.level) return 1;
+    if (!a.full_name || !b.full_name) return 0;
+    return a.full_name.localeCompare(b.full_name);
   });
-
-  list.forEach(node => {
-    if (node.level === 1) {
-      roots.push(map[node.id]);
-    } else {
-      const parent = map[node.parent_id];
-      if (parent) {
-        parent.children.push(map[node.id]);
-      }
-    }
-  });
-
-  return roots;
 };
 
 const ReferralGraph = () => {
@@ -42,40 +24,30 @@ const ReferralGraph = () => {
     queryFn: fetchMyReferralTree,
   });
 
-  const treeData = useMemo(() => {
-    if (!flatList) return [];
-    return buildTree(flatList);
-  }, [flatList]);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Your Referral Network</CardTitle>
         <CardDescription>
-          A visual representation of your multi-level referral network.
+          A list of all users in your multi-level referral network.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-          <div className="flex justify-center p-8">
-            {isLoading ? (
-              <Skeleton className="h-40 w-80" />
-            ) : treeData && treeData.length > 0 ? (
-              <div className="relative flex">
-                {treeData.map((node) => (
-                  <div key={node.id} className="px-4">
-                    <ReferralGraphNode node={node} isRoot />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground p-8">
-                You haven't referred anyone yet.
-              </div>
-            )}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        ) : flatList && flatList.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {flatList.map((referral) => (
+              <ReferralCard key={referral.id} referral={referral} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground p-8 border rounded-md">
+            You haven't referred anyone yet.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
