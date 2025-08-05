@@ -159,7 +159,6 @@ export type Referral = {
 export type ReferralTreeUser = {
   id: string;
   full_name: string;
-  avatar_url: string | null;
   join_date: string;
   kyc_status: string;
   has_invested: boolean;
