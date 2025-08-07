@@ -21,8 +21,7 @@ type PayoutReportItem = {
   investment_amount: number;
   start_date: string;
   maturity_date: string;
-  profit_amount: number;
-  total_payout: number;
+  monthly_interest_payout: number;
   status: string;
   bank_account_holder_name: string;
   bank_account_number: string;
@@ -51,7 +50,7 @@ const PayoutReports = () => {
     onSuccess: (data) => {
       setReportData(data);
       if (data.length === 0) {
-        toast.info("No payouts maturing in the selected month.");
+        toast.info("No active investments found for the selected month.");
       }
     },
     onError: (error) => {
@@ -72,7 +71,7 @@ const PayoutReports = () => {
       toast.warning("No data to export. Please generate a report first.");
       return;
     }
-    const filename = `payout_report_${format(month!, 'yyyy-MM')}.csv`;
+    const filename = `monthly_payout_report_${format(month!, 'yyyy-MM')}.csv`;
     exportToCsv(filename, reportData);
     toast.success("Report exported successfully.");
   };
@@ -81,8 +80,8 @@ const PayoutReports = () => {
     <>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Payout Reports</h1>
-          <p className="text-muted-foreground">Generate and export reports for matured investments.</p>
+          <h1 className="text-3xl font-bold">Monthly Payout Reports</h1>
+          <p className="text-muted-foreground">Generate reports for recurring monthly interest payouts.</p>
         </div>
         <Button variant="outline" className="gap-1" onClick={handleExport} disabled={reportData.length === 0}>
           <Download className="h-3.5 w-3.5" />
@@ -95,7 +94,7 @@ const PayoutReports = () => {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Generate Monthly Payout Report</CardTitle>
-          <CardDescription>Select a month to see all investments that mature and require payment.</CardDescription>
+          <CardDescription>Select a month to see all active investments and their calculated monthly interest payout.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -129,8 +128,8 @@ const PayoutReports = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Client & Plan</TableHead>
-                  <TableHead>Maturity Date</TableHead>
-                  <TableHead>Payout Amount</TableHead>
+                  <TableHead>Investment Period</TableHead>
+                  <TableHead>Monthly Payout</TableHead>
                   <TableHead>Bank Details</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -147,12 +146,14 @@ const PayoutReports = () => {
                     <TableRow key={item.investment_id}>
                       <TableCell>
                         <div className="font-medium">{item.user_name}</div>
-                        <div className="text-sm text-muted-foreground">{item.plan_name}</div>
+                        <div className="text-sm text-muted-foreground">{item.plan_name} (₹{item.investment_amount.toLocaleString('en-IN')})</div>
                       </TableCell>
-                      <TableCell>{format(new Date(item.maturity_date), "PPP")}</TableCell>
+                      <TableCell className="text-xs">
+                        <div>{format(new Date(item.start_date), "PPP")}</div>
+                        <div>{format(new Date(item.maturity_date), "PPP")}</div>
+                      </TableCell>
                       <TableCell>
-                        <div className="font-semibold">₹{item.total_payout.toLocaleString('en-IN')}</div>
-                        <div className="text-xs text-muted-foreground">Profit: ₹{item.profit_amount.toLocaleString('en-IN')}</div>
+                        <div className="font-semibold">₹{item.monthly_interest_payout.toLocaleString('en-IN')}</div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div>{item.bank_account_holder_name}</div>
@@ -160,7 +161,7 @@ const PayoutReports = () => {
                         <div className="font-mono">{item.bank_ifsc_code}</div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.status === "Active" ? "outline" : "default"}>{item.status}</Badge>
+                        <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
                       </TableCell>
                     </TableRow>
                   ))
