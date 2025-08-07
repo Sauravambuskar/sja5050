@@ -3,6 +3,8 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useState } from "react";
 import { UserDetailsSheet } from "../admin/UserDetailsSheet";
+import { useAuth } from "../auth/AuthProvider";
+import { ImpersonationBanner } from "./ImpersonationBanner";
 
 export type PageLayoutContext = {
   handleViewUser: (userId: string) => void;
@@ -13,6 +15,7 @@ export function usePageLayoutContext() {
 }
 
 export function PageLayout() {
+  const { isImpersonating } = useAuth();
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -32,6 +35,7 @@ export function PageLayout() {
 
   return (
     <>
+      {isImpersonating && <ImpersonationBanner />}
       <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
         <div className="hidden border-r bg-muted/40 md:block">
           <Sidebar className="w-full" />
