@@ -3,7 +3,7 @@ import { ReferralTreeUser } from "@/types/database";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserCheck, UserX, PlusCircle, MinusCircle } from "lucide-react";
-import { cn, getGeneratedAvatarUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const getInitials = (name: string | null | undefined) => {
@@ -38,7 +38,7 @@ export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: { node:
             onClick={handleNodeClick}
           >
             <Avatar className="h-16 w-16 border-2 border-primary">
-              <AvatarImage src={node.avatar_url || getGeneratedAvatarUrl(node.full_name) || undefined} />
+              <AvatarImage src={node.avatar_url || undefined} />
               <AvatarFallback className="text-xl">{getInitials(node.full_name)}</AvatarFallback>
             </Avatar>
             {hasChildren && (

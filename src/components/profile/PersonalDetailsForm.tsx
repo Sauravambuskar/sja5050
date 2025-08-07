@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, Upload, Users } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { cn, getGeneratedAvatarUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Profile } from "@/types/database";
 import { useEffect, useState, ChangeEvent } from "react";
@@ -142,7 +142,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     detailsMutation.mutate(values);
   };
 
-  const currentAvatarUrl = user?.user_metadata?.avatar_url || getGeneratedAvatarUrl(profile.full_name);
+  const currentAvatarUrl = user?.user_metadata?.avatar_url;
 
   return (
     <Card>

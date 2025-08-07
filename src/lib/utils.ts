@@ -39,12 +39,3 @@ export function exportToCsv(filename: string, rows: object[]) {
     document.body.removeChild(link);
   }
 }
-
-export function getGeneratedAvatarUrl(name?: string | null): string {
-  if (!name) {
-    return 'https://avatar.iran.liara.run/public/boy'; // A generic fallback
-  }
-  // Simple hash to decide between boy/girl for variety
-  const gender = name.length % 2 === 0 ? 'boy' : 'girl';
-  return `https://avatar.iran.liara.run/public/${gender}?username=${encodeURIComponent(name)}`;
-}
