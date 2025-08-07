@@ -291,3 +291,16 @@ export type SystemSettings = {
     upi_id: string;
   } | null;
 };
+
+export type AdminActivityFeedItem = {
+  event_type: 'new_user' | 'new_investment' | 'deposit_request' | 'withdrawal_request' | 'kyc_submission';
+  user_id: string;
+  user_name: string;
+  timestamp: string;
+  details: {
+    email?: string;
+    amount?: number;
+    plan_name?: string;
+    document_type?: string;
+  };
+};
