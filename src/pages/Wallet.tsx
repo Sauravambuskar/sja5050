@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Transaction } from "@/types/database";
 import { format } from "date-fns";
-import { cn, exportToCsv } from "@/lib/utils";
+import { cn, exportToCsv, exportToPdf } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import ManualDeposit from "@/components/wallet/ManualDeposit";
@@ -19,6 +19,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const PAGE_SIZE = 10;
 
@@ -47,6 +49,7 @@ const fetchTransactionsCount = async (filter: string): Promise<number> => {
 };
 
 const Wallet = () => {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
@@ -82,9 +85,9 @@ const Wallet = () => {
 
   const pageCount = totalTransactions ? Math.ceil(totalTransactions / PAGE_SIZE) : 0;
 
-  const handleExport = async () => {
+  const handleExport = async (formatType: 'csv' | 'pdf') => {
     setIsExporting(true);
-    toast.info("Preparing your transaction history for export...");
+    toast.info(`Preparing your transaction history as a ${formatType.toUpperCase()} file...`);
 
     try {
       const { data, error } = await supabase.rpc('get_my_full_transaction_history');
@@ -95,17 +98,30 @@ const Wallet = () => {
         return;
       }
 
-      const formattedData = data.map((txn: Transaction) => ({
-        Date: format(new Date(txn.created_at), 'yyyy-MM-dd HH:mm:ss'),
-        Type: txn.type,
-        Description: txn.description || '',
-        Amount: txn.amount,
-        Status: txn.status,
-      }));
+      const filename = `SJA_Statement_${format(new Date(), 'yyyy-MM-dd')}`;
 
-      const filename = `transaction_history_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      exportToCsv(filename, formattedData);
-      toast.success("Transaction history exported successfully!");
+      if (formatType === 'csv') {
+        const formattedData = data.map((txn: Transaction) => ({
+          Date: format(new Date(txn.created_at), 'yyyy-MM-dd HH:mm:ss'),
+          Type: txn.type,
+          Description: txn.description || '',
+          Amount: txn.amount,
+          Status: txn.status,
+        }));
+        exportToCsv(`${filename}.csv`, formattedData);
+      } else {
+        const headers = ["Date", "Type", "Description", "Amount (INR)", "Status"];
+        const body = data.map((txn: Transaction) => [
+          format(new Date(txn.created_at), 'PPp'),
+          txn.type,
+          txn.description || '-',
+          txn.amount.toLocaleString('en-IN'),
+          txn.status,
+        ]);
+        exportToPdf(`${filename}.pdf`, "Account Statement", headers, body, user?.user_metadata?.full_name || "User");
+      }
+
+      toast.success(`Statement exported successfully as ${formatType.toUpperCase()}!`);
 
     } catch (error: any) {
       toast.error(`Export failed: ${error.message}`);
@@ -287,10 +303,18 @@ const Wallet = () => {
                       <SelectItem value="Investment Payout">Payouts</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Export
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isExporting}>
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>
