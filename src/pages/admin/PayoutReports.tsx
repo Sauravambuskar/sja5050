@@ -75,7 +75,7 @@ const PayoutReports = () => {
       return;
     }
     const filename = `payout_report_${format(month!, 'yyyy-MM')}`;
-    const title = `Monthly Payout Report for ${format(month!, 'MMMM yyyy')}`;
+    const title = `SJA Foundation Payout Statement - ${format(month!, 'MMMM yyyy')}`;
 
     if (formatType === 'csv') {
       exportToCsv(`${filename}.csv`, reportData);
