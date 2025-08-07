@@ -9,8 +9,7 @@ import { format } from "date-fns";
 import { cn, exportToCsv, exportToPdf } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
-import ManualDeposit from "@/components/wallet/ManualDeposit";
-import DepositHistory from "@/components/wallet/DepositHistory";
+import StripeDeposit from "@/components/wallet/StripeDeposit";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { usePagination, DOTS } from "@/hooks/usePagination";
@@ -50,12 +49,25 @@ const fetchTransactionsCount = async (filter: string): Promise<number> => {
 
 const Wallet = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const defaultTab = searchParams.get("tab") || "history";
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast.success("Payment successful!", { description: "Your wallet balance will be updated shortly." });
+      searchParams.delete('payment');
+      setSearchParams(searchParams);
+    } else if (paymentStatus === 'cancelled') {
+      toast.warning("Payment cancelled.", { description: "Your deposit was not processed." });
+      searchParams.delete('payment');
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
@@ -325,8 +337,7 @@ const Wallet = () => {
           </Card>
         </TabsContent>
         <TabsContent value="deposit">
-          <ManualDeposit />
-          <DepositHistory />
+          <StripeDeposit />
         </TabsContent>
         <TabsContent value="withdraw">
           <WithdrawalRequests />
