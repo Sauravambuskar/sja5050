@@ -159,7 +159,6 @@ export type Referral = {
 export type ReferralTreeUser = {
   id: string;
   full_name: string;
-  avatar_url: string | null;
   join_date: string;
   kyc_status: string;
   has_invested: boolean;
@@ -290,17 +289,4 @@ export type SystemSettings = {
     ifsc_code: string;
     upi_id: string;
   } | null;
-};
-
-export type AdminActivityFeedItem = {
-  event_type: 'new_user' | 'new_investment' | 'deposit_request' | 'withdrawal_request' | 'kyc_submission';
-  user_id: string;
-  user_name: string;
-  timestamp: string;
-  details: {
-    email?: string;
-    amount?: number;
-    plan_name?: string;
-    document_type?: string;
-  };
 };

@@ -10,8 +10,8 @@ import { NomineeForm } from "@/components/profile/NomineeForm";
 import { useSearchParams } from "react-router-dom";
 import SecuritySettings from "@/components/profile/SecuritySettings";
 import { useMemo } from "react";
+import { ProfileCompleteness } from "@/components/profile/ProfileCompleteness";
 import { IdCard } from "@/components/profile/IdCard";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -54,18 +54,16 @@ const Profile = () => {
       </p>
       
       <div className="mt-6">
+        <ProfileCompleteness profile={profile} />
         <Tabs defaultValue={defaultTab} className="w-full">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="personal">Personal Info</TabsTrigger>
-              <TabsTrigger value="bank">Bank Details</TabsTrigger>
-              <TabsTrigger value="nominee">Nominee</TabsTrigger>
-              <TabsTrigger value="kyc">KYC</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
-              <TabsTrigger value="id-card">ID Card</TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="personal">Personal Info</TabsTrigger>
+            <TabsTrigger value="bank">Bank Details</TabsTrigger>
+            <TabsTrigger value="nominee">Nominee</TabsTrigger>
+            <TabsTrigger value="kyc">KYC</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="id-card">ID Card</TabsTrigger>
+          </TabsList>
           <TabsContent value="personal" className="mt-6">
             <PersonalDetailsForm profile={profile} />
           </TabsContent>

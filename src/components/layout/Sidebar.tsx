@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,6 @@ const adminNavItems = [
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
-  { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
   { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
   { to: "/admin/system", label: "System", icon: ServerCog },
 ];
@@ -38,16 +37,56 @@ export function Sidebar({ className }: { className?: string }) {
 
   return (
     <aside className={cn("flex h-full flex-col border-r bg-background p-4", className)}>
-      <div>
-        <div className="mb-8 flex items-center p-2 text-2xl font-bold text-primary">
-          SJA Foundation
+      <div className="mb-8 flex items-center p-2 text-2xl font-bold text-primary">
+        SJA Foundation
+      </div>
+      <nav className="flex flex-col space-y-1">
+        {userNavItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )
+            }
+          >
+            <div className="flex items-center">
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.label}</span>
+            </div>
+            {item.label === "Notifications" && unreadCount > 0 && (
+              <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                {unreadCount}
+              </Badge>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {isAdminLoading && (
+        <div className="mt-auto flex flex-col space-y-1">
+          <Separator className="my-4" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
         </div>
-        <nav className="flex flex-col space-y-1">
-          {userNavItems.map((item) => (
+      )}
+
+      {isAdmin && (
+        <div className="mt-auto flex flex-col space-y-1">
+          <Separator className="my-4" />
+          <div className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">
+            Admin Portal
+          </div>
+          {adminNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === "/"}
+              end={item.to === "/admin"}
               className={({ isActive }) =>
                 cn(
                   "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
@@ -61,73 +100,25 @@ export function Sidebar({ className }: { className?: string }) {
                 <item.icon className="mr-3 h-5 w-5" />
                 <span>{item.label}</span>
               </div>
-              {item.label === "Notifications" && unreadCount > 0 && (
+              {item.label === "KYC Toolkit" && pendingKycCount > 0 && (
                 <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {unreadCount}
+                  {pendingKycCount}
+                </Badge>
+              )}
+              {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {pendingWithdrawalsCount}
+                </Badge>
+              )}
+              {item.label === "Deposits" && pendingDepositsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {pendingDepositsCount}
                 </Badge>
               )}
             </NavLink>
           ))}
-        </nav>
-      </div>
-
-      <div className="mt-auto">
-        {isAdminLoading && (
-          <div className="flex flex-col space-y-1">
-            <Separator className="my-4" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        )}
-
-        {isAdmin && (
-          <div className="flex flex-col space-y-1">
-            <Separator className="my-4" />
-            <div className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">
-              Admin Portal
-            </div>
-            {adminNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/admin"}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )
-                }
-              >
-                <div className="flex items-center">
-                  <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.label}</span>
-                </div>
-                {item.label === "KYC Toolkit" && pendingKycCount > 0 && (
-                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                    {pendingKycCount}
-                  </Badge>
-                )}
-                {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
-                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                    {pendingWithdrawalsCount}
-                  </Badge>
-                )}
-                {item.label === "Deposits" && pendingDepositsCount > 0 && (
-                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                    {pendingDepositsCount}
-                  </Badge>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 pt-4 border-t border-border text-center text-xs text-muted-foreground">
-          Version 8.1
         </div>
-      </div>
+      )}
     </aside>
   );
 }

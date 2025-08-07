@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { ReferralTreeUser } from "@/types/database";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserCheck, UserX, PlusCircle, MinusCircle } from "lucide-react";
+import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+
+interface ReferralGraphNodeProps {
+  node: ReferralTreeUser;
+  isRoot?: boolean;
+  onNodeClick?: (userId: string) => void;
+}
 
 const getInitials = (name: string | null | undefined) => {
   if (!name) return "U";
   return name.split(' ').map(n => n[0]).join('').toUpperCase();
 }
 
-export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: { node: ReferralTreeUser; isRoot?: boolean; onNodeClick?: (userId: string) => void; }) => {
+export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: ReferralGraphNodeProps) => {
   const hasChildren = node.children && node.children.length > 0;
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -22,51 +28,45 @@ export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: { node:
   };
 
   const handleToggleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent the node click from firing when expanding/collapsing
     setIsExpanded(!isExpanded);
   };
 
   return (
     <div className="relative flex flex-col items-center">
-      {/* Connecting line from parent */}
+      {/* Connecting line from parent, not for root nodes */}
       {!isRoot && <div className="absolute -top-4 h-4 w-px bg-muted-foreground" />}
       
-      <HoverCard openDelay={200}>
-        <HoverCardTrigger asChild>
-          <div
-            className={cn("relative z-10", onNodeClick && "cursor-pointer")}
-            onClick={handleNodeClick}
+      <div
+        className={cn(
+          "relative z-10 flex w-48 flex-col items-center rounded-lg border bg-card p-3 shadow-sm",
+          onNodeClick && "cursor-pointer transition-colors hover:bg-accent"
+        )}
+        onClick={handleNodeClick}
+      >
+        {hasChildren && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-background"
+            onClick={handleToggleClick}
           >
-            <Avatar className="h-16 w-16 border-2 border-primary">
-              <AvatarImage src={node.avatar_url || undefined} />
-              <AvatarFallback className="text-xl">{getInitials(node.full_name)}</AvatarFallback>
-            </Avatar>
-            {hasChildren && (
-              <button
-                className="absolute -bottom-2 -right-2 h-6 w-6 rounded-full bg-background flex items-center justify-center border"
-                onClick={handleToggleClick}
-              >
-                {isExpanded ? <MinusCircle className="h-4 w-4 text-muted-foreground" /> : <PlusCircle className="h-4 w-4 text-muted-foreground" />}
-              </button>
-            )}
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-60">
-          <div className="flex flex-col space-y-2">
-            <h4 className="text-sm font-semibold">{node.full_name}</h4>
-            <p className="text-xs text-muted-foreground">Level {node.level} Referral</p>
-            <div className="flex items-center pt-2 gap-2">
-              <Badge variant={node.kyc_status === "Approved" ? "default" : "outline"}>
-                KYC: {node.kyc_status}
-              </Badge>
-              <Badge variant={node.has_invested ? "default" : "outline"} className="flex items-center gap-1">
-                {node.has_invested ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
-                {node.has_invested ? "Invested" : "Not Invested"}
-              </Badge>
-            </div>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
+            {isExpanded ? <MinusCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" /> : <PlusCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />}
+          </Button>
+        )}
+        <Avatar className="h-12 w-12 text-lg"><AvatarFallback>{getInitials(node.full_name)}</AvatarFallback></Avatar>
+        <p className="mt-2 text-center font-semibold leading-tight">{node.full_name}</p>
+        <p className="text-xs text-muted-foreground">Level {node.level}</p>
+        <div className="mt-2 flex items-center gap-2">
+          <Badge variant={node.kyc_status === "Approved" ? "default" : "outline"}>
+            {node.kyc_status}
+          </Badge>
+          <Badge variant={node.has_invested ? "default" : "outline"} className="flex items-center gap-1">
+            {node.has_invested ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
+            {node.has_invested ? "Invested" : "Not Invested"}
+          </Badge>
+        </div>
+      </div>
 
       {isExpanded && hasChildren && (
         <>

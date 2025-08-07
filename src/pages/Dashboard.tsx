@@ -279,7 +279,7 @@ const Dashboard = () => {
               <Link to="/wallet">View All</Link>
             </Button>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6">
+          <CardContent className="p-0">
             {isMobile ? renderMobileTransactions() : renderDesktopTransactions()}
           </CardContent>
         </Card>
