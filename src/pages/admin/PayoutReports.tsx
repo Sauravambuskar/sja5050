@@ -7,11 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
-import { cn, exportToCsv } from "@/lib/utils";
+import { cn, exportToCsv, exportToPdf } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type PayoutReportItem = {
   user_id: string;
@@ -42,6 +44,7 @@ const fetchPayoutReport = async (month: Date): Promise<PayoutReportItem[]> => {
 };
 
 const PayoutReports = () => {
+  const { user } = useAuth();
   const [month, setMonth] = useState<Date | undefined>(new Date());
   const [reportData, setReportData] = useState<PayoutReportItem[]>([]);
 
@@ -66,14 +69,30 @@ const PayoutReports = () => {
     mutation.mutate(month);
   };
 
-  const handleExport = () => {
+  const handleExport = (formatType: 'csv' | 'pdf') => {
     if (reportData.length === 0) {
       toast.warning("No data to export. Please generate a report first.");
       return;
     }
-    const filename = `payout_report_${format(month!, 'yyyy-MM')}.csv`;
-    exportToCsv(filename, reportData);
-    toast.success("Report exported successfully.");
+    const filename = `payout_report_${format(month!, 'yyyy-MM')}`;
+    const title = `Monthly Payout Report for ${format(month!, 'MMMM yyyy')}`;
+
+    if (formatType === 'csv') {
+      exportToCsv(`${filename}.csv`, reportData);
+    } else {
+      const headers = ["Client", "Plan", "Maturity", "Payout (INR)", "Bank Holder", "Bank Account", "IFSC"];
+      const body = reportData.map(item => [
+        item.user_name,
+        item.plan_name,
+        format(new Date(item.maturity_date), 'PPP'),
+        item.monthly_profit.toLocaleString('en-IN'),
+        item.bank_account_holder_name,
+        item.bank_account_number,
+        item.bank_ifsc_code,
+      ]);
+      exportToPdf(`${filename}.pdf`, title, headers, body, user?.user_metadata?.full_name || "Admin");
+    }
+    toast.success(`Report exported as ${formatType.toUpperCase()} successfully.`);
   };
 
   return (
@@ -83,12 +102,20 @@ const PayoutReports = () => {
           <h1 className="text-3xl font-bold">Monthly Payout Reports</h1>
           <p className="text-muted-foreground">Generate and export reports for monthly profit payouts.</p>
         </div>
-        <Button variant="outline" className="gap-1" onClick={handleExport} disabled={reportData.length === 0}>
-          <Download className="h-3.5 w-3.5" />
-          <span className="sr-only sm:not-sr-only sm:whitespace-rap">
-            Export CSV
-          </span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-1" disabled={reportData.length === 0}>
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Export
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Card className="mt-6">
