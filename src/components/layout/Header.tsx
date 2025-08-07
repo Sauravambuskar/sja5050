@@ -16,6 +16,7 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { AdminUserSearch } from "../admin/AdminUserSearch";
+import { getGeneratedAvatarUrl } from "@/lib/utils";
 
 export function Header({ handleViewUser }: { handleViewUser: (userId: string) => void }) {
   const { user } = useAuth();
@@ -83,7 +84,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarImage src={user?.user_metadata?.avatar_url || getGeneratedAvatarUrl(user?.user_metadata?.full_name)} />
                   <AvatarFallback>{getInitials(user?.user_metadata?.full_name)}</AvatarFallback>
                 </Avatar>
                 <span className="sr-only">Toggle user menu</span>

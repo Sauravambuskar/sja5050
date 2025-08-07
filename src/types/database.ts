@@ -20,6 +20,7 @@ export type AdminUserView = {
   role: 'user' | 'admin';
   banned_until: string | null;
   last_sign_in_at: string | null;
+  avatar_url: string | null;
 };
 
 export type AdminInvestmentView = {

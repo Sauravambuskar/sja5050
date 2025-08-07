@@ -20,10 +20,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
-import { cn } from "@/lib/utils";
+import { cn, getGeneratedAvatarUrl } from "@/lib/utils";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { useOutletContext } from "react-router-dom";
 import { PageLayoutContext } from "@/components/layout/PageLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const PAGE_SIZE = 20;
 
@@ -164,6 +165,10 @@ const UserManagement = () => {
 
   const handleClearFilters = () => { setSearchTerm(""); setKycStatusFilter("all"); setAccountStatusFilter("all"); };
   const areFiltersActive = searchTerm !== "" || kycStatusFilter !== "all" || accountStatusFilter !== "all";
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
 
   const renderPagination = () => (
     pageCount > 1 && (
@@ -184,7 +189,7 @@ const UserManagement = () => {
     <Table>
       <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Status</TableHead><TableHead>KYC Status</TableHead><TableHead>Last Login</TableHead><TableHead className="text-right">Wallet Balance</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
       <TableBody>
-        {isLoading && !users ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-6 w-16" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell></TableRow>))) : isError ? (<TableRow><TableCell colSpan={6} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>) : (users?.map((user) => (<TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}><TableCell className="font-medium"><div>{user.full_name || 'N/A'}</div><div className="text-xs text-muted-foreground">{user.email}</div></TableCell><TableCell>{isUserSuspended(user) ? (<Badge variant="destructive">Suspended</Badge>) : (<Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>{user.role}</Badge>)}</TableCell><TableCell><Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>{user.kyc_status || 'Not Submitted'}</Badge></TableCell><TableCell className="text-sm text-muted-foreground">{user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}</TableCell><TableCell className="text-right font-mono">₹{user.wallet_balance.toLocaleString('en-IN')}</TableCell><TableCell><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => handleViewUser(user.id)}>View Details</DropdownMenuItem><DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem><DropdownMenuItem onClick={() => impersonateMutation.mutate(user.id)} disabled={impersonateMutation.isPending}><LogIn className="mr-2 h-4 w-4" /> Login as User</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>{isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)))}
+        {isLoading && !users ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div></div></TableCell><TableCell><Skeleton className="h-6 w-16" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell></TableRow>))) : isError ? (<TableRow><TableCell colSpan={6} className="text-center text-red-500">Error fetching users: {error.message}</TableCell></TableRow>) : (users?.map((user) => (<TableRow key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}><TableCell className="font-medium"><div className="flex items-center gap-3"><Avatar><AvatarImage src={user.avatar_url || getGeneratedAvatarUrl(user.full_name)} /><AvatarFallback>{getInitials(user.full_name)}</AvatarFallback></Avatar><div><div>{user.full_name || 'N/A'}</div><div className="text-xs text-muted-foreground">{user.email}</div></div></div></TableCell><TableCell>{isUserSuspended(user) ? (<Badge variant="destructive">Suspended</Badge>) : (<Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>{user.role}</Badge>)}</TableCell><TableCell><Badge variant={user.kyc_status === "Approved" ? "default" : user.kyc_status === "Pending Review" ? "outline" : "secondary"}>{user.kyc_status || 'Not Submitted'}</Badge></TableCell><TableCell className="text-sm text-muted-foreground">{user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}</TableCell><TableCell className="text-right font-mono">₹{user.wallet_balance.toLocaleString('en-IN')}</TableCell><TableCell><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={() => handleViewUser(user.id)}>View Details</DropdownMenuItem><DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem><DropdownMenuItem onClick={() => impersonateMutation.mutate(user.id)} disabled={impersonateMutation.isPending}><LogIn className="mr-2 h-4 w-4" /> Login as User</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>{isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)))}
       </TableBody>
     </Table>
   );
@@ -204,7 +209,7 @@ const UserManagement = () => {
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
                 {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                <span className="sr-only sm:not-sr-only sm:whitespace-rap">
                   {isExporting ? "Exporting..." : "Export"}
                 </span>
               </Button>

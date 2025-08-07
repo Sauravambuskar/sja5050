@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDashboardStats, AdminUserView, AdminHighValueTransaction } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import UserGrowthChart from "@/components/admin/UserGrowthChart";
 import AumGrowthChart from "@/components/admin/AumGrowthChart";
@@ -12,6 +12,7 @@ import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
 import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
 import { Link, useOutletContext } from "react-router-dom";
 import { PageLayoutContext } from "@/components/layout/PageLayout";
+import { getGeneratedAvatarUrl } from "@/lib/utils";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -124,6 +125,7 @@ const AdminDashboard = () => {
                 {recentUsers?.map((user) => (
                   <button key={user.id} className="flex w-full items-center rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(user.id)}>
                     <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.avatar_url || getGeneratedAvatarUrl(user.full_name)} />
                       <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
                     </Avatar>
                     <div className="ml-4 space-y-1">
