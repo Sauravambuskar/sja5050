@@ -58,9 +58,9 @@ export const IdCard = () => {
   return (
     <div className="flex flex-col items-center gap-6">
       {isLoading ? (
-        <Skeleton className="h-[280px] w-[380px] rounded-xl" />
+        <Skeleton className="h-[280px] w-full max-w-sm rounded-xl" />
       ) : (
-        <div ref={idCardRef} className="w-[380px] rounded-xl bg-card shadow-lg overflow-hidden font-sans">
+        <div ref={idCardRef} className="w-full max-w-sm rounded-xl bg-card shadow-lg overflow-hidden font-sans">
           {/* Header */}
           <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6">
             {data?.settings.logo_url ? (

@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import SecuritySettings from "@/components/profile/SecuritySettings";
 import { useMemo } from "react";
 import { IdCard } from "@/components/profile/IdCard";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -54,14 +55,17 @@ const Profile = () => {
       
       <div className="mt-6">
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-            <TabsTrigger value="bank">Bank Details</TabsTrigger>
-            <TabsTrigger value="nominee">Nominee</TabsTrigger>
-            <TabsTrigger value="kyc">KYC</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="id-card">ID Card</TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="personal">Personal Info</TabsTrigger>
+              <TabsTrigger value="bank">Bank Details</TabsTrigger>
+              <TabsTrigger value="nominee">Nominee</TabsTrigger>
+              <TabsTrigger value="kyc">KYC</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+              <TabsTrigger value="id-card">ID Card</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
           <TabsContent value="personal" className="mt-6">
             <PersonalDetailsForm profile={profile} />
           </TabsContent>

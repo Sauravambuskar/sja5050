@@ -77,7 +77,7 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {statsLoading ? (
           [...Array(5)].map((_, i) => (
             <Card key={i}>
