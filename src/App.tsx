@@ -36,6 +36,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AuditLog from "./pages/admin/AuditLog";
 import SystemManagement from "./pages/admin/SystemManagement";
 import DepositManagement from "./pages/admin/DepositManagement";
+import PayoutReports from "./pages/admin/PayoutReports";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="kyc" element={<KycManagement />} />
                 <Route path="commissions" element={<CommissionRules />} />
                 <Route path="reports" element={<Reporting />} />
+                <Route path="payout-reports" element={<PayoutReports />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="system" element={<SystemManagement />} />
               </Route>
