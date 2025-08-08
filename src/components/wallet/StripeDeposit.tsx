@@ -14,9 +14,9 @@ const depositSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be a positive number." }).min(100, "Minimum deposit is ₹100."),
 });
 
-const createCheckoutSession = async (amount: number) => {
+const createCheckoutSession = async ({ amount, origin }: { amount: number, origin: string }) => {
   const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-    body: { amount },
+    body: { amount, origin },
   });
   if (error) throw new Error(error.message);
   if (data.error) throw new Error(data.error);
@@ -44,7 +44,7 @@ const StripeDeposit = () => {
   });
 
   const onSubmit = (values: z.infer<typeof depositSchema>) => {
-    mutation.mutate(values.amount);
+    mutation.mutate({ amount: values.amount, origin: window.location.origin });
   };
 
   return (

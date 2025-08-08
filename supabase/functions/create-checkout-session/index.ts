@@ -30,9 +30,12 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("User not found.")
 
-    const { amount } = await req.json()
+    const { amount, origin } = await req.json()
     if (!amount || typeof amount !== 'number' || amount < 100) {
       return new Response(JSON.stringify({ error: 'Amount must be a number and at least ₹100.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    if (!origin) {
+      return new Response(JSON.stringify({ error: 'Origin URL is required.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -50,8 +53,8 @@ serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/wallet?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/wallet?payment=cancelled`,
+      success_url: `${origin}/wallet?payment=success`,
+      cancel_url: `${origin}/wallet?payment=cancelled`,
       metadata: {
         user_id: user.id,
       },
