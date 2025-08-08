@@ -1,146 +1,114 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-interface AuthContextType {
-  user: User | null;
+type AuthContextType = {
   session: Session | null;
-  isLoading: boolean;
-  isAdmin: boolean;
+  user: User | null;
+  loading: boolean;
   isImpersonating: boolean;
-  signOut: () => Promise<void>;
   impersonateUser: (userId: string) => Promise<void>;
   stopImpersonating: () => Promise<void>;
-}
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const fetchIsAdmin = async (user: User | null): Promise<boolean> => {
-  if (!user) return false;
-  const { data, error } = await supabase.rpc('is_admin');
-  if (error) {
-    console.error("Error checking admin status:", error);
-    return false;
-  }
-  return data;
-};
+const ADMIN_SESSION_KEY = 'supabase.admin-session';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = useQueryClient();
-  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
-  const [originalSession, setOriginalSession] = useState<Session | null>(null);
-
-  const { data: isAdmin, isLoading: isAdminLoading } = useQuery({
-    queryKey: ['isAdmin', user?.id],
-    queryFn: () => fetchIsAdmin(user),
-    enabled: !!user && !isImpersonating,
-    staleTime: 5 * 60 * 1000,
-  });
 
   useEffect(() => {
     const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setIsLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      const adminSessionStr = localStorage.getItem(ADMIN_SESSION_KEY);
+      if (adminSessionStr) {
+        setIsImpersonating(true);
+      }
+
+      setLoading(false);
     };
+
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only update if not impersonating, or if the session is null (sign out)
-      if (!sessionStorage.getItem('impersonating_admin_session')) {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
       }
-      setIsLoading(false);
-    });
+    );
 
-    return () => authListener?.subscription.unsubscribe();
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
-  const signOut = async () => {
-    await stopImpersonating();
-    await supabase.auth.signOut();
-    queryClient.clear();
-  };
-
   const impersonateUser = async (userId: string) => {
-    const { data: currentSessionData } = await supabase.auth.getSession();
-    if (!currentSessionData.session) {
-      toast.error("You must be logged in to impersonate.");
+    const currentSession = session;
+    if (!currentSession) {
+      toast.error("You must be logged in to impersonate a user.");
       return;
     }
-    
-    toast.loading("Starting impersonation...");
+
     try {
-      const { data, error } = await supabase.functions.invoke('impersonate-user', {
+      const { data, error } = await supabase.functions.invoke('admin-impersonate-user', {
         body: { userId },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      // Store admin session
-      setOriginalSession(currentSessionData.session);
-      sessionStorage.setItem('impersonating_admin_session', JSON.stringify(currentSessionData.session));
-
-      // Set impersonated session
-      const newSession = {
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      };
-      await supabase.auth.setSession(newSession);
-      
-      setUser(data.user);
-      setSession({ ...currentSessionData.session, ...newSession, user: data.user });
+      // Store the admin session
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(currentSession));
       setIsImpersonating(true);
-      
-      toast.dismiss();
-      toast.success(`Now impersonating user ${data.user.email}`);
-      window.location.href = '/dashboard';
 
-    } catch (e: any) {
-      toast.dismiss();
-      toast.error(`Impersonation failed: ${e.message}`);
+      // Set the new user session
+      const { error: sessionError } = await supabase.auth.setSession(data);
+      if (sessionError) throw sessionError;
+
+      toast.success(`Now viewing as user ${userId}.`);
+      // A full page reload ensures all components re-fetch data with the new user identity
+      window.location.reload();
+
+    } catch (err: any) {
+      toast.error(`Impersonation failed: ${err.message}`);
     }
   };
 
   const stopImpersonating = async () => {
-    const storedAdminSession = sessionStorage.getItem('impersonating_admin_session');
-    if (!storedAdminSession) return;
+    const adminSessionStr = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (!adminSessionStr) {
+      toast.error("No admin session found to return to.");
+      return;
+    }
 
     try {
-      const adminSession = JSON.parse(storedAdminSession);
-      await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-      
-      setSession(adminSession);
-      setUser(adminSession.user);
+      const adminSession = JSON.parse(adminSessionStr);
+      const { error } = await supabase.auth.setSession(adminSession);
+      if (error) throw error;
+
+      localStorage.removeItem(ADMIN_SESSION_KEY);
       setIsImpersonating(false);
-      setOriginalSession(null);
-      sessionStorage.removeItem('impersonating_admin_session');
-      
-      toast.success("Stopped impersonating. Welcome back!");
-      window.location.href = '/admin/users';
-    } catch (e: any) {
-      toast.error(`Could not stop impersonating: ${e.message}`);
+      toast.success("Returned to your admin session.");
+      window.location.reload();
+
+    } catch (err: any) {
+      toast.error(`Failed to stop impersonating: ${err.message}`);
     }
   };
 
   const value = {
-    user,
     session,
-    isLoading: isLoading || (!!user && isAdminLoading),
-    isAdmin: (isAdmin && !isImpersonating) || false,
+    user,
+    loading,
     isImpersonating,
-    signOut,
     impersonateUser,
     stopImpersonating,
   };
