@@ -100,7 +100,7 @@ const Profile = () => {
       <div className="mt-6">
         <ProfileCompleteness profile={profile} />
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
             <TabsTrigger value="bank">Bank Details</TabsTrigger>
             <TabsTrigger value="nominee">Nominee</TabsTrigger>
