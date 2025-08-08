@@ -1,33 +1,30 @@
-import { useAuth } from './AuthProvider';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { useSystemSettings } from '@/hooks/useSystemSettings';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
-import MaintenancePage from '@/pages/Maintenance';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "./AuthProvider";
+import { Loader2 } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import MaintenancePage from "@/pages/MaintenancePage";
 
 export const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { settings, isLoading: settingsLoading } = useSystemSettings();
-  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const location = useLocation();
 
-  const isLoading = authLoading || settingsLoading || isAdminLoading;
+  const isLoading = authLoading || settingsLoading;
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  if (!user) {
-    return <Navigate to={`/login?redirect_to=${location.pathname}`} replace />;
-  }
-
-  if (settings?.maintenance_mode_enabled && !isAdmin) {
+  if (settings?.maintenance_mode_enabled) {
     return <MaintenancePage message={settings.maintenance_message} />;
   }
 
-  return children ? <>{children}</> : <Outlet />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
