@@ -34,7 +34,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing required fields: userId, profileData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Call the secure RPC function
+    // 1. Update the protected auth.users table using the admin client
+    const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { user_metadata: { full_name: profileData.full_name } }
+    );
+    if (authUpdateError) throw authUpdateError;
+
+    // 2. Call the secure RPC function to update the public profiles table
     const { error: rpcError } = await supabaseAdmin.rpc('admin_update_user_profile', {
       p_user_id: userId,
       p_full_name: profileData.full_name,
