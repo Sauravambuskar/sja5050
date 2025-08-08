@@ -11,8 +11,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon, Download } from "lucide-react";
+import { cn, exportToPdf } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,10 +52,11 @@ const DetailRow = ({ label, value, children }: { label: string; value?: string |
 
 interface AdminUserProfileTabProps {
   userId: string;
+  email: string | undefined;
   onViewUser: (userId: string) => void;
 }
 
-export const AdminUserProfileTab = ({ userId, onViewUser }: AdminUserProfileTabProps) => {
+export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProfileTabProps) => {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
@@ -105,6 +106,37 @@ export const AdminUserProfileTab = ({ userId, onViewUser }: AdminUserProfileTabP
 
   const onProfileSubmit = (values: ProfileFormValues) => updateProfileMutation.mutate(values);
 
+  const handleDownloadProfile = () => {
+    if (!profile) {
+      toast.error("Profile data not loaded yet.");
+      return;
+    }
+
+    const filename = `SJA_Profile_${profile.member_id || userId}.pdf`;
+    const title = "User Profile Statement";
+    const headers = ["Field", "Details"];
+    const data = [
+      ["Member ID", profile.member_id || 'N/A'],
+      ["Full Name", profile.full_name || 'N/A'],
+      ["Email", email || 'N/A'],
+      ["Phone", profile.phone || 'N/A'],
+      ["Date of Birth", profile.dob ? format(new Date(profile.dob), 'PPP') : 'N/A'],
+      ["Address", `${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`.replace(/, ,/g, ',').replace(/^,|,$/g, '')],
+      ["KYC Status", profile.kyc_status || 'N/A'],
+      ["Referral Code", profile.referral_code || 'N/A'],
+      ["Referred By", profile.referrer_full_name || 'N/A'],
+      ["Bank Account Holder", profile.bank_account_holder_name || 'N/A'],
+      ["Bank Account Number", profile.bank_account_number || 'N/A'],
+      ["Bank IFSC Code", profile.bank_ifsc_code || 'N/A'],
+      ["Nominee Name", profile.nominee_name || 'N/A'],
+      ["Nominee Relationship", profile.nominee_relationship || 'N/A'],
+      ["Nominee DOB", profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : 'N/A'],
+    ];
+
+    exportToPdf(filename, title, headers, data.map(row => [row[0], String(row[1])]), profile.full_name || "User");
+    toast.success("Profile downloaded as PDF.");
+  };
+
   if (isProfileLoading) return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!profile) return <p>Could not load profile.</p>;
 
@@ -114,11 +146,18 @@ export const AdminUserProfileTab = ({ userId, onViewUser }: AdminUserProfileTabP
         <div className="space-y-1.5">
           <CardTitle>User Profile Details</CardTitle>
         </div>
-        {!isEditingProfile && (
-          <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
-            <Edit className="mr-2 h-4 w-4" /> Edit
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {!isEditingProfile && (
+            <Button variant="outline" size="sm" onClick={handleDownloadProfile}>
+              <Download className="mr-2 h-4 w-4" /> Download
+            </Button>
+          )}
+          {!isEditingProfile && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isEditingProfile ? (
