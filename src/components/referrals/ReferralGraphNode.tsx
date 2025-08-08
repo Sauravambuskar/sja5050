@@ -20,9 +20,10 @@ const getInitials = (name: string | null | undefined) => {
 export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: ReferralGraphNodeProps) => {
   const hasChildren = node.children && node.children.length > 0;
   const [isExpanded, setIsExpanded] = useState(true);
+  const isDummy = node.full_name.includes('(Dummy)');
 
   const handleNodeClick = () => {
-    if (onNodeClick) {
+    if (onNodeClick && !isDummy) {
       onNodeClick(node.id);
     }
   };
@@ -40,7 +41,7 @@ export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: Referra
       <div
         className={cn(
           "relative z-10 flex w-48 flex-col items-center rounded-lg border bg-card p-3 shadow-sm",
-          onNodeClick && "cursor-pointer transition-colors hover:bg-accent"
+          onNodeClick && !isDummy && "cursor-pointer transition-colors hover:bg-accent"
         )}
         onClick={handleNodeClick}
       >
@@ -61,10 +62,12 @@ export const ReferralGraphNode = ({ node, isRoot = false, onNodeClick }: Referra
           <Badge variant={node.kyc_status === "Approved" ? "default" : "outline"}>
             {node.kyc_status}
           </Badge>
-          <Badge variant={node.has_invested ? "default" : "outline"} className="flex items-center gap-1">
-            {node.has_invested ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
-            {node.has_invested ? "Invested" : "Not Invested"}
-          </Badge>
+          {!isDummy && (
+            <Badge variant={node.has_invested ? "default" : "outline"} className="flex items-center gap-1">
+              {node.has_invested ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}
+              {node.has_invested ? "Invested" : "Not Invested"}
+            </Badge>
+          )}
         </div>
       </div>
 
