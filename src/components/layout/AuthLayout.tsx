@@ -2,7 +2,7 @@ import React from 'react';
 
 export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="w-full min-h-screen bg-black lg:grid lg:bg-background lg:grid-cols-2">
+    <div className="light w-full min-h-screen bg-black lg:grid lg:bg-background lg:grid-cols-2">
       <div className="bg-black">
         <img
           src="https://png.pngtree.com/background/20250107/original/pngtree-hands-holding-money-green-investment-wealth-growth-concept-picture-image_16144123.jpg"
