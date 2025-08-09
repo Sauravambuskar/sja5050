@@ -53,7 +53,23 @@ export const VideoKyc = () => {
     if (!supported) {
       toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
     }
+
+    // Cleanup stream on unmount
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    // Cleanup object URL when component unmounts or URL changes
+    return () => {
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [videoUrl]);
 
   const mutation = useMutation({
     mutationFn: uploadVideoKyc,
