@@ -10,6 +10,7 @@ import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
 import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
 import { Link } from "react-router-dom";
 import { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
+import { HighValueTransactions } from "@/components/admin/HighValueTransactions";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -72,8 +73,9 @@ const AdminDashboard = () => {
         <CommissionPayoutChart />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <AdminActivityFeed />
+        <HighValueTransactions />
       </div>
     </>
   );
