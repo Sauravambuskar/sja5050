@@ -31,13 +31,13 @@ const adminNavItems = [
   { to: "/admin/system", label: "System", icon: ServerCog },
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar() {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount } = useAdminActionCounts();
 
   return (
-    <aside className={cn("flex h-full flex-col border-r bg-background p-4", className)}>
+    <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
       <div className="mb-8 flex items-center p-2 text-2xl font-bold text-primary">
         SJA Foundation
       </div>

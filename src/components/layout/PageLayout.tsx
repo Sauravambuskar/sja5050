@@ -36,11 +36,11 @@ export function PageLayout() {
   return (
     <>
       {isImpersonating && <ImpersonationBanner />}
-      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
-        <div className="hidden border-r bg-muted/40 md:block">
-          <Sidebar className="w-full" />
+      <div className="flex min-h-screen w-full">
+        <div className="hidden md:block">
+          <Sidebar />
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-1 flex-col">
           <Header handleViewUser={handleViewUser} />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <Outlet context={{ handleViewUser }} />
