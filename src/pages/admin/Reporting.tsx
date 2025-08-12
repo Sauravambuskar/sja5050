@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
 import { cn, exportToCsv } from "@/lib/utils";
 import { format } from "date-fns";
@@ -14,6 +12,8 @@ import { UserGrowthReportData, CommissionPayoutReportData, NewInvestmentsReportD
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 type ReportType = 'user_growth' | 'commission_payouts' | 'new_investments' | 'aum_growth';
 type ReportData = (UserGrowthReportData | CommissionPayoutReportData | NewInvestmentsReportData | AumGrowthReportData)[];
@@ -53,12 +53,11 @@ const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate
 
 const Reporting = () => {
   const [reportType, setReportType] = React.useState<ReportType>('user_growth');
-  const [startDate, setStartDate] = React.useState<Date | undefined>();
-  const [endDate, setEndDate] = React.useState<Date | undefined>();
+  const [date, setDate] = React.useState<DateRange | undefined>();
 
   const { data: reportData, isLoading: isReportLoading } = useQuery({
-    queryKey: ['adminReport', reportType, startDate, endDate],
-    queryFn: () => fetchReportData(reportType, startDate, endDate),
+    queryKey: ['adminReport', reportType, date?.from, date?.to],
+    queryFn: () => fetchReportData(reportType, date?.from, date?.to),
   });
 
   const chartConfig = {
@@ -101,7 +100,7 @@ const Reporting = () => {
           <CardDescription>Select your criteria to generate a new report.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Select value={reportType} onValueChange={(value) => setReportType(value as ReportType)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Report Type" />
@@ -113,34 +112,7 @@ const Reporting = () => {
                 <SelectItem value="aum_growth">AUM Growth</SelectItem>
               </SelectContent>
             </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn("justify-start text-left font-normal", !startDate && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn("justify-start text-left font-normal", !endDate && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
-              </PopoverContent>
-            </Popover>
+            <DateRangePicker date={date} onDateChange={setDate} />
           </div>
           <div className="h-[350px] w-full rounded-lg border p-4">
             <ResponsiveContainer width="100%" height="100%">
