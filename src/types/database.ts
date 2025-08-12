@@ -68,6 +68,7 @@ export type AdminDepositRequest = {
   request_id: string;
   user_name: string;
   user_id: string;
+  user_email: string;
   amount: number;
   reference_id: string;
   requested_at: string;

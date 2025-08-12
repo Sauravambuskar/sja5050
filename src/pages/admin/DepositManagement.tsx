@@ -30,6 +30,22 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
+const sendDepositEmail = async ({ to, name, amount }: { to: string; name: string; amount: number }) => {
+  const { error } = await supabase.functions.invoke('send-transactional-email', {
+    body: {
+      to,
+      subject: 'Your Deposit has been Approved!',
+      html: `<p>Hi ${name},</p><p>Your deposit of ₹${amount.toLocaleString('en-IN')} has been successfully processed and the funds have been added to your wallet.</p><p>Thank you for choosing SJA Foundation.</p>`,
+    },
+  });
+  if (error) {
+    // We don't throw here, as the primary action (deposit) succeeded.
+    // We just log it and show a warning to the admin.
+    console.error("Failed to send deposit email:", error);
+    toast.warning("Deposit was approved, but the confirmation email could not be sent.");
+  }
+};
+
 const DepositManagement = () => {
   const queryClient = useQueryClient();
   const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
@@ -47,6 +63,15 @@ const DepositManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['allDepositRequests'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
+
+      // If approved, send the email
+      if (variables.status === 'Approved' && actionToConfirm) {
+        sendDepositEmail({
+          to: actionToConfirm.request.user_email,
+          name: actionToConfirm.request.user_name,
+          amount: actionToConfirm.request.amount,
+        });
+      }
     },
     onError: (error) => {
       toast.error(`Action failed: ${error.message}`);
