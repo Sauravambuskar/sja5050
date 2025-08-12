@@ -31,7 +31,11 @@ const adminNavItems = [
   { to: "/admin/system", label: "System", icon: ServerCog },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onLinkClick?: () => void;
+}
+
+export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount } = useAdminActionCounts();
@@ -47,6 +51,7 @@ export function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={onLinkClick}
             className={({ isActive }) =>
               cn(
                 "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
@@ -88,6 +93,7 @@ export function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.to === "/admin"}
+              onClick={onLinkClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",

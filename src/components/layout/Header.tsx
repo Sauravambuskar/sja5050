@@ -22,6 +22,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin } = useIsAdmin();
 
@@ -50,7 +51,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
   return (
     <>
       <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-        <Sheet>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
               <Menu className="h-5 w-5" />
@@ -58,7 +59,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
-            <Sidebar />
+            <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
           </SheetContent>
         </Sheet>
 
