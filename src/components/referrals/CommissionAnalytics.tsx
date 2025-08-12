@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { CommissionStats, CommissionHistoryItem } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const fetchCommissionStats = async (): Promise<CommissionStats> => {
   const { data, error } = await supabase.rpc('get_my_commission_stats');
@@ -21,6 +22,7 @@ const fetchCommissionHistory = async (): Promise<CommissionHistoryItem[]> => {
 };
 
 const CommissionAnalytics = () => {
+  const isMobile = useIsMobile();
   const { data: stats, isLoading: statsLoading } = useQuery<CommissionStats>({
     queryKey: ['commissionStats'],
     queryFn: fetchCommissionStats,
@@ -30,6 +32,87 @@ const CommissionAnalytics = () => {
     queryKey: ['commissionHistory'],
     queryFn: fetchCommissionHistory,
   });
+
+  const renderDesktopHistory = () => (
+    <div className="mt-4 rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>From User</TableHead>
+            <TableHead>Level</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {historyLoading ? (
+            [...Array(3)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
+              </TableRow>
+            ))
+          ) : history && history.length > 0 ? (
+            history.map((commission) => (
+              <TableRow key={commission.id}>
+                <TableCell className="font-medium">{commission.from_user_name}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">Lvl {commission.level}</Badge>
+                </TableCell>
+                <TableCell>₹{commission.amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell>{format(new Date(commission.payout_date), "PPP")}</TableCell>
+                <TableCell className="text-right">
+                  <Badge>Paid</Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center">No commission history yet.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderMobileHistory = () => (
+    <div className="mt-4 space-y-4">
+      {historyLoading ? (
+        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)
+      ) : history && history.length > 0 ? (
+        history.map((commission) => (
+          <Card key={commission.id}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <CardTitle>₹{commission.amount.toLocaleString('en-IN')}</CardTitle>
+                <CardDescription>From: {commission.from_user_name}</CardDescription>
+              </div>
+              <Badge>Paid</Badge>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Date</span>
+                <span>{format(new Date(commission.payout_date), "PPP")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Level</span>
+                <Badge variant="secondary">Lvl {commission.level}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center text-muted-foreground p-8 border rounded-lg">
+          No commission history yet.
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card>
@@ -68,50 +151,7 @@ const CommissionAnalytics = () => {
         </div>
         <div>
           <h3 className="text-lg font-medium">Commission History</h3>
-          <div className="mt-4 rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>From User</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historyLoading ? (
-                  [...Array(3)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-12" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : history && history.length > 0 ? (
-                  history.map((commission) => (
-                    <TableRow key={commission.id}>
-                      <TableCell className="font-medium">{commission.from_user_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Lvl {commission.level}</Badge>
-                      </TableCell>
-                      <TableCell>₹{commission.amount.toLocaleString('en-IN')}</TableCell>
-                      <TableCell>{format(new Date(commission.payout_date), "PPP")}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge>Paid</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">No commission history yet.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {isMobile ? renderMobileHistory() : renderDesktopHistory()}
         </div>
       </CardContent>
     </Card>

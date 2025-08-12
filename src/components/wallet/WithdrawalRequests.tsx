@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { WithdrawalRequest } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const withdrawalSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be a positive number." }),
@@ -31,6 +32,7 @@ const fetchWithdrawalHistory = async (): Promise<WithdrawalRequest[]> => {
 
 const WithdrawalRequests = () => {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const form = useForm<z.infer<typeof withdrawalSchema>>({
     resolver: zodResolver(withdrawalSchema),
   });
@@ -55,6 +57,90 @@ const WithdrawalRequests = () => {
   const onSubmit = (values: z.infer<typeof withdrawalSchema>) => {
     mutation.mutate(values.amount);
   };
+
+  const renderDesktopHistory = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Amount</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead className="text-right">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          [...Array(3)].map((_, i) => (
+            <TableRow key={i}>
+              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+              <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+            </TableRow>
+          ))
+        ) : history && history.length > 0 ? (
+          history.map((req) => (
+            <TableRow key={req.id}>
+              <TableCell className="font-medium">₹{req.amount.toLocaleString('en-IN')}</TableCell>
+              <TableCell>{format(new Date(req.requested_at), "PPP")}</TableCell>
+              <TableCell className="text-right">
+                <Badge
+                  variant={
+                    req.status === "Completed" || req.status === "Approved"
+                      ? "default"
+                      : req.status === "Pending"
+                      ? "outline"
+                      : "destructive"
+                  }
+                >
+                  {req.status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={3} className="h-24 text-center">No withdrawal requests yet.</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const renderMobileHistory = () => (
+    <div className="space-y-4">
+      {isLoading ? (
+        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)
+      ) : history && history.length > 0 ? (
+        history.map((req) => (
+          <Card key={req.id}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <CardTitle>₹{req.amount.toLocaleString('en-IN')}</CardTitle>
+              <Badge
+                variant={
+                  req.status === "Completed" || req.status === "Approved"
+                    ? "default"
+                    : req.status === "Pending"
+                    ? "outline"
+                    : "destructive"
+                }
+              >
+                {req.status}
+              </Badge>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Date</span>
+                <span>{format(new Date(req.requested_at), "PPP")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center text-muted-foreground p-8 border rounded-lg">
+          No withdrawal requests yet.
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="grid gap-6 pt-4 lg:grid-cols-2">
@@ -92,50 +178,7 @@ const WithdrawalRequests = () => {
           <CardDescription>Your recent withdrawal requests.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(3)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : history && history.length > 0 ? (
-                history.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell className="font-medium">₹{req.amount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell>{format(new Date(req.requested_at), "PPP")}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant={
-                          req.status === "Completed" || req.status === "Approved"
-                            ? "default"
-                            : req.status === "Pending"
-                            ? "outline"
-                            : "destructive"
-                        }
-                      >
-                        {req.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">No withdrawal requests yet.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {isMobile ? renderMobileHistory() : renderDesktopHistory()}
         </CardContent>
       </Card>
     </div>
