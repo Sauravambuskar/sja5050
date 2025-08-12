@@ -1,0 +1,60 @@
+import { type Theme } from '@supabase/auth-ui-shared';
+
+export const customAuthTheme: Theme = {
+  default: {
+    colors: {
+      brand: 'hsl(var(--primary))',
+      brandAccent: 'hsl(var(--primary))',
+      brandButtonText: 'hsl(var(--primary-foreground))',
+      defaultButtonBackground: 'hsl(var(--card))',
+      defaultButtonBackgroundHover: 'hsl(var(--accent))',
+      defaultButtonBorder: 'hsl(var(--border))',
+      defaultButtonText: 'hsl(var(--foreground))',
+      dividerBackground: 'hsl(var(--border))',
+      inputBackground: 'hsl(var(--background))',
+      inputBorder: 'hsl(var(--input))',
+      inputBorderHover: 'hsl(var(--ring))',
+      inputBorderFocus: 'hsl(var(--ring))',
+      inputText: 'hsl(var(--foreground))',
+      inputLabelText: 'hsl(var(--foreground))',
+      inputPlaceholder: 'hsl(var(--muted-foreground))',
+      messageText: 'hsl(var(--muted-foreground))',
+      messageTextDanger: 'hsl(var(--destructive))',
+      anchorTextColor: 'hsl(var(--primary))',
+      anchorTextHoverColor: 'hsl(var(--primary))',
+    },
+    space: {
+      spaceSmall: '4px',
+      spaceMedium: '8px',
+      spaceLarge: '16px',
+      labelBottomMargin: '8px',
+      anchorBottomMargin: '4px',
+      emailInputSpacing: '4px',
+      socialAuthSpacing: '4px',
+      buttonPadding: '10px 15px',
+      inputPadding: '10px 15px',
+    },
+    fontSizes: {
+      baseLabelSize: '14px',
+      baseInputSize: '14px',
+      baseButtonSize: '14px',
+      baseBodySize: '13px',
+      baseLinkSize: '14px',
+    },
+    fonts: {
+      bodyFontFamily: `inherit`,
+      buttonFontFamily: `inherit`,
+      inputFontFamily: `inherit`,
+      labelFontFamily: `inherit`,
+    },
+    borderWidths: {
+      buttonBorderWidth: '1px',
+      inputBorderWidth: '1px',
+    },
+    radii: {
+      borderRadiusButton: 'var(--radius)',
+      buttonBorderRadius: 'var(--radius)',
+      inputBorderRadius: 'var(--radius)',
+    },
+  },
+};
