@@ -7,6 +7,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
+import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -39,11 +40,18 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount } = useAdminActionCounts();
+  const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   return (
     <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
-      <div className="mb-8 flex items-center p-2 text-2xl font-bold text-primary">
-        SJA Foundation
+      <div className="mb-8 flex h-10 items-center p-2">
+        {isSettingsLoading ? (
+          <Skeleton className="h-8 w-40" />
+        ) : settings?.logo_url ? (
+          <img src={settings.logo_url} alt={`${settings.company_name} Logo`} className="h-10" />
+        ) : (
+          <div className="text-2xl font-bold text-primary">{settings?.company_name}</div>
+        )}
       </div>
       <nav className="flex flex-col space-y-1">
         {userNavItems.map((item) => (
