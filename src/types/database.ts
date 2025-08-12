@@ -35,6 +35,7 @@ export type AdminKycRequest = {
   request_id: string;
   user_id: string;
   user_name: string;
+  user_email: string;
   document_type: string;
   file_path: string;
   submitted_at: string;
@@ -55,6 +56,7 @@ export type AdminDashboardStats = {
 export type AdminWithdrawalRequest = {
   request_id: string;
   user_name: string;
+  user_email: string;
   amount: number;
   requested_at: string;
   status: string;

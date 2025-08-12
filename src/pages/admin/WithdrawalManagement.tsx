@@ -30,6 +30,19 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
+const sendWithdrawalEmail = async ({ to, name, amount, status, notes }: { to: string; name: string; amount: number; status: string; notes: string }) => {
+  const subject = `Your Withdrawal Request has been ${status}`;
+  const html = status === 'Completed'
+    ? `<p>Hi ${name},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been successfully processed.</p><p>Thank you for choosing SJA Foundation.</p>`
+    : `<p>Hi ${name},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
+
+  const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
+  if (error) {
+    console.error("Failed to send withdrawal email:", error);
+    toast.warning("Withdrawal processed, but the confirmation email could not be sent.");
+  }
+};
+
 const WithdrawalManagement = () => {
   const queryClient = useQueryClient();
   const [detailsRequest, setDetailsRequest] = useState<AdminWithdrawalRequest | null>(null);
@@ -47,6 +60,16 @@ const WithdrawalManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequests'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
+
+      if (actionToConfirm) {
+        sendWithdrawalEmail({
+          to: actionToConfirm.request.user_email,
+          name: actionToConfirm.request.user_name,
+          amount: actionToConfirm.request.amount,
+          status: variables.status,
+          notes: variables.notes,
+        });
+      }
     },
     onError: (error) => {
       toast.error(`Action failed: ${error.message}`);

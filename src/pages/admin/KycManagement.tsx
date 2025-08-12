@@ -32,6 +32,19 @@ const processKycRequest = async ({ requestId, status, notes }: { requestId: stri
   if (error) throw new Error(error.message);
 };
 
+const sendKycEmail = async ({ to, name, status, notes }: { to: string; name: string; status: string; notes: string }) => {
+  const subject = `Your KYC Document has been ${status}`;
+  const html = status === 'Approved'
+    ? `<p>Hi ${name},</p><p>Your KYC document has been successfully reviewed and approved. Your account is now fully verified.</p><p>Thank you for choosing SJA Foundation.</p>`
+    : `<p>Hi ${name},</p><p>Your KYC document has been rejected.</p><p>Reason: ${notes}</p><p>Please log in to your account to re-upload the correct document. Contact support if you have any questions.</p>`;
+
+  const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
+  if (error) {
+    console.error("Failed to send KYC email:", error);
+    toast.warning("KYC status updated, but the confirmation email could not be sent.");
+  }
+};
+
 const KycManagement = () => {
   const queryClient = useQueryClient();
   const [viewingRequest, setViewingRequest] = useState<AdminKycRequest | null>(null);
@@ -50,6 +63,17 @@ const KycManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['allKycRequests'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
+
+      const request = kycRequests?.find(r => r.request_id === variables.requestId);
+      if (request) {
+        sendKycEmail({
+          to: request.user_email,
+          name: request.user_name,
+          status: variables.status,
+          notes: variables.notes,
+        });
+      }
+
       setRejectionRequest(null);
     },
     onError: (error) => {
