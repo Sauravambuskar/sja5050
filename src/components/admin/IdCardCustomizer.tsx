@@ -16,6 +16,7 @@ const settingsSchema = z.object({
   company_name: z.string().min(2, "Company name is required."),
   logo_url: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
   accent_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color."),
+  background_image_url: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -72,6 +73,7 @@ export const IdCardCustomizer = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField control={form.control} name="company_name" render={({ field }) => (<FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="logo_url" render={({ field }) => (<FormItem><FormLabel>Logo URL</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="https://example.com/logo.png" /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="background_image_url" render={({ field }) => (<FormItem><FormLabel>Background Image URL</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="https://example.com/background.png" /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="accent_color" render={({ field }) => (<FormItem><FormLabel>Accent Color (Hex)</FormLabel><div className="flex items-center gap-2"><FormControl><Input {...field} className="w-32" /></FormControl><div className="w-8 h-8 rounded-md border" style={{ backgroundColor: field.value }}></div></div><FormMessage /></FormItem>)} />
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
