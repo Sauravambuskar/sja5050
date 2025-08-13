@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { GettingStartedGuide } from "@/components/dashboard/GettingStartedGuide";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
@@ -34,6 +35,14 @@ const fetchMyProfile = async (): Promise<Profile> => {
   if (error) throw new Error(error.message);
   return data[0];
 };
+
+const completenessChecks = [
+  { key: 'phone', check: (p: Profile) => !!p.phone },
+  { key: 'address', check: (p: Profile) => !!p.address },
+  { key: 'bank_account_number', check: (p: Profile) => !!p.bank_account_number },
+  { key: 'nominee_name', check: (p: Profile) => !!p.nominee_name },
+  { key: 'kyc_status', check: (p: Profile) => p.kyc_status === 'Approved' },
+];
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
@@ -84,6 +93,9 @@ const Dashboard = () => {
       default: return '';
     }
   };
+
+  const completedItems = profile ? completenessChecks.filter(item => item.check(profile)).length : 0;
+  const isProfileComplete = profile ? completedItems === completenessChecks.length : false;
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -157,7 +169,9 @@ const Dashboard = () => {
         Here's a summary of your portfolio and activities.
       </p>
 
-      {profile && stats && <GettingStartedGuide profile={profile} stats={stats} />}
+      {profile && stats && (
+        isProfileComplete ? <QuickActions /> : <GettingStartedGuide profile={profile} stats={stats} />
+      )}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats && stats.walletBalance > 0 ? (
