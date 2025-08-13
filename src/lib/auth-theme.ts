@@ -39,7 +39,6 @@ export const customAuthTheme: Theme = {
       baseInputSize: '14px',
       baseButtonSize: '14px',
       baseBodySize: '13px',
-      baseLinkSize: '14px',
     },
     fonts: {
       bodyFontFamily: `inherit`,

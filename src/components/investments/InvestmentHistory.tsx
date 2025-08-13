@@ -9,6 +9,8 @@ import { format, differenceInDays } from "date-fns";
 import { useAuth } from "../auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "../ui/button";
+import { TrendingUp } from "lucide-react";
 
 const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
@@ -38,6 +40,19 @@ const InvestmentHistory = () => {
     queryFn: () => fetchUserInvestments(user!.id),
     enabled: !!user,
   });
+
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+      <TrendingUp className="mx-auto h-12 w-12" />
+      <h3 className="mt-4 text-lg font-semibold text-foreground">No Investments Yet</h3>
+      <p className="mt-2 text-sm">
+        You haven't made any investments. Explore our plans to get started.
+      </p>
+      <Button size="sm" className="mt-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        View Investment Plans
+      </Button>
+    </div>
+  );
 
   const renderDesktopView = () => (
     <Table>
@@ -117,8 +132,8 @@ const InvestmentHistory = () => {
           })
         ) : (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
-              You have no investments yet.
+            <TableCell colSpan={4}>
+              <EmptyState />
             </TableCell>
           </TableRow>
         )}
@@ -182,9 +197,7 @@ const InvestmentHistory = () => {
           );
         })
       ) : (
-        <div className="text-center text-muted-foreground p-8">
-          You have no investments yet.
-        </div>
+        <EmptyState />
       )}
     </div>
   );
