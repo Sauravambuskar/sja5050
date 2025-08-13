@@ -99,34 +99,37 @@ const Profile = () => {
       
       <div className="mt-6">
         <ProfileCompleteness profile={profile} />
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
-            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-            <TabsTrigger value="bank">Bank Details</TabsTrigger>
-            <TabsTrigger value="nominee">Nominee</TabsTrigger>
-            <TabsTrigger value="kyc">KYC</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="id-card">ID Card</TabsTrigger>
-          </TabsList>
-          <TabsContent value="personal" className="mt-6">
-            <PersonalDetailsForm profile={profile} />
-          </TabsContent>
-          <TabsContent value="bank" className="mt-6">
-            <BankDetailsForm profile={profile} />
-          </TabsContent>
-          <TabsContent value="nominee" className="mt-6">
-            <NomineeForm profile={profile} />
-          </TabsContent>
-          <TabsContent value="kyc" className="mt-6">
-            <KycDocuments />
-          </TabsContent>
-          <TabsContent value="security" className="mt-6">
-            <SecuritySettings />
-          </TabsContent>
-          <TabsContent value="id-card" className="mt-6">
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-1">
             <IdCard />
-          </TabsContent>
-        </Tabs>
+          </div>
+          <div className="lg:col-span-2">
+            <Tabs defaultValue={defaultTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+                <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                <TabsTrigger value="bank">Bank Details</TabsTrigger>
+                <TabsTrigger value="nominee">Nominee</TabsTrigger>
+                <TabsTrigger value="kyc">KYC</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
+              </TabsList>
+              <TabsContent value="personal" className="mt-6">
+                <PersonalDetailsForm profile={profile} />
+              </TabsContent>
+              <TabsContent value="bank" className="mt-6">
+                <BankDetailsForm profile={profile} />
+              </TabsContent>
+              <TabsContent value="nominee" className="mt-6">
+                <NomineeForm profile={profile} />
+              </TabsContent>
+              <TabsContent value="kyc" className="mt-6">
+                <KycDocuments />
+              </TabsContent>
+              <TabsContent value="security" className="mt-6">
+                <SecuritySettings />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </>
   );
