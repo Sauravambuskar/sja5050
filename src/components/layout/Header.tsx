@@ -63,7 +63,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
           </SheetContent>
         </Sheet>
 
-        <div className="w-full flex-1">
+        <div className="w-full flex-1 min-w-0">
           {isAdmin && <AdminUserSearch onUserSelect={handleViewUser} />}
         </div>
 

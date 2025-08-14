@@ -40,7 +40,7 @@ export function PageLayout() {
         <div className="hidden md:block">
           <Sidebar />
         </div>
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           <Header handleViewUser={handleViewUser} />
           <main className="flex flex-1 flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:gap-6 lg:p-6">
             <Outlet context={{ handleViewUser }} />
