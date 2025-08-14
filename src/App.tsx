@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+import Agreement from "./pages/Agreement";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/referrals" element={<Referrals />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/agreement" element={<Agreement />} />
               
               {/* Admin Portal Routes */}
               <Route path="/admin" element={<AdminRoute />}>

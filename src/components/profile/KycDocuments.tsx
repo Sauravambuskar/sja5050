@@ -8,13 +8,14 @@ import { FileUp, AlertCircle, CheckCircle, XCircle, Info } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { KycDocument } from "@/types/database";
+import { KycDocument, Profile } from "@/types/database";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
 import { VideoKyc } from "./VideoKyc";
+import { KycForm } from "./KycForm";
 
 // --- Constants ---
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -30,16 +31,6 @@ const fetchKycDocuments = async (userId: string): Promise<KycDocument[]> => {
     .order("submitted_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data;
-};
-
-const fetchProfileStatus = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("kyc_status")
-    .eq("id", userId)
-    .single();
-  if (error && error.code !== 'PGRST116') throw new Error(error.message);
   return data;
 };
 
@@ -64,7 +55,7 @@ const uploadKycDocument = async ({ userId, file, documentType }: { userId: strin
 
 // --- Component ---
 
-const KycDocuments = () => {
+const KycDocuments = ({ profile }: { profile: Profile }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
@@ -76,18 +67,12 @@ const KycDocuments = () => {
     enabled: !!user,
   });
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ["profileStatus", user?.id],
-    queryFn: () => fetchProfileStatus(user!.id),
-    enabled: !!user,
-  });
-
   const mutation = useMutation({
     mutationFn: uploadKycDocument,
     onSuccess: (data, variables) => {
       toast.success(`${variables.documentType} uploaded successfully!`);
       queryClient.invalidateQueries({ queryKey: ["kycDocuments", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["profileStatus", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
       if (variables.documentType === 'Aadhaar Card') setAadhaarFile(null);
       if (variables.documentType === 'PAN Card') setPanFile(null);
     },
@@ -152,6 +137,7 @@ const KycDocuments = () => {
 
   return (
     <div className="space-y-6">
+      <KycForm profile={profile} />
       <div className="grid gap-6 pt-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -162,9 +148,7 @@ const KycDocuments = () => {
             <div className="space-y-2"><Label htmlFor="aadhaar">Aadhaar Card (Front & Back)</Label><div className="flex items-center gap-2"><Input id="aadhaar" type="file" onChange={(e) => handleFileChange(e, setAadhaarFile)} /><Button onClick={() => handleUpload('Aadhaar Card')} disabled={!aadhaarFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
             <div className="space-y-2"><Label htmlFor="pan">PAN Card</Label><div className="flex items-center gap-2"><Input id="pan" type="file" onChange={(e) => handleFileChange(e, setPanFile)} /><Button onClick={() => handleUpload('PAN Card')} disabled={!panFile || mutation.isPending}><FileUp className="mr-2 h-4 w-4" /> Upload</Button></div></div>
             {mutation.isPending && <p className="text-sm text-muted-foreground">Uploading file, please wait...</p>}
-            {profileLoading ? <Skeleton className="h-12 w-full" /> : (
-              <div className={cn("mt-4 flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
-            )}
+            <div className={cn("mt-4 flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
           </CardContent>
         </Card>
         <Card>

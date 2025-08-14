@@ -124,7 +124,7 @@ const Profile = () => {
                 <NomineeForm profile={profile} />
               </TabsContent>
               <TabsContent value="kyc" className="mt-6">
-                <KycDocuments />
+                <KycDocuments profile={profile} />
               </TabsContent>
               <TabsContent value="security" className="mt-6">
                 <SecuritySettings />
