@@ -42,7 +42,7 @@ export function PageLayout() {
         </div>
         <div className="flex flex-1 flex-col">
           <Header handleViewUser={handleViewUser} />
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:gap-6 lg:p-6">
             <Outlet context={{ handleViewUser }} />
           </main>
         </div>
