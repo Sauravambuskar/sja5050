@@ -50,7 +50,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+      <header className="flex h-14 items-center gap-4 border-b bg-background px-2 sm:px-4 lg:h-[60px] lg:px-6">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -67,7 +67,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
           {isAdmin && <AdminUserSearch onUserSelect={handleViewUser} />}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link to="/notifications">
             <Button variant="outline" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -123,4 +123,4 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
       </AlertDialog>
     </>
   );
-}
+};
