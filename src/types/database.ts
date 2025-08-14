@@ -255,6 +255,10 @@ export type Profile = {
   bank_ifsc_code: string | null;
   referrer_full_name: string | null;
   member_id: string | null;
+  pan_number: string | null;
+  aadhaar_number: string | null;
+  blood_group: string | null;
+  nominee_blood_group: string | null;
 };
 
 export type InvestmentSummary = {
