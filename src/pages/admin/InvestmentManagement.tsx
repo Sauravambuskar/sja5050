@@ -116,12 +116,12 @@ const InvestmentManagement = () => {
         <TabsContent value="manage-plans">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle>Investment Plans</CardTitle>
                   <CardDescription>Add, edit, or disable investment plans offered to users.</CardDescription>
                 </div>
-                <Button size="sm" className="gap-1" onClick={handleCreatePlan}>
+                <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={handleCreatePlan}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Create Plan</span>
                 </Button>
@@ -178,12 +178,12 @@ const InvestmentManagement = () => {
         <TabsContent value="all-investments">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle>All Active Investments</CardTitle>
                   <CardDescription>A complete log of all ongoing investments across the platform.</CardDescription>
                 </div>
-                <Button size="sm" variant="outline" className="gap-1" onClick={handleExportInvestments}>
+                <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={handleExportInvestments}>
                   <Download className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
                 </Button>

@@ -162,12 +162,14 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">{getGreeting()}, {stats?.fullName || 'User'}!</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{getGreeting()}, {stats?.fullName || 'User'}!</h1>
+          <p className="text-muted-foreground">
+            Here's a summary of your portfolio and activities.
+          </p>
+        </div>
       </div>
-      <p className="text-muted-foreground">
-        Here's a summary of your portfolio and activities.
-      </p>
 
       {profile && stats && (
         isProfileComplete ? <QuickActions /> : <GettingStartedGuide profile={profile} stats={stats} />
@@ -270,12 +272,12 @@ const Dashboard = () => {
 
       <div className="mt-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle>Recent Transactions</CardTitle>
               <CardDescription>A summary of your latest wallet activity.</CardDescription>
             </div>
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
               <Link to="/wallet">View All</Link>
             </Button>
           </CardHeader>

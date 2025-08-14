@@ -185,7 +185,7 @@ const UserManagement = () => {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div><CardTitle>User Management</CardTitle><CardDescription>Search, filter, and manage client accounts.</CardDescription></div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
