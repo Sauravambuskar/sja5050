@@ -66,7 +66,20 @@ const DepositHistory = () => {
   const renderMobileView = () => (
     <div className="space-y-4">
       {isLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 w-32 mt-1" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        ))
       ) : history && history.length > 0 ? (
         history.map((req) => (
           <Card key={req.id}>

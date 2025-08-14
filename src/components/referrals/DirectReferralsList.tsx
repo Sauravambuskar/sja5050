@@ -77,7 +77,18 @@ const DirectReferralsList = () => {
   const renderMobileView = () => (
     <div className="space-y-4">
       {isLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2 mt-1" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        ))
       ) : referrals && referrals.length > 0 ? (
         referrals.map((ref) => (
           <Card key={ref.id}>

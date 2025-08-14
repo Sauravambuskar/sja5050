@@ -83,7 +83,21 @@ const CommissionAnalytics = () => {
   const renderMobileHistory = () => (
     <div className="mt-4 space-y-4">
       {historyLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 w-32 mt-1" />
+              </div>
+              <Skeleton className="h-6 w-12" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        ))
       ) : history && history.length > 0 ? (
         history.map((commission) => (
           <Card key={commission.id}>
