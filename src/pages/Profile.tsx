@@ -85,33 +85,35 @@ const Profile = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">My Profile</h1>
           <p className="text-muted-foreground">
             Manage your personal information, bank details, and KYC status.
           </p>
         </div>
-        <Button variant="outline" onClick={handleDownloadProfile}>
+        <Button variant="outline" onClick={handleDownloadProfile} className="w-full sm:w-auto">
           <Download className="mr-2 h-4 w-4" /> Download Profile
         </Button>
       </div>
       
       <div className="mt-6">
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
           <div className="lg:col-span-1">
             <ProfileStatus profile={profile} />
           </div>
           <div className="lg:col-span-2">
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-                <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                <TabsTrigger value="bank">Bank Details</TabsTrigger>
-                <TabsTrigger value="nominee">Nominee</TabsTrigger>
-                <TabsTrigger value="kyc">KYC</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="id-card">ID Card</TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto pb-2">
+                <TabsList>
+                  <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                  <TabsTrigger value="bank">Bank Details</TabsTrigger>
+                  <TabsTrigger value="nominee">Nominee</TabsTrigger>
+                  <TabsTrigger value="kyc">KYC</TabsTrigger>
+                  <TabsTrigger value="security">Security</TabsTrigger>
+                  <TabsTrigger value="id-card">ID Card</TabsTrigger>
+                </TabsList>
+              </div>
               <TabsContent value="personal" className="mt-6">
                 <PersonalDetailsForm profile={profile} />
               </TabsContent>
