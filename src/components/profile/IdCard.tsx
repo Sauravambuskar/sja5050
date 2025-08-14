@@ -64,9 +64,9 @@ export const IdCard = () => {
   return (
     <div className="flex flex-col items-center gap-6">
       {isLoading ? (
-        <Skeleton className="h-[280px] w-[380px] rounded-xl" />
+        <Skeleton className="h-[280px] w-full max-w-[380px] rounded-xl" />
       ) : (
-        <div ref={idCardRef} className="w-[380px] rounded-xl bg-card shadow-lg overflow-hidden font-sans relative" style={cardStyle}>
+        <div ref={idCardRef} className="w-full max-w-[380px] mx-auto rounded-xl bg-card shadow-lg overflow-hidden font-sans relative" style={cardStyle}>
           {data?.settings.background_image_url && <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>}
           <div className="relative z-10">
             {/* Header */}
