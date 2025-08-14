@@ -144,7 +144,24 @@ const InvestmentHistory = () => {
   const renderMobileView = () => (
     <div className="space-y-4">
       {isLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-24 mt-1" />
+                </div>
+                <Skeleton className="h-6 w-16" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-4 w-full mt-2" />
+            </CardContent>
+          </Card>
+        ))
       ) : investments && investments.length > 0 ? (
         investments.map((investment) => {
           const plan = investment.investment_plans?.[0];
