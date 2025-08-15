@@ -24,6 +24,7 @@ import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import Agreement from "./pages/Agreement";
+import Faq from "./pages/Faq";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -38,6 +39,7 @@ import AuditLog from "./pages/admin/AuditLog";
 import SystemManagement from "./pages/admin/SystemManagement";
 import DepositManagement from "./pages/admin/DepositManagement";
 import PayoutReports from "./pages/admin/PayoutReports";
+import FaqManagement from "./pages/admin/FaqManagement";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,7 @@ const App = () => (
               <Route path="/referrals" element={<Referrals />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/agreement" element={<Agreement />} />
+              <Route path="/faq" element={<Faq />} />
               
               {/* Admin Portal Routes */}
               <Route path="/admin" element={<AdminRoute />}>
@@ -71,6 +74,7 @@ const App = () => (
                 <Route path="payout-reports" element={<PayoutReports />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="system" element={<SystemManagement />} />
+                <Route path="faqs" element={<FaqManagement />} />
               </Route>
             </Route>
           </Route>

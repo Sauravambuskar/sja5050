@@ -299,3 +299,13 @@ export type SystemSettings = {
   auth_layout_image_url_1: string | null;
   auth_layout_image_url_2: string | null;
 };
+
+export type Faq = {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
