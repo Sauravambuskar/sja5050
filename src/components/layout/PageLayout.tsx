@@ -23,7 +23,7 @@ export function PageLayout() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 1000); // 1 second
+    }, 2000); // 2 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -44,18 +44,22 @@ export function PageLayout() {
 
   return (
     <>
+      {/* Full-screen splash loader */}
+      <div
+        className={`fixed inset-0 z-50 bg-cover bg-center transition-opacity duration-500 ${
+          showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        style={{
+          backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
+        }}
+      />
+
       {isImpersonating && <ImpersonationBanner />}
       <div className="flex min-h-screen w-full">
         <div className="hidden md:block">
           <Sidebar />
         </div>
         <div className="relative flex flex-1 flex-col min-w-0">
-          <div
-            className={`absolute inset-0 z-[-1] bg-cover bg-center transition-opacity duration-1000 ${showSplash ? 'opacity-100' : 'opacity-20'}`}
-            style={{
-              backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
-            }}
-          />
           <Header handleViewUser={handleViewUser} />
           <main className="flex flex-1 flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:gap-6 lg:p-6">
             <Outlet context={{ handleViewUser }} />
