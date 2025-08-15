@@ -42,7 +42,7 @@ export function PageLayout() {
         </div>
         <div className="relative flex flex-1 flex-col min-w-0">
           <div
-            className="absolute inset-0 z-[-1] bg-cover bg-center opacity-5"
+            className="absolute inset-0 z-[-1] bg-cover bg-center opacity-10"
             style={{
               backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
             }}
