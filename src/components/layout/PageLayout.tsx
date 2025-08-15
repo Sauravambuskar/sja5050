@@ -1,7 +1,7 @@
 import { Outlet, useOutletContext } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
@@ -18,6 +18,15 @@ export function PageLayout() {
   const { isImpersonating } = useAuth();
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1000); // 1 second
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleViewUser = (userId: string) => {
     setSelectedUserIdForSheet(userId);
@@ -42,7 +51,7 @@ export function PageLayout() {
         </div>
         <div className="relative flex flex-1 flex-col min-w-0">
           <div
-            className="absolute inset-0 z-[-1] bg-cover bg-center opacity-20"
+            className={`absolute inset-0 z-[-1] bg-cover bg-center transition-opacity duration-1000 ${showSplash ? 'opacity-100' : 'opacity-20'}`}
             style={{
               backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
             }}
