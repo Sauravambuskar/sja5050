@@ -10,8 +10,18 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           className="h-full w-full object-cover"
         />
       </div>
-      <div className="flex h-screen items-center justify-center p-6 lg:h-auto">
-        {children}
+      <div 
+        className="flex h-screen items-center justify-center p-6 lg:h-auto lg:bg-transparent"
+        style={{
+          backgroundImage: `url('https://ideogram.ai/assets/progressive-image/balanced/response/N1ygBDjpR2Gu9OPylgNwoA')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="lg:hidden absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <div className="relative z-10 w-full">
+          {children}
+        </div>
       </div>
     </div>
   );
