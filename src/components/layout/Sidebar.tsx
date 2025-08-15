@@ -136,4 +136,4 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
       )}
     </aside>
   );
-}
+};
