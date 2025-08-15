@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SignaturePad from '@/components/profile/SignaturePad';
@@ -7,8 +7,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
 
 const AGREEMENT_TEXT = `
 This Investment Agreement ("Agreement") is made and entered into on this day by and between SJA Foundation ("the Company") and the undersigned user ("the Investor").
@@ -58,6 +59,7 @@ const Agreement = () => {
     onSuccess: () => {
       toast.success("Agreement signed and saved successfully!");
       queryClient.invalidateQueries({ queryKey: ['investmentAgreement', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['investmentAgreementCheck', user?.id] });
     },
     onError: (error) => {
       toast.error(`Failed to save agreement: ${error.message}`);
@@ -78,14 +80,58 @@ const Agreement = () => {
     mutation.mutate({ userId: user.id, signatureDataUrl });
   };
 
+  const handleDownloadPdf = () => {
+    if (!signedAgreement || !user) {
+      toast.error("Agreement data not available.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+
+    // Header
+    doc.setFontSize(20);
+    doc.text("Investment Bond & Agreement", pageWidth / 2, 20, { align: 'center' });
+    
+    // User Info
+    doc.setFontSize(10);
+    doc.text(`Client: ${user.user_metadata.full_name || user.email}`, margin, 35);
+    doc.text(`Date Signed: ${format(new Date(signedAgreement.signed_at), "PPP p")}`, margin, 40);
+
+    // Agreement Text
+    doc.setFontSize(10);
+    const splitText = doc.splitTextToSize(signedAgreement.agreement_text, pageWidth - margin * 2);
+    doc.text(splitText, margin, 50);
+
+    // Signature
+    const textHeight = doc.getTextDimensions(splitText).h;
+    const signatureY = 50 + textHeight + 10;
+    doc.setFontSize(12);
+    doc.text("Investor Signature:", margin, signatureY);
+    doc.addImage(signedAgreement.signature_data_url, 'PNG', margin, signatureY + 2, 80, 40);
+
+    doc.save(`SJA_Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
+  };
+
   if (isLoading) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (
     <>
-      <h1 className="text-3xl font-bold">Investment Bond & Agreement</h1>
-      <p className="text-muted-foreground">Please read the terms carefully and sign below to proceed.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Investment Bond & Agreement</h1>
+          <p className="text-muted-foreground">Please read the terms carefully and sign below to proceed.</p>
+        </div>
+        {signedAgreement && (
+          <Button onClick={handleDownloadPdf}>
+            <Download className="mr-2 h-4 w-4" />
+            Download as PDF
+          </Button>
+        )}
+      </div>
 
       <Card className="mt-6">
         <CardHeader>
