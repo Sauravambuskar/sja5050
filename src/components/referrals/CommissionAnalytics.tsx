@@ -1,13 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Users } from "lucide-react";
+import { DollarSign, Users, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CommissionStats, CommissionHistoryItem } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
+type CommissionHistoryReportData = {
+  report_date: string;
+  commission_income: number;
+  day: string;
+};
 
 const fetchCommissionStats = async (): Promise<CommissionStats> => {
   const { data, error } = await supabase.rpc('get_my_commission_stats');
@@ -21,6 +28,15 @@ const fetchCommissionHistory = async (): Promise<CommissionHistoryItem[]> => {
   return data;
 };
 
+const fetchCommissionHistoryReport = async (): Promise<CommissionHistoryReportData[]> => {
+  const { data, error } = await supabase.rpc('get_my_commission_history_report');
+  if (error) throw new Error(error.message);
+  return data.map((item: any) => ({
+    ...item,
+    day: format(new Date(item.report_date), "d MMM"),
+  }));
+};
+
 const CommissionAnalytics = () => {
   const isMobile = useIsMobile();
   const { data: stats, isLoading: statsLoading } = useQuery<CommissionStats>({
@@ -31,6 +47,11 @@ const CommissionAnalytics = () => {
   const { data: history, isLoading: historyLoading } = useQuery<CommissionHistoryItem[]>({
     queryKey: ['commissionHistory'],
     queryFn: fetchCommissionHistory,
+  });
+
+  const { data: chartData, isLoading: chartLoading } = useQuery<CommissionHistoryReportData[]>({
+    queryKey: ['commissionHistoryReport'],
+    queryFn: fetchCommissionHistoryReport,
   });
 
   const renderDesktopHistory = () => (
@@ -163,6 +184,34 @@ const CommissionAnalytics = () => {
             </CardContent>
           </Card>
         </div>
+
+        <div>
+          <h3 className="text-lg font-medium">30-Day Commission Trend</h3>
+          <div className="h-[250px] w-full mt-2">
+            {chartLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis tickFormatter={(value) => `₹${value}`} />
+                  <Tooltip
+                    formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="commission_income" name="Commission Earned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
         <div>
           <h3 className="text-lg font-medium">Commission History</h3>
           {isMobile ? renderMobileHistory() : renderDesktopHistory()}
