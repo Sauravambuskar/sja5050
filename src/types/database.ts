@@ -310,3 +310,22 @@ export type Faq = {
   created_at: string;
   updated_at: string;
 };
+
+export type SupportTicket = {
+  id: string;
+  subject: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SupportMessage = {
+  id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    role: string;
+  } | null;
+};

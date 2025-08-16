@@ -25,6 +25,8 @@ import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import Agreement from "./pages/Agreement";
 import Faq from "./pages/Faq";
+import Support from "./pages/Support";
+import TicketDetails from "./pages/TicketDetails";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -60,6 +62,8 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/agreement" element={<Agreement />} />
               <Route path="/faq" element={<Faq />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
               
               {/* Admin Portal Routes */}
               <Route path="/admin" element={<AdminRoute />}>
