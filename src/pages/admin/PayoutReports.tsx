@@ -12,7 +12,6 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -191,20 +190,20 @@ const PayoutReports = () => {
           <h1 className="text-3xl font-bold">Monthly Payout Reports</h1>
           <p className="text-muted-foreground">Generate and export reports for monthly profit payouts.</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-1" disabled={reportData.length === 0}>
-              <Download className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Export
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-1" onClick={() => handleExport('csv')} disabled={reportData.length === 0}>
+            <Download className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Export CSV
+            </span>
+          </Button>
+          <Button variant="outline" className="gap-1" onClick={() => handleExport('pdf')} disabled={reportData.length === 0}>
+            <Download className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Export PDF
+            </span>
+          </Button>
+        </div>
       </div>
 
       <Card className="mt-6">
