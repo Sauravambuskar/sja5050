@@ -26,6 +26,7 @@ import { IdCardCustomizer } from "@/components/admin/IdCardCustomizer";
 import { MaintenanceMode } from "@/components/admin/MaintenanceMode";
 import { CompanyBankDetails } from "@/components/admin/CompanyBankDetails";
 import { AuthLayoutCustomizer } from "@/components/admin/AuthLayoutCustomizer";
+import { SplashScreenCustomizer } from "@/components/admin/SplashScreenCustomizer";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -100,6 +101,7 @@ const SystemManagement = () => {
           <IdCardCustomizer />
           <CompanyBankDetails />
           <AuthLayoutCustomizer />
+          <SplashScreenCustomizer />
         </div>
         <div className="space-y-6">
           <Card>

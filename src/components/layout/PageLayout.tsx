@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export type PageLayoutContext = {
   handleViewUser: (userId: string) => void;
@@ -16,6 +17,7 @@ export function usePageLayoutContext() {
 
 export function PageLayout() {
   const { isImpersonating } = useAuth();
+  const { settings } = useSystemSettings();
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -42,6 +44,8 @@ export function PageLayout() {
     }
   };
 
+  const splashUrl = settings?.splash_screen_url || 'https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A';
+
   return (
     <>
       {/* Full-screen splash loader */}
@@ -50,7 +54,7 @@ export function PageLayout() {
           showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{
-          backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
+          backgroundImage: `url('${splashUrl}')`,
         }}
       />
 
@@ -64,7 +68,7 @@ export function PageLayout() {
           <div
             className="absolute inset-0 z-[-1] bg-cover bg-center opacity-20"
             style={{
-              backgroundImage: `url('https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A')`,
+              backgroundImage: `url('${splashUrl}')`,
             }}
           />
           <Header handleViewUser={handleViewUser} />
