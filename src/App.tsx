@@ -42,6 +42,8 @@ import SystemManagement from "./pages/admin/SystemManagement";
 import DepositManagement from "./pages/admin/DepositManagement";
 import PayoutReports from "./pages/admin/PayoutReports";
 import FaqManagement from "./pages/admin/FaqManagement";
+import SupportDesk from "./pages/admin/SupportDesk";
+import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
 
 const queryClient = new QueryClient();
 
@@ -76,9 +78,11 @@ const App = () => (
                 <Route path="commissions" element={<CommissionRules />} />
                 <Route path="reports" element={<Reporting />} />
                 <Route path="payout-reports" element={<PayoutReports />} />
+                <Route path="faqs" element={<FaqManagement />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="system" element={<SystemManagement />} />
-                <Route path="faqs" element={<FaqManagement />} />
+                <Route path="support" element={<SupportDesk />} />
+                <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
               </Route>
             </Route>
           </Route>

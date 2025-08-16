@@ -319,6 +319,12 @@ export type SupportTicket = {
   updated_at: string;
 };
 
+export type AdminSupportTicket = SupportTicket & {
+  user_id: string;
+  full_name: string;
+  email: string;
+};
+
 export type SupportMessage = {
   id: string;
   sender_id: string;

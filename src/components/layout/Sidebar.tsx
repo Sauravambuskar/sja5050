@@ -27,6 +27,7 @@ const adminNavItems = [
   { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
+  { to: "/admin/support", label: "Support Desk", icon: MessageSquare },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
   { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
@@ -42,7 +43,7 @@ interface SidebarProps {
 export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount } = useAdminActionCounts();
+  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount, openTicketsCount } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   return (
@@ -131,6 +132,11 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
               {item.label === "Deposits" && pendingDepositsCount > 0 && (
                 <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
                   {pendingDepositsCount}
+                </Badge>
+              )}
+              {item.label === "Support Desk" && openTicketsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {openTicketsCount}
                 </Badge>
               )}
             </NavLink>
