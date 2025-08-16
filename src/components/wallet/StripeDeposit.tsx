@@ -5,14 +5,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { loadStripe } from '@stripe/stripe-js';
-import { Loader2, CreditCard } from 'lucide-react';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { Loader2, CreditCard, AlertTriangle } from 'lucide-react';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+let stripePromise: Promise<Stripe | null> | null = null;
+if (stripePublishableKey) {
+  stripePromise = loadStripe(stripePublishableKey);
+} else {
+  console.error("Stripe publishable key is not set. Please set VITE_STRIPE_PUBLISHABLE_KEY in your .env file.");
+}
 
 const StripeDeposit = () => {
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!stripePublishableKey) {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Automated Deposit Unavailable</CardTitle>
+          <CardDescription>This feature is not configured correctly.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3 rounded-md border border-destructive bg-destructive/10 p-4 text-destructive-foreground">
+            <AlertTriangle className="h-6 w-6" />
+            <div>
+              <p className="font-semibold">Configuration Error</p>
+              <p className="text-sm">The payment gateway is not set up. Please contact support.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
