@@ -75,14 +75,14 @@ const App = () => (
                 <Route path="investments" element={<InvestmentManagement />} />
                 <Route path="withdrawals" element={<WithdrawalManagement />} />
                 <Route path="kyc" element={<KycManagement />} />
+                <Route path="support" element={<SupportDesk />} />
+                <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
                 <Route path="commissions" element={<CommissionRules />} />
                 <Route path="reports" element={<Reporting />} />
                 <Route path="payout-reports" element={<PayoutReports />} />
                 <Route path="faqs" element={<FaqManagement />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="system" element={<SystemManagement />} />
-                <Route path="support" element={<SupportDesk />} />
-                <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
               </Route>
             </Route>
           </Route>
