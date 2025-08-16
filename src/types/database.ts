@@ -75,6 +75,7 @@ export type AdminDepositRequest = {
   reference_id: string;
   requested_at: string;
   status: string;
+  screenshot_path: string | null;
 };
 
 export type CommissionRule = {

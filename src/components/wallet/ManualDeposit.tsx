@@ -12,18 +12,21 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { Skeleton } from "../ui/skeleton";
 import { Copy } from "lucide-react";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 const depositSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be a positive number." }).min(100, "Minimum deposit is ₹100."),
   reference_id: z.string().min(5, "Transaction ID is required.").max(50),
+  screenshot: z
+    .any()
+    .refine((files) => files?.length == 1, "Screenshot is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
 });
-
-const submitDepositRequest = async (values: z.infer<typeof depositSchema>) => {
-  const { error } = await supabase.rpc('submit_deposit_request', {
-    p_amount: values.amount,
-    p_reference_id: values.reference_id,
-  });
-  if (error) throw new Error(error.message);
-};
 
 const DetailRow = ({ label, value }: { label: string; value: string }) => {
   const handleCopy = () => {
@@ -53,7 +56,31 @@ const ManualDeposit = () => {
   });
 
   const mutation = useMutation({
-    mutationFn: submitDepositRequest,
+    mutationFn: async (values: z.infer<typeof depositSchema>) => {
+      const { user } = (await supabase.auth.getUser()).data;
+      if (!user) throw new Error("User not found");
+
+      const file = values.screenshot[0] as File;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('deposit_proofs')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+      }
+
+      const { error: rpcError } = await supabase.rpc('submit_deposit_request', {
+        p_amount: values.amount,
+        p_reference_id: values.reference_id,
+        p_screenshot_path: filePath,
+      });
+
+      if (rpcError) throw new Error(rpcError.message);
+    },
     onSuccess: () => {
       toast.success("Deposit request submitted!", { description: "It will be reviewed by our team shortly." });
       queryClient.invalidateQueries({ queryKey: ['depositHistory'] });
@@ -105,6 +132,23 @@ const ManualDeposit = () => {
             <CardContent className="space-y-4">
               <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>Amount (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10000" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="reference_id" render={({ field }) => (<FormItem><FormLabel>Transaction Reference / UTR ID</FormLabel><FormControl><Input placeholder="Enter the ID from your bank app" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField
+                control={form.control}
+                name="screenshot"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Screenshot</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={(e) => field.onChange(e.target.files)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full" disabled={mutation.isPending}>
                 {mutation.isPending ? "Submitting..." : "Submit Deposit Request"}
               </Button>

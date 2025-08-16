@@ -21,7 +21,6 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/auth/AuthProvider";
-import StripeDeposit from "@/components/wallet/StripeDeposit";
 
 const PAGE_SIZE = 10;
 
@@ -51,25 +50,12 @@ const fetchTransactionsCount = async (filter: string): Promise<number> => {
 
 const Wallet = () => {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const defaultTab = searchParams.get("tab") || "history";
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    const paymentStatus = searchParams.get('payment');
-    if (paymentStatus === 'success') {
-      toast.success("Payment successful!", { description: "Your wallet balance will be updated shortly." });
-      searchParams.delete('payment');
-      setSearchParams(searchParams);
-    } else if (paymentStatus === 'cancelled') {
-      toast.warning("Payment cancelled.", { description: "Your deposit was not processed." });
-      searchParams.delete('payment');
-      setSearchParams(searchParams);
-    }
-  }, [searchParams, setSearchParams]);
 
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
@@ -290,10 +276,9 @@ const Wallet = () => {
       </Card>
 
       <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-4 md:w-[500px]">
+        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="deposit">Automated Deposit</TabsTrigger>
-          <TabsTrigger value="manual-deposit">Manual Deposit</TabsTrigger>
+          <TabsTrigger value="deposit">Deposit</TabsTrigger>
           <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
@@ -340,9 +325,6 @@ const Wallet = () => {
           </Card>
         </TabsContent>
         <TabsContent value="deposit">
-          <StripeDeposit />
-        </TabsContent>
-        <TabsContent value="manual-deposit">
           <ManualDeposit />
           <DepositHistory />
         </TabsContent>

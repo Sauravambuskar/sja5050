@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Copy } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Eye } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDepositRequest } from "@/types/database";
@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
 
 const fetchDepositRequests = async (): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests');
@@ -49,6 +50,7 @@ const DepositManagement = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
+  const [viewingRequest, setViewingRequest] = useState<AdminDepositRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
@@ -137,6 +139,7 @@ const DepositManagement = () => {
               <TableCell className="text-right">
                 {request.status === 'Pending' && (
                   <div className="flex justify-end gap-2">
+                    {request.screenshot_path && <Button size="icon" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="h-4 w-4" /></Button>}
                     <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
                     <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActionToConfirm({ request, status: 'Rejected' })} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                   </div>
@@ -173,6 +176,7 @@ const DepositManagement = () => {
             </CardContent>
             {request.status === 'Pending' && (
               <div className="p-4 border-t flex justify-end gap-2">
+                {request.screenshot_path && <Button size="sm" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="mr-2 h-4 w-4" /> View Proof</Button>}
                 <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
                 <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActionToConfirm({ request, status: 'Rejected' })} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
               </div>
@@ -221,6 +225,12 @@ const DepositManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ScreenshotViewerDialog
+        request={viewingRequest}
+        isOpen={!!viewingRequest}
+        onClose={() => setViewingRequest(null)}
+      />
     </>
   );
 };
