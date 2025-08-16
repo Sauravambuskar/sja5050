@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/auth/AuthProvider";
+import StripeDeposit from "@/components/wallet/StripeDeposit";
 
 const PAGE_SIZE = 10;
 
@@ -289,9 +290,10 @@ const Wallet = () => {
       </Card>
 
       <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 md:w-[500px]">
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="deposit">Deposit</TabsTrigger>
+          <TabsTrigger value="deposit">Automated Deposit</TabsTrigger>
+          <TabsTrigger value="manual-deposit">Manual Deposit</TabsTrigger>
           <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
@@ -338,6 +340,9 @@ const Wallet = () => {
           </Card>
         </TabsContent>
         <TabsContent value="deposit">
+          <StripeDeposit />
+        </TabsContent>
+        <TabsContent value="manual-deposit">
           <ManualDeposit />
           <DepositHistory />
         </TabsContent>
