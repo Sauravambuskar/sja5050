@@ -16,7 +16,7 @@ import UpdatePassword from "./pages/UpdatePassword";
 import LoginMfa from "./pages/LoginMfa";
 
 // Client Pages
-import Dashboard from "./pages/Dashboard";
+import DashboardLoader from "./pages/DashboardLoader";
 import Investments from "./pages/Investments";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
@@ -56,7 +56,7 @@ const App = () => (
           {/* Client Portal */}
           <Route element={<ProtectedRoute />}>
             <Route element={<PageLayout />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<DashboardLoader />} />
               <Route path="/investments" element={<Investments />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/profile" element={<Profile />} />

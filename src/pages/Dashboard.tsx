@@ -1,7 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { DashboardStats, Transaction, Profile } from "@/types/database";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -12,29 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { GettingStartedGuide } from "@/components/dashboard/GettingStartedGuide";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 
-const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  const { data, error } = await supabase.rpc('get_dashboard_stats');
-  if (error) throw new Error(error.message);
-  return data[0];
-};
-
-const fetchRecentTransactions = async (): Promise<Transaction[]> => {
-  const { data, error } = await supabase.rpc('get_my_transactions', {
-    page_limit: 5,
-    page_offset: 0,
-  });
-  if (error) throw new Error(error.message);
-  return data;
-};
-
-const fetchMyProfile = async (): Promise<Profile> => {
-  const { data, error } = await supabase.rpc('get_my_profile');
-  if (error) throw new Error(error.message);
-  return data[0];
-};
+interface DashboardProps {
+  stats: DashboardStats;
+  transactions: Transaction[];
+  profile: Profile;
+}
 
 const completenessChecks = [
   { key: 'phone', check: (p: Profile) => !!p.phone },
@@ -44,24 +26,8 @@ const completenessChecks = [
   { key: 'kyc_status', check: (p: Profile) => p.kyc_status === 'Approved' },
 ];
 
-const Dashboard = () => {
+const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
   const isMobile = useIsMobile();
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ['dashboardStats'],
-    queryFn: fetchDashboardStats,
-  });
-
-  const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
-    queryKey: ['recentTransactions'],
-    queryFn: fetchRecentTransactions,
-  });
-
-  const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
-    queryKey: ['myProfile'],
-    queryFn: fetchMyProfile,
-  });
-
-  const isLoading = statsLoading || transactionsLoading || profileLoading;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -96,10 +62,6 @@ const Dashboard = () => {
 
   const completedItems = profile ? completenessChecks.filter(item => item.check(profile)).length : 0;
   const isProfileComplete = profile ? completedItems === completenessChecks.length : false;
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
 
   const renderDesktopTransactions = () => (
     <Table>
