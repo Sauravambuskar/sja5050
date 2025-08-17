@@ -32,12 +32,17 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
-const sendDepositEmail = async ({ to, name, amount }: { to: string; name: string; amount: number }) => {
+const sendDepositEmail = async ({ to, name, amount }: { to: string | null; name: string | null; amount: number }) => {
+  if (!to) {
+    console.error("Cannot send deposit email: user email is missing.");
+    toast.warning("Deposit was approved, but the confirmation email could not be sent as the user's email is missing.");
+    return;
+  }
   const { error } = await supabase.functions.invoke('send-transactional-email', {
     body: {
       to,
       subject: 'Your Deposit has been Approved!',
-      html: `<p>Hi ${name},</p><p>Your deposit of ₹${amount.toLocaleString('en-IN')} has been successfully processed and the funds have been added to your wallet.</p><p>Thank you for choosing SJA Foundation.</p>`,
+      html: `<p>Hi ${name || 'Valued Customer'},</p><p>Your deposit of ₹${amount.toLocaleString('en-IN')} has been successfully processed and the funds have been added to your wallet.</p><p>Thank you for choosing SJA Foundation.</p>`,
     },
   });
   if (error) {
@@ -126,7 +131,7 @@ const DepositManagement = () => {
         ) : (
           requests?.map((request) => (
             <TableRow key={request.request_id}>
-              <TableCell className="font-medium">{request.user_name}</TableCell>
+              <TableCell className="font-medium">{request.user_name || 'Deleted User'}</TableCell>
               <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -165,7 +170,7 @@ const DepositManagement = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>₹{request.amount.toLocaleString('en-IN')}</CardTitle>
-                  <CardDescription>{request.user_name}</CardDescription>
+                  <CardDescription>{request.user_name || 'Deleted User'}</CardDescription>
                 </div>
                 <Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
@@ -207,7 +212,7 @@ const DepositManagement = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Action: {actionToConfirm?.status}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {actionToConfirm?.status.toLowerCase()} this deposit request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name}</span>?
+              Are you sure you want to {actionToConfirm?.status.toLowerCase()} this deposit request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name || 'Deleted User'}</span>?
               {actionToConfirm?.status === 'Approved' && <p className="mt-2 text-sm text-primary">Please ensure you have verified this transaction in your bank account before proceeding.</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>
