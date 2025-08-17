@@ -16,6 +16,7 @@ const userNavItems = [
   { to: "/profile", label: "Profile", icon: User },
   { to: "/referrals", label: "Referrals", icon: Users },
   { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/support", label: "Support", icon: MessageSquare },
   { to: "/faq", label: "FAQ", icon: HelpCircle },
