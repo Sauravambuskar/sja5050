@@ -8,6 +8,7 @@ export type InvestmentPlan = {
   max_investment: number | null;
   is_active: boolean;
   created_at: string;
+  image_url: string | null;
 };
 
 export type AdminUserView = {

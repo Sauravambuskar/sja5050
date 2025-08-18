@@ -41,6 +41,7 @@ const upsertPlan = async (plan: InvestmentPlan) => {
     p_min_investment: plan.min_investment,
     p_max_investment: plan.max_investment,
     p_is_active: plan.is_active,
+    p_image_url: plan.image_url,
   });
   if (error) throw new Error(error.message);
 };

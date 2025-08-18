@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { InvestDialog } from "./InvestDialog";
 import { TrendingUp } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -61,11 +62,20 @@ const InvestmentPlans = () => {
           const monthlyRate = plan.annual_rate / 12;
           return (
             <Card key={plan.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
+              <CardHeader className="p-0">
+                <AspectRatio ratio={16 / 9}>
+                  <img
+                    src={plan.image_url || '/placeholder.svg'}
+                    alt={plan.name}
+                    className="object-cover w-full h-full rounded-t-lg"
+                  />
+                </AspectRatio>
+                <div className="p-6 pb-0">
+                  <CardTitle>{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
+                </div>
               </CardHeader>
-              <CardContent className="flex-grow">
+              <CardContent className="flex-grow p-6">
                 <div className="text-3xl font-bold">{monthlyRate.toFixed(2)}%</div>
                 <p className="text-sm text-muted-foreground">
                   Monthly Return for {plan.duration_months} Months
@@ -74,7 +84,7 @@ const InvestmentPlans = () => {
                   ₹{plan.min_investment.toLocaleString('en-IN')} - ₹{plan.max_investment?.toLocaleString('en-IN') ?? 'Unlimited'}
                 </p>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="p-6 pt-0">
                 <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Deposit Now</Button>
               </CardFooter>
             </Card>
