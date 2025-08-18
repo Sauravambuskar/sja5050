@@ -10,7 +10,10 @@ import { useAuth } from "../auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "../ui/button";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Download, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { exportToCsv, exportToPdf } from "@/lib/utils";
+import { toast } from "sonner";
 
 const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
@@ -35,11 +38,60 @@ const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> =
 const InvestmentHistory = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [isExporting, setIsExporting] = useState(false);
   const { data: investments, isLoading, isError, error } = useQuery<UserInvestment[]>({
     queryKey: ['userInvestments', user?.id],
     queryFn: () => fetchUserInvestments(user!.id),
     enabled: !!user,
   });
+
+  const handleExport = async (formatType: 'csv' | 'pdf') => {
+    setIsExporting(true);
+    toast.info(`Preparing your investment history as a ${formatType.toUpperCase()} file...`);
+
+    try {
+      const { data, error } = await supabase.rpc('get_my_full_investment_history');
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.warning("No investment history to export.");
+        return;
+      }
+
+      const filename = `SJA_Investment_History_${format(new Date(), 'yyyy-MM-dd')}`;
+      
+      if (formatType === 'csv') {
+        const formattedData = data.map(item => ({
+          "Plan Name": item.plan_name,
+          "Investment Amount": item.investment_amount,
+          "Start Date": item.start_date,
+          "Maturity Date": item.maturity_date,
+          "Status": item.status,
+          "Profit Earned": item.profit_earned,
+          "Total Payout": item.total_payout,
+        }));
+        exportToCsv(`${filename}.csv`, formattedData);
+      } else {
+        const title = "Investment History Statement";
+        const headers = ["Plan", "Amount", "Start", "Maturity", "Status", "Profit", "Payout"];
+        const body = data.map((item: any) => [
+          item.plan_name,
+          item.investment_amount.toLocaleString('en-IN'),
+          format(new Date(item.start_date), 'PPP'),
+          format(new Date(item.maturity_date), 'PPP'),
+          item.status,
+          item.profit_earned.toLocaleString('en-IN'),
+          item.total_payout.toLocaleString('en-IN'),
+        ]);
+        exportToPdf(`${filename}.pdf`, title, headers, body, user?.user_metadata?.full_name || "User");
+      }
+      toast.success(`Statement exported successfully as ${formatType.toUpperCase()}!`);
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
@@ -222,8 +274,22 @@ const InvestmentHistory = () => {
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle>My Investment Portfolio</CardTitle>
-        <CardDescription>A record of all your active and past investments.</CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle>My Investment Portfolio</CardTitle>
+            <CardDescription>A record of all your active and past investments.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={isExporting} className="gap-1">
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} disabled={isExporting} className="gap-1">
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              PDF
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {isError ? (
