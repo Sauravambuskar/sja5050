@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Copy, Eye } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Eye, Download } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDepositRequest } from "@/types/database";
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
+import { exportToCsv } from "@/lib/utils";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 
 const fetchDepositRequests = async (): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests');
@@ -54,7 +56,8 @@ const sendDepositEmail = async ({ to, name, amount }: { to: string | null; name:
 const DepositManagement = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
+  const { handleViewUser } = usePageLayoutContext();
+  const [rejectionRequest, setRejectionRequest] = useState<AdminDepositRequest | null>(null);
   const [viewingRequest, setViewingRequest] = useState<AdminDepositRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
 
@@ -71,11 +74,12 @@ const DepositManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
 
-      if (variables.status === 'Approved' && actionToConfirm) {
+      const request = requests?.find(r => r.request_id === variables.requestId);
+      if (variables.status === 'Approved' && request) {
         sendDepositEmail({
-          to: actionToConfirm.request.user_email,
-          name: actionToConfirm.request.user_name,
-          amount: actionToConfirm.request.amount,
+          to: request.user_email,
+          name: request.user_name,
+          amount: request.amount,
         });
       }
     },
@@ -83,30 +87,51 @@ const DepositManagement = () => {
       toast.error(`Action failed: ${error.message}`);
     },
     onSettled: () => {
-      setActionToConfirm(null);
+      setRejectionRequest(null);
       setRejectionNotes("");
     }
   });
 
-  const handleProcessRequest = () => {
-    if (!actionToConfirm) return;
-    const { request, status } = actionToConfirm;
-    let notes = "";
-    if (status === 'Approved') {
-      notes = 'Approved by admin.';
-    } else {
-      if (rejectionNotes.trim().length < 5) {
-        toast.error("Please provide a clear reason for rejection.");
-        return;
-      }
-      notes = rejectionNotes;
-    }
+  const handleProcessRequest = (request: AdminDepositRequest, status: 'Approved' | 'Rejected') => {
+    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
     mutation.mutate({ requestId: request.request_id, status, notes });
+  };
+
+  const handleRejectClick = (request: AdminDepositRequest) => {
+    setRejectionNotes("");
+    setRejectionRequest(request);
+  };
+
+  const handleConfirmRejection = () => {
+    if (!rejectionRequest) return;
+    if (rejectionNotes.trim().length < 5) {
+      toast.error("Please provide a clear reason for rejection.");
+      return;
+    }
+    handleProcessRequest(rejectionRequest, 'Rejected');
   };
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard!");
+  };
+
+  const handleExport = () => {
+    if (!requests || requests.length === 0) {
+      toast.warning("No data to export.");
+      return;
+    }
+    const dataToExport = requests.map(req => ({
+      RequestID: req.request_id,
+      UserName: req.user_name,
+      Amount: req.amount,
+      ReferenceID: req.reference_id,
+      RequestedAt: format(new Date(req.requested_at), 'yyyy-MM-dd HH:mm'),
+      Status: req.status,
+    }));
+    const filename = `deposit_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    exportToCsv(filename, dataToExport);
+    toast.success("Deposit data exported successfully.");
   };
 
   const renderDesktopView = () => (
@@ -131,7 +156,11 @@ const DepositManagement = () => {
         ) : (
           requests?.map((request) => (
             <TableRow key={request.request_id}>
-              <TableCell className="font-medium">{request.user_name || 'Deleted User'}</TableCell>
+              <TableCell>
+                <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>
+                  {request.user_name || 'Deleted User'}
+                </Button>
+              </TableCell>
               <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -145,8 +174,8 @@ const DepositManagement = () => {
                 {request.status === 'Pending' && (
                   <div className="flex justify-end gap-2">
                     {request.screenshot_path && <Button size="icon" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="h-4 w-4" /></Button>}
-                    <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                    <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActionToConfirm({ request, status: 'Rejected' })} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                    <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                    <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                   </div>
                 )}
               </TableCell>
@@ -170,7 +199,9 @@ const DepositManagement = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>₹{request.amount.toLocaleString('en-IN')}</CardTitle>
-                  <CardDescription>{request.user_name || 'Deleted User'}</CardDescription>
+                  <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>
+                    {request.user_name || 'Deleted User'}
+                  </Button>
                 </div>
                 <Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
@@ -182,8 +213,8 @@ const DepositManagement = () => {
             {request.status === 'Pending' && (
               <div className="p-4 border-t flex justify-end gap-2">
                 {request.screenshot_path && <Button size="sm" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="mr-2 h-4 w-4" /> View Proof</Button>}
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActionToConfirm({ request, status: 'Rejected' })} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
               </div>
             )}
           </Card>
@@ -194,38 +225,40 @@ const DepositManagement = () => {
 
   return (
     <>
-      <h1 className="text-3xl font-bold">Deposit Management</h1>
-      <p className="text-muted-foreground">Review and process all user deposit requests.</p>
-      
-      <Card className="mt-6">
+      <Card>
         <CardHeader>
-          <CardTitle>Pending Deposit Requests</CardTitle>
-          <CardDescription>Verify these transactions in your bank account before approving.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Deposit Management</CardTitle>
+              <CardDescription>Review and process all user deposit requests.</CardDescription>
+            </div>
+            <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isMobile ? renderMobileView() : renderDesktopView()}
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
+      <AlertDialog open={!!rejectionRequest} onOpenChange={() => setRejectionRequest(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Action: {actionToConfirm?.status}</AlertDialogTitle>
+            <AlertDialogTitle>Reject Deposit Request?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {actionToConfirm?.status.toLowerCase()} this deposit request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name || 'Deleted User'}</span>?
-              {actionToConfirm?.status === 'Approved' && <p className="mt-2 text-sm text-primary">Please ensure you have verified this transaction in your bank account before proceeding.</p>}
+              Please provide a reason for rejecting this deposit. This note will be visible to the user.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {actionToConfirm?.status === 'Rejected' && (
-            <div className="py-2">
-              <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
-              <Textarea id="rejection-notes" placeholder="e.g., Transaction not found, amount mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
-            </div>
-          )}
+          <div className="py-2">
+            <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
+            <Textarea id="rejection-notes" placeholder="e.g., Transaction not found, amount mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleProcessRequest} disabled={mutation.isPending}>
-              {mutation.isPending ? "Processing..." : "Confirm"}
+            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>
+              {mutation.isPending ? "Processing..." : "Confirm Rejection"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

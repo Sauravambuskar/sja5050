@@ -77,6 +77,7 @@ export type AdminDepositRequest = {
   status: string;
   screenshot_path: string | null;
   admin_notes: string | null;
+  wallet_balance: number;
 };
 
 export type CommissionRule = {
