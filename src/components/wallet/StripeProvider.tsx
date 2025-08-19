@@ -6,10 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Label } from '../ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!stripePublishableKey) {
+  console.error("VITE_STRIPE_PUBLISHABLE_KEY is not set in .env file.");
+}
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export const StripeProvider = () => {
   const [amount, setAmount] = useState(1000);
@@ -35,6 +42,18 @@ export const StripeProvider = () => {
       setIsLoading(false);
     }
   };
+
+  if (!stripePromise) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Payment System Error</AlertTitle>
+        <AlertDescription>
+          The payment system is not configured correctly. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const options: StripeElementsOptions = {
     clientSecret: clientSecret || undefined,
