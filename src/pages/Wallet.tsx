@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { StripeProvider } from "@/components/wallet/StripeProvider";
 
 const PAGE_SIZE = 10;
 
@@ -275,9 +276,10 @@ const Wallet = () => {
       </Card>
 
       <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 md:w-[500px]">
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="deposit">Deposit</TabsTrigger>
+          <TabsTrigger value="card-deposit">Card Deposit</TabsTrigger>
+          <TabsTrigger value="manual-deposit">Manual Deposit</TabsTrigger>
           <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
@@ -319,7 +321,18 @@ const Wallet = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="deposit">
+        <TabsContent value="card-deposit">
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Deposit with Card</CardTitle>
+              <CardDescription>Instantly add funds to your wallet using a debit or credit card.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StripeProvider />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="manual-deposit">
           <ManualDeposit />
           <DepositHistory />
         </TabsContent>
