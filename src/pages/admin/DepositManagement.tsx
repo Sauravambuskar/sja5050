@@ -20,22 +20,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
+import { Input } from "@/components/ui/input";
 
 const PAGE_SIZE = 10;
 
-const fetchDepositRequests = async (page: number, statusFilter: string | null): Promise<AdminDepositRequest[]> => {
+const fetchDepositRequests = async (page: number, statusFilter: string | null, searchText: string | null): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests', {
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
     p_status_filter: statusFilter,
+    p_search_text: searchText,
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchDepositRequestsCount = async (statusFilter: string | null): Promise<number> => {
+const fetchDepositRequestsCount = async (statusFilter: string | null, searchText: string | null): Promise<number> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests_count', {
     p_status_filter: statusFilter,
+    p_search_text: searchText,
   });
   if (error) throw new Error(error.message);
   return data;
@@ -74,6 +77,20 @@ const sendDepositEmail = async ({ to, name, amount, status, notes }: { to: strin
   }
 };
 
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
+
 const DepositManagement = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -84,18 +101,20 @@ const DepositManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // Added searchQuery state
+  const debouncedSearchQuery = useDebounce(searchQuery, 500); // Added debouncedSearchQuery
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
-    queryKey: ['allDepositRequests', currentPage, filterValue],
-    queryFn: () => fetchDepositRequests(currentPage, filterValue),
+    queryKey: ['allDepositRequests', currentPage, filterValue, debouncedSearchQuery],
+    queryFn: () => fetchDepositRequests(currentPage, filterValue, debouncedSearchQuery),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allDepositRequestsCount', filterValue],
-    queryFn: () => fetchDepositRequestsCount(filterValue),
+    queryKey: ['allDepositRequestsCount', filterValue, debouncedSearchQuery],
+    queryFn: () => fetchDepositRequestsCount(filterValue, debouncedSearchQuery),
   });
 
   useEffect(() => {
@@ -306,17 +325,25 @@ const DepositManagement = () => {
               <CardDescription>Review and process all user deposit requests.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Approved">Approved</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <Input
+                  placeholder="Search by user name, email, or reference ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-sm"
+                />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
                 {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
