@@ -1,4 +1,4 @@
-import { createClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // Corrected import
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
@@ -8,8 +8,6 @@ import AdminDepositsPage from "./pages/admin/Deposits";
 import { Toaster } from "@/components/ui/sonner"
 
 function App() {
-  const supabase = createClient();
-
   return (
     <SessionContextProvider supabaseClient={supabase}>
       <BrowserRouter>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Corrected import
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,25 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle, XCircle, Eye } from 'lucide-react';
-
-type DepositRequest = {
-  request_id: string;
-  user_name: string;
-  user_email: string;
-  amount: number;
-  reference_id: string;
-  requested_at: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  screenshot_path: string;
-  admin_notes: string;
-};
+import { AdminDepositRequest } from '@/types/database';
 
 export default function AdminDepositsPage() {
-  const supabase = createClient();
-  const [requests, setRequests] = useState<DepositRequest[]>([]);
+  const [requests, setRequests] = useState<AdminDepositRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<DepositRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<AdminDepositRequest | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notes, setNotes] = useState('');
   const [actionType, setActionType] = useState<'Approve' | 'Reject' | null>(null);
@@ -43,16 +31,16 @@ export default function AdminDepositsPage() {
       setError('Failed to fetch deposit requests. ' + error.message);
       toast.error('Failed to fetch deposit requests.');
     } else {
-      setRequests(data as DepositRequest[]);
+      setRequests(data as AdminDepositRequest[]);
     }
     setLoading(false);
-  }, [supabase]);
+  }, []); // Removed supabase from dependency array as it's stable
 
   useEffect(() => {
     fetchDepositRequests();
   }, [fetchDepositRequests]);
 
-  const openDialog = (request: DepositRequest, type: 'Approve' | 'Reject') => {
+  const openDialog = (request: AdminDepositRequest, type: 'Approve' | 'Reject') => {
     setSelectedRequest(request);
     setActionType(type);
     setNotes(request.admin_notes || '');
@@ -64,7 +52,7 @@ export default function AdminDepositsPage() {
     setIsProcessing(true);
     const newStatus = actionType === 'Approve' ? 'Approved' : 'Rejected';
 
-    const { data, error } = await supabase.rpc('process_deposit_request', {
+    const { error } = await supabase.rpc('process_deposit_request', {
       request_id_to_process: selectedRequest.request_id,
       new_status: newStatus,
       notes: notes,
@@ -139,8 +127,8 @@ export default function AdminDepositsPage() {
                 requests.map((req) => (
                   <TableRow key={req.request_id}>
                     <TableCell>
-                      <div className="font-medium">{req.user_name}</div>
-                      <div className="text-sm text-muted-foreground">{req.user_email}</div>
+                      <div className="font-medium">{req.user_name || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">{req.user_email || 'No email'}</div>
                     </TableCell>
                     <TableCell>₹{Number(req.amount).toLocaleString('en-IN')}</TableCell>
                     <TableCell>{req.reference_id}</TableCell>
@@ -177,13 +165,15 @@ export default function AdminDepositsPage() {
           <DialogHeader>
             <DialogTitle>{actionType} Deposit Request</DialogTitle>
             <DialogDescription>
-              You are about to {actionType?.toLowerCase()} a deposit of ₹{Number(selectedRequest?.amount).toLocaleString('en-IN')} for {selectedRequest?.user_name}.
+              You are about to {actionType?.toLowerCase()} a deposit of ₹{Number(selectedRequest?.amount).toLocaleString('en-IN')} for {selectedRequest?.user_name || 'this user'}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <a href={selectedRequest?.screenshot_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
-              <Eye className="h-4 w-4" /> View Payment Screenshot
-            </a>
+            {selectedRequest?.screenshot_path && (
+              <a href={selectedRequest.screenshot_path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                <Eye className="h-4 w-4" /> View Payment Screenshot
+              </a>
+            )}
             <Textarea
               placeholder="Add notes for this action (optional for approval, required for rejection)."
               value={notes}
