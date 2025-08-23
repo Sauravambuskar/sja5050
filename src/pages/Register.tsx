@@ -32,7 +32,7 @@ function Register() {
           <Auth
             supabaseClient={supabase}
             appearance={{ theme: customAuthTheme }}
-            providers={[]}
+            providers={['google']}
             view="sign_up"
             redirectTo={`${window.location.origin}/`}
             showLinks={false}
