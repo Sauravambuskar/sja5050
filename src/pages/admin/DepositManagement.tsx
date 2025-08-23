@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Copy, Eye, Download, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Download, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDepositRequest } from "@/types/database";
@@ -11,15 +11,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
 import { cn, exportToCsv } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { usePageLayoutContext } from "@/components/layout/PageLayout";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
 
 const PAGE_SIZE = 10;
 
@@ -51,22 +51,26 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
-const sendDepositEmail = async ({ to, name, amount }: { to: string | null; name: string | null; amount: number }) => {
+const sendDepositEmail = async ({ to, name, amount, status, notes }: { to: string | null; name: string | null; amount: number; status: string; notes: string }) => {
   if (!to) {
     console.error("Cannot send deposit email: user email is missing.");
-    toast.warning("Deposit was approved, but the confirmation email could not be sent as the user's email is missing.");
+    toast.warning("Deposit processed, but the confirmation email could not be sent as the user's email is missing.");
     return;
   }
-  const { error } = await supabase.functions.invoke('send-transactional-email', {
-    body: {
-      to,
-      subject: 'Your Deposit has been Approved!',
-      html: `<p>Hi ${name || 'Valued Customer'},</p><p>Your deposit of ₹${amount.toLocaleString('en-IN')} has been successfully processed and the funds have been added to your wallet.</p><p>Thank you for choosing SJA Foundation.</p>`,
-    },
-  });
-  if (error) {
-    console.error("Failed to send deposit email:", error);
-    toast.warning("Deposit was approved, but the confirmation email could not be sent.");
+  const subject = `Your Deposit Request has been ${status}`;
+  const html = status === 'Approved'
+    ? `<p>Hi ${name || 'Valued Customer'},</p><p>Your deposit request for ₹${amount.toLocaleString('en-IN')} has been successfully processed and the amount has been credited to your wallet.</p><p>Thank you for choosing SJA Foundation.</p>`
+    : `<p>Hi ${name || 'Valued Customer'},</p><p>Your deposit request for ₹${amount.toLocaleString('en-IN')} was rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
+
+  try {
+    const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
+    if (error) {
+      console.error("Failed to send deposit email:", error);
+      toast.warning("Deposit processed, but the confirmation email could not be sent.");
+    }
+  } catch (error) {
+    console.error("Error invoking send-transactional-email function:", error);
+    toast.warning("Deposit processed, but there was an error sending the confirmation email.");
   }
 };
 
@@ -74,8 +78,8 @@ const DepositManagement = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { handleViewUser } = usePageLayoutContext();
-  const [rejectionRequest, setRejectionRequest] = useState<AdminDepositRequest | null>(null);
-  const [viewingRequest, setViewingRequest] = useState<AdminDepositRequest | null>(null);
+  const [screenshotRequestToView, setScreenshotRequestToView] = useState<AdminDepositRequest | null>(null); // Changed state type
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -114,12 +118,13 @@ const DepositManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
 
-      const request = requests?.find(r => r.request_id === variables.requestId);
-      if (variables.status === 'Approved' && request) {
+      if (actionToConfirm) {
         sendDepositEmail({
-          to: request.user_email,
-          name: request.user_name,
-          amount: request.amount,
+          to: actionToConfirm.request.user_email,
+          name: actionToConfirm.request.user_name,
+          amount: actionToConfirm.request.amount,
+          status: variables.status,
+          notes: variables.notes,
         });
       }
     },
@@ -127,33 +132,22 @@ const DepositManagement = () => {
       toast.error(`Action failed: ${error.message}`);
     },
     onSettled: () => {
-      setRejectionRequest(null);
+      setActionToConfirm(null);
       setRejectionNotes("");
     }
   });
 
-  const handleProcessRequest = (request: AdminDepositRequest, status: 'Approved' | 'Rejected') => {
-    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
-    mutation.mutate({ requestId: request.request_id, status, notes });
-  };
-
-  const handleRejectClick = (request: AdminDepositRequest) => {
-    setRejectionNotes("");
-    setRejectionRequest(request);
-  };
-
-  const handleConfirmRejection = () => {
-    if (!rejectionRequest) return;
-    if (rejectionNotes.trim().length < 5) {
+  const handleProcessRequest = () => {
+    if (!actionToConfirm) return;
+    const { request, status } = actionToConfirm;
+    
+    if (status === 'Rejected' && rejectionNotes.trim().length < 5) {
       toast.error("Please provide a clear reason for rejection.");
       return;
     }
-    handleProcessRequest(rejectionRequest, 'Rejected');
-  };
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+    
+    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
+    mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
   const handleExport = async () => {
@@ -242,22 +236,19 @@ const DepositManagement = () => {
                 </Button>
               </TableCell>
               <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">{request.reference_id}</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(request.reference_id)}><Copy className="h-3 w-3" /></Button>
-                </div>
-              </TableCell>
-              <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
+              <TableCell>{request.reference_id}</TableCell>
+              <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
               <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
               <TableCell className="text-right">
-                {request.status === 'Pending' && (
-                  <div className="flex justify-end gap-2">
-                    {request.screenshot_path && <Button size="icon" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="h-4 w-4" /></Button>}
-                    <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                    <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                  </div>
-                )}
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setScreenshotRequestToView(request)} disabled={!request.screenshot_path}><Eye className="mr-2 h-4 w-4" /> Proof</Button>
+                  {request.status === 'Pending' && (
+                    <>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                    </>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))
@@ -287,16 +278,18 @@ const DepositManagement = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(request.requested_at), "PPP p")}</span></div>
-              <div className="flex justify-between items-center"><span className="text-muted-foreground">Ref ID</span><div className="flex items-center gap-1"><span className="font-mono">{request.reference_id}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(request.reference_id)}><Copy className="h-3 w-3" /></Button></div></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(request.requested_at), "PPP")}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Reference ID</span><span>{request.reference_id}</span></div>
             </CardContent>
-            {request.status === 'Pending' && (
-              <div className="p-4 border-t flex justify-end gap-2">
-                {request.screenshot_path && <Button size="sm" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="mr-2 h-4 w-4" /> View Proof</Button>}
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-              </div>
-            )}
+            <div className="p-4 border-t flex flex-col sm:flex-row justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setScreenshotRequestToView(request)} disabled={!request.screenshot_path}><Eye className="mr-2 h-4 w-4" /> View Proof</Button>
+              {request.status === 'Pending' && (
+                <>
+                  <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                  <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                </>
+              )}
+            </div>
           </Card>
         ))
       )}
@@ -337,32 +330,34 @@ const DepositManagement = () => {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!rejectionRequest} onOpenChange={() => setRejectionRequest(null)}>
+      <ScreenshotViewerDialog
+        isOpen={!!screenshotRequestToView}
+        onClose={() => setScreenshotRequestToView(null)}
+        request={screenshotRequestToView} // Changed prop name
+      />
+
+      <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject Deposit Request?</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
             <AlertDialogDescription>
-              Please provide a reason for rejecting this deposit. This note will be visible to the user.
+              Are you sure you want to <span className="font-bold">{actionToConfirm?.status.toLowerCase()}</span> this deposit request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name || 'this user'}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
-            <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
-            <Textarea id="rejection-notes" placeholder="e.g., Transaction not found, amount mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
-          </div>
+          {actionToConfirm?.status === 'Rejected' && (
+            <div className="py-2">
+              <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
+              <Textarea id="rejection-notes" placeholder="e.g., Screenshot unclear, reference ID mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>
-              {mutation.isPending ? "Processing..." : "Confirm Rejection"}
+            <AlertDialogAction onClick={handleProcessRequest} disabled={mutation.isPending}>
+              {mutation.isPending ? "Processing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <ScreenshotViewerDialog
-        request={viewingRequest}
-        isOpen={!!viewingRequest}
-        onClose={() => setViewingRequest(null)}
-      />
     </>
   );
 };
