@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { ProcessWithdrawalDialog } from '@/components/admin/ProcessWithdrawalDialog';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -32,6 +33,7 @@ const WithdrawalManagement = () => {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState<AdminWithdrawalRequest | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery<AdminWithdrawalRequest[]>({
     queryKey: ['adminWithdrawalRequests', page, statusFilter],
@@ -60,8 +62,7 @@ const WithdrawalManagement = () => {
   const totalPages = totalCountData ? Math.ceil(totalCountData / ITEMS_PER_PAGE) : 0;
 
   const handleProcessRequest = (request: AdminWithdrawalRequest) => {
-    // TODO: Implement dialog for processing withdrawal request
-    console.log('Processing request:', request);
+    setSelectedRequest(request);
   };
 
   return (
@@ -173,6 +174,11 @@ const WithdrawalManagement = () => {
           )}
         </CardContent>
       </Card>
+      <ProcessWithdrawalDialog
+        isOpen={!!selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        request={selectedRequest}
+      />
     </div>
   );
 };
