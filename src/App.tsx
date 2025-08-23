@@ -31,22 +31,22 @@ import PaymentDetails from "@/pages/PaymentDetails";
 import Reports from "@/pages/Reports";
 
 // Admin Pages
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import UserManagement from "@/pages/admin/UserManagement";
-import InvestmentManagement from "@/pages/admin/InvestmentManagement";
-import WithdrawalManagement from "@/pages/admin/WithdrawalManagement";
-import KycManagement from "@/pages/admin/KycManagement";
-import CommissionRules from "@/pages/admin/CommissionRules";
-import Reporting from "@/pages/admin/Reporting";
-import AdminLogin from "@/pages/admin/AdminLogin";
-import AuditLog from "@/pages/admin/AuditLog";
-import SystemManagement from "@/pages/admin/SystemManagement";
-import DepositManagement from "@/pages/admin/DepositManagement";
-import PayoutReports from "@/pages/admin/PayoutReports";
-import FaqManagement from "@/pages/admin/FaqManagement";
-import SupportDesk from "@/pages/admin/SupportDesk";
-import AdminTicketDetails from "@/pages/admin/AdminTicketDetails";
-import ClientPaymentDetails from "@/pages/admin/ClientPaymentDetails";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import InvestmentManagement from "./pages/admin/InvestmentManagement";
+import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
+import KycManagement from "./pages/admin/KycManagement";
+import CommissionRules from "./pages/admin/CommissionRules";
+import Reporting from "./pages/admin/Reporting";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AuditLog from "./pages/admin/AuditLog";
+import SystemManagement from "./pages/admin/SystemManagement";
+import DepositManagement from "./pages/admin/DepositManagement";
+import PayoutReports from "./pages/admin/PayoutReports";
+import FaqManagement from "./pages/admin/FaqManagement";
+import SupportDesk from "./pages/admin/SupportDesk";
+import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
+import ClientPaymentDetails from "./pages/admin/ClientPaymentDetails";
 
 const queryClient = new QueryClient();
 
