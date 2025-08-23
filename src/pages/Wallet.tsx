@@ -19,8 +19,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { StripeProvider } from "@/components/wallet/StripeProvider";
 
 const PAGE_SIZE = 10;
 
@@ -50,12 +50,25 @@ const fetchTransactionsCount = async (filter: string): Promise<number> => {
 
 const Wallet = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const defaultTab = searchParams.get("tab") || "history";
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast.success("Payment successful!", { description: "Your wallet balance will be updated shortly." });
+      searchParams.delete('payment');
+      setSearchParams(searchParams);
+    } else if (paymentStatus === 'cancelled') {
+      toast.warning("Payment cancelled.", { description: "Your deposit was not processed." });
+      searchParams.delete('payment');
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: balance, isLoading: isBalanceLoading } = useQuery<number>({
     queryKey: ['walletBalance'],
@@ -276,10 +289,9 @@ const Wallet = () => {
       </Card>
 
       <Tabs defaultValue={defaultTab} className="mt-6">
-        <TabsList className="grid w-full grid-cols-4 md:w-[500px]">
+        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="card-deposit">Card Deposit</TabsTrigger>
-          <TabsTrigger value="manual-deposit">Manual Deposit</TabsTrigger>
+          <TabsTrigger value="deposit">Deposit</TabsTrigger>
           <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
@@ -304,14 +316,18 @@ const Wallet = () => {
                       <SelectItem value="Investment Payout">Payouts</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={isExporting} className="gap-1">
-                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} disabled={isExporting} className="gap-1">
-                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    PDF
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isExporting}>
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>
@@ -321,18 +337,7 @@ const Wallet = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="card-deposit">
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Deposit with Card</CardTitle>
-              <CardDescription>Instantly add funds to your wallet using a debit or credit card.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StripeProvider />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="manual-deposit">
+        <TabsContent value="deposit">
           <ManualDeposit />
           <DepositHistory />
         </TabsContent>

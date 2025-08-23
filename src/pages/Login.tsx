@@ -12,7 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { GoogleIcon } from "@/components/icons/GoogleIcon";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -56,18 +55,6 @@ function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
-    });
-    if (error) {
-      toast.error(error.message);
-    }
-  };
-
   return (
     <AuthLayout>
       <Card className="w-full max-w-sm border-0 shadow-none sm:border sm:shadow-sm">
@@ -100,20 +87,6 @@ function Login() {
               </Button>
             </form>
           </Form>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            Sign in with Google
-          </Button>
           <div className="mt-4 text-center text-sm">
             Don't have an account?{" "}
             <Link to="/register" className="underline">

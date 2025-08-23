@@ -28,7 +28,6 @@ const planSchema = z.object({
   min_investment: z.coerce.number().min(0, "Minimum investment cannot be negative."),
   max_investment: z.coerce.number().min(0, "Maximum investment cannot be negative.").nullable().optional(),
   is_active: z.boolean(),
-  image_url: z.string().url("Must be a valid URL.").optional().nullable(),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
@@ -49,7 +48,6 @@ const upsertPlan = async (values: PlanFormValues & { id: string }) => {
     p_min_investment: values.min_investment,
     p_max_investment: values.max_investment,
     p_is_active: values.is_active,
-    p_image_url: values.image_url,
   });
   if (error) throw new Error(error.message);
 };
@@ -72,7 +70,6 @@ export const InvestmentPlanDialog = ({ plan, isOpen, onClose }: InvestmentPlanDi
         min_investment: 1000,
         max_investment: 100000,
         is_active: true,
-        image_url: "",
       });
     }
   }, [plan, form, isOpen]);
@@ -110,9 +107,6 @@ export const InvestmentPlanDialog = ({ plan, isOpen, onClose }: InvestmentPlanDi
             )} />
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="image_url" render={({ field }) => (
-              <FormItem><FormLabel>Image URL (Optional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="https://example.com/plan-image.png" /></FormControl><FormMessage /></FormItem>
             )} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField control={form.control} name="annual_rate" render={({ field }) => (

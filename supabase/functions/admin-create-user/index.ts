@@ -61,16 +61,7 @@ serve(async (req) => {
     })
     if (rpcError) throw rpcError
 
-    // 5. Send a welcome email (in addition to the Supabase invite email)
-    await supabaseAdmin.functions.invoke('send-transactional-email', {
-      body: {
-        to: email,
-        subject: 'Welcome to SJA Foundation!',
-        html: `<p>Hi ${profileData.full_name},</p><p>Welcome to SJA Foundation! An administrator has created an account for you. Please check your inbox for a separate invitation email to set your password and log in.</p><p>We're excited to have you with us.</p>`,
-      },
-    })
-
-    // 6. Log the action
+    // 5. Log the action
     await supabaseAdmin.from('admin_audit_log').insert({
         admin_id: adminUser.id,
         admin_email: adminUser.email,

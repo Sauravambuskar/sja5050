@@ -12,8 +12,8 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 type PayoutReportItem = {
   user_id: string;
@@ -45,7 +45,6 @@ const fetchPayoutReport = async (month: Date): Promise<PayoutReportItem[]> => {
 
 const PayoutReports = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const [month, setMonth] = useState<Date | undefined>(new Date());
   const [reportData, setReportData] = useState<PayoutReportItem[]>([]);
 
@@ -96,93 +95,6 @@ const PayoutReports = () => {
     toast.success(`Report exported as ${formatType.toUpperCase()} successfully.`);
   };
 
-  const renderDesktopView = () => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Client & Plan</TableHead>
-          <TableHead>Maturity Date</TableHead>
-          <TableHead>Monthly Payout</TableHead>
-          <TableHead>Bank Details</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {mutation.isPending ? (
-          [...Array(3)].map((_, i) => (
-            <TableRow key={i}>
-              <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
-            </TableRow>
-          ))
-        ) : reportData.length > 0 ? (
-          reportData.map((item) => (
-            <TableRow key={item.investment_id}>
-              <TableCell>
-                <div className="font-medium">{item.user_name}</div>
-                <div className="text-sm text-muted-foreground">{item.plan_name}</div>
-              </TableCell>
-              <TableCell>{format(new Date(item.maturity_date), "PPP")}</TableCell>
-              <TableCell>
-                <div className="font-semibold">₹{item.monthly_profit.toLocaleString('en-IN')}</div>
-                <div className="text-xs text-muted-foreground">From ₹{item.investment_amount.toLocaleString('en-IN')}</div>
-              </TableCell>
-              <TableCell className="text-xs">
-                <div>{item.bank_account_holder_name}</div>
-                <div className="font-mono">{item.bank_account_number}</div>
-                <div className="font-mono">{item.bank_ifsc_code}</div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
-              </TableCell>
-            </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={5} className="h-24 text-center">
-              No report generated. Please select a month and click "Generate Report".
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
-  );
-
-  const renderMobileView = () => (
-    <div className="space-y-4">
-      {mutation.isPending ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
-      ) : reportData.length > 0 ? (
-        reportData.map((item) => (
-          <Card key={item.investment_id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{item.user_name}</CardTitle>
-                  <CardDescription>{item.plan_name}</CardDescription>
-                </div>
-                <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Monthly Payout</span><span className="font-semibold">₹{item.monthly_profit.toLocaleString('en-IN')}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">From Investment</span><span>₹{item.investment_amount.toLocaleString('en-IN')}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Maturity Date</span><span>{format(new Date(item.maturity_date), "PPP")}</span></div>
-              <div className="pt-2 border-t">
-                <p className="font-medium">{item.bank_account_holder_name}</p>
-                <p className="font-mono text-muted-foreground">{item.bank_account_number}</p>
-                <p className="font-mono text-muted-foreground">{item.bank_ifsc_code}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))
-      ) : (
-        <div className="text-center text-muted-foreground p-8 border rounded-lg">
-          No report generated.
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <>
       <div className="flex items-center justify-between">
@@ -190,20 +102,20 @@ const PayoutReports = () => {
           <h1 className="text-3xl font-bold">Monthly Payout Reports</h1>
           <p className="text-muted-foreground">Generate and export reports for monthly profit payouts.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-1" onClick={() => handleExport('csv')} disabled={reportData.length === 0}>
-            <Download className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Export CSV
-            </span>
-          </Button>
-          <Button variant="outline" className="gap-1" onClick={() => handleExport('pdf')} disabled={reportData.length === 0}>
-            <Download className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              Export PDF
-            </span>
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-1" disabled={reportData.length === 0}>
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Export
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Card className="mt-6">
@@ -229,9 +141,6 @@ const PayoutReports = () => {
                   selected={month}
                   onSelect={setMonth}
                   initialFocus
-                  captionLayout="dropdown-buttons"
-                  fromYear={new Date().getFullYear() - 5}
-                  toYear={new Date().getFullYear()}
                 />
               </PopoverContent>
             </Popover>
@@ -242,7 +151,54 @@ const PayoutReports = () => {
           </div>
 
           <div className="mt-6 rounded-md border">
-            {isMobile ? renderMobileView() : renderDesktopView()}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client & Plan</TableHead>
+                  <TableHead>Maturity Date</TableHead>
+                  <TableHead>Monthly Payout</TableHead>
+                  <TableHead>Bank Details</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mutation.isPending ? (
+                  [...Array(3)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : reportData.length > 0 ? (
+                  reportData.map((item) => (
+                    <TableRow key={item.investment_id}>
+                      <TableCell>
+                        <div className="font-medium">{item.user_name}</div>
+                        <div className="text-sm text-muted-foreground">{item.plan_name}</div>
+                      </TableCell>
+                      <TableCell>{format(new Date(item.maturity_date), "PPP")}</TableCell>
+                      <TableCell>
+                        <div className="font-semibold">₹{item.monthly_profit.toLocaleString('en-IN')}</div>
+                        <div className="text-xs text-muted-foreground">From ₹{item.investment_amount.toLocaleString('en-IN')}</div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div>{item.bank_account_holder_name}</div>
+                        <div className="font-mono">{item.bank_account_number}</div>
+                        <div className="font-mono">{item.bank_ifsc_code}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      No report generated. Please select a month and click "Generate Report".
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

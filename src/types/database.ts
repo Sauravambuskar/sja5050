@@ -8,7 +8,6 @@ export type InvestmentPlan = {
   max_investment: number | null;
   is_active: boolean;
   created_at: string;
-  image_url: string | null;
 };
 
 export type AdminUserView = {
@@ -36,7 +35,6 @@ export type AdminKycRequest = {
   request_id: string;
   user_id: string;
   user_name: string;
-  user_email: string;
   document_type: string;
   file_path: string;
   submitted_at: string;
@@ -56,9 +54,7 @@ export type AdminDashboardStats = {
 
 export type AdminWithdrawalRequest = {
   request_id: string;
-  user_name: string | null;
-  user_id: string;
-  user_email: string | null;
+  user_name: string;
   amount: number;
   requested_at: string;
   status: string;
@@ -66,21 +62,16 @@ export type AdminWithdrawalRequest = {
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
   wallet_balance: number;
-  admin_notes: string | null;
 };
 
 export type AdminDepositRequest = {
   request_id: string;
-  user_name: string | null; // Changed to allow null
+  user_name: string;
   user_id: string;
-  user_email: string | null; // Changed to allow null
   amount: number;
   reference_id: string;
   requested_at: string;
   status: string;
-  screenshot_path: string | null;
-  admin_notes: string | null;
-  wallet_balance: number;
 };
 
 export type CommissionRule = {
@@ -137,7 +128,6 @@ export type WithdrawalRequest = {
   amount: number;
   status: string;
   requested_at: string;
-  admin_notes: string | null;
 };
 
 export type DepositRequest = {
@@ -262,10 +252,6 @@ export type Profile = {
   bank_ifsc_code: string | null;
   referrer_full_name: string | null;
   member_id: string | null;
-  pan_number: string | null;
-  aadhaar_number: string | null;
-  blood_group: string | null;
-  nominee_blood_group: string | null;
 };
 
 export type InvestmentSummary = {
@@ -302,43 +288,5 @@ export type SystemSettings = {
     account_number: string;
     ifsc_code: string;
     upi_id: string;
-  } | null;
-  auth_layout_image_url_1: string | null;
-  auth_layout_image_url_2: string | null;
-  splash_screen_url: string | null;
-};
-
-export type Faq = {
-  id: string;
-  category: string;
-  question: string;
-  answer: string;
-  is_published: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type SupportTicket = {
-  id: string;
-  subject: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type AdminSupportTicket = SupportTicket & {
-  user_id: string;
-  full_name: string;
-  email: string;
-};
-
-export type SupportMessage = {
-  id: string;
-  sender_id: string;
-  message: string;
-  created_at: string;
-  profiles: {
-    full_name: string | null;
-    role: string;
   } | null;
 };

@@ -41,7 +41,6 @@ const upsertPlan = async (plan: InvestmentPlan) => {
     p_min_investment: plan.min_investment,
     p_max_investment: plan.max_investment,
     p_is_active: plan.is_active,
-    p_image_url: plan.image_url,
   });
   if (error) throw new Error(error.message);
 };
@@ -117,12 +116,12 @@ const InvestmentManagement = () => {
         <TabsContent value="manage-plans">
           <Card>
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Investment Plans</CardTitle>
                   <CardDescription>Add, edit, or disable investment plans offered to users.</CardDescription>
                 </div>
-                <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={handleCreatePlan}>
+                <Button size="sm" className="gap-1" onClick={handleCreatePlan}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Create Plan</span>
                 </Button>
@@ -179,12 +178,12 @@ const InvestmentManagement = () => {
         <TabsContent value="all-investments">
           <Card>
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>All Active Investments</CardTitle>
                   <CardDescription>A complete log of all ongoing investments across the platform.</CardDescription>
                 </div>
-                <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={handleExportInvestments}>
+                <Button size="sm" variant="outline" className="gap-1" onClick={handleExportInvestments}>
                   <Download className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
                 </Button>

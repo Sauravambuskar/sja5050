@@ -1,11 +1,10 @@
 import { Outlet, useOutletContext } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export type PageLayoutContext = {
   handleViewUser: (userId: string) => void;
@@ -17,18 +16,8 @@ export function usePageLayoutContext() {
 
 export function PageLayout() {
   const { isImpersonating } = useAuth();
-  const { settings } = useSystemSettings();
   const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2000); // 2 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleViewUser = (userId: string) => {
     setSelectedUserIdForSheet(userId);
@@ -44,35 +33,16 @@ export function PageLayout() {
     }
   };
 
-  const splashUrl = settings?.splash_screen_url || 'https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A';
-
   return (
     <>
-      {/* Full-screen splash loader */}
-      <div
-        className={`fixed inset-0 z-50 bg-cover bg-center transition-opacity duration-500 ${
-          showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backgroundImage: `url('${splashUrl}')`,
-        }}
-      />
-
       {isImpersonating && <ImpersonationBanner />}
-      <div className="flex min-h-screen w-full">
-        <div className="hidden md:block">
-          <Sidebar />
+      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
+        <div className="hidden border-r bg-muted/40 md:block">
+          <Sidebar className="w-full" />
         </div>
-        <div className="relative flex flex-1 flex-col min-w-0">
-          {/* Persistent subtle background */}
-          <div
-            className="absolute inset-0 z-[-1] bg-cover bg-center opacity-20"
-            style={{
-              backgroundImage: `url('${splashUrl}')`,
-            }}
-          />
+        <div className="flex flex-col">
           <Header handleViewUser={handleViewUser} />
-          <main className="flex flex-1 flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <Outlet context={{ handleViewUser }} />
           </main>
         </div>

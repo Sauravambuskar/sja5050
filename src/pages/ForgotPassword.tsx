@@ -1,9 +1,9 @@
 import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { customAuthTheme } from "@/lib/auth-theme";
 
 function ForgotPassword() {
   return (
@@ -18,8 +18,9 @@ function ForgotPassword() {
         <CardContent>
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: customAuthTheme }}
+            appearance={{ theme: ThemeSupa }}
             providers={[]}
+            theme="light"
             view="forgotten_password"
             redirectTo={`${window.location.origin}/`}
             showLinks={false}

@@ -10,9 +10,6 @@ createRoot(document.getElementById("root")!).render(
     defaultTheme="system"
     enableSystem
     disableTransitionOnChange
-    // Ensure the class is always applied to the html element
-    // This can sometimes help with initial rendering or hydration issues
-    storageKey="vite-ui-theme" 
   >
     <AuthProvider>
       <App />

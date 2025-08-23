@@ -22,7 +22,6 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin } = useIsAdmin();
 
@@ -50,8 +49,8 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b bg-background px-2 sm:px-4 lg:h-[60px] lg:px-6">
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+        <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
               <Menu className="h-5 w-5" />
@@ -59,15 +58,15 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
-            <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
+            <Sidebar />
           </SheetContent>
         </Sheet>
 
-        <div className="w-full flex-1 min-w-0">
+        <div className="w-full flex-1">
           {isAdmin && <AdminUserSearch onUserSelect={handleViewUser} />}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-4">
           <Link to="/notifications">
             <Button variant="outline" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -123,4 +122,4 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
       </AlertDialog>
     </>
   );
-};
+}

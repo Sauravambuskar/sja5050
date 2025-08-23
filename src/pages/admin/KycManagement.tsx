@@ -16,7 +16,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { exportToCsv } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const fetchKycRequests = async (): Promise<AdminKycRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_kyc_requests');
@@ -33,22 +32,8 @@ const processKycRequest = async ({ requestId, status, notes }: { requestId: stri
   if (error) throw new Error(error.message);
 };
 
-const sendKycEmail = async ({ to, name, status, notes }: { to: string; name: string; status: string; notes: string }) => {
-  const subject = `Your KYC Document has been ${status}`;
-  const html = status === 'Approved'
-    ? `<p>Hi ${name},</p><p>Your KYC document has been successfully reviewed and approved. Your account is now fully verified.</p><p>Thank you for choosing SJA Foundation.</p>`
-    : `<p>Hi ${name},</p><p>Your KYC document has been rejected.</p><p>Reason: ${notes}</p><p>Please log in to your account to re-upload the correct document. Contact support if you have any questions.</p>`;
-
-  const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
-  if (error) {
-    console.error("Failed to send KYC email:", error);
-    toast.warning("KYC status updated, but the confirmation email could not be sent.");
-  }
-};
-
 const KycManagement = () => {
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
   const [viewingRequest, setViewingRequest] = useState<AdminKycRequest | null>(null);
   const [rejectionRequest, setRejectionRequest] = useState<AdminKycRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
@@ -65,17 +50,6 @@ const KycManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['allKycRequests'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
-
-      const request = kycRequests?.find(r => r.request_id === variables.requestId);
-      if (request) {
-        sendKycEmail({
-          to: request.user_email,
-          name: request.user_name,
-          status: variables.status,
-          notes: variables.notes,
-        });
-      }
-
       setRejectionRequest(null);
     },
     onError: (error) => {
@@ -119,88 +93,6 @@ const KycManagement = () => {
     toast.success("KYC data exported successfully.");
   };
 
-  const renderDesktopView = () => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>User Name</TableHead>
-          <TableHead>Document Type</TableHead>
-          <TableHead>Submitted Date</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isLoading ? (
-          [...Array(4)].map((_, i) => (
-            <TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell></TableRow>
-          ))
-        ) : isError ? (
-          <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
-        ) : (
-          kycRequests?.map((request) => (
-            <TableRow key={request.request_id}>
-              <TableCell className="font-medium">{request.user_name}</TableCell>
-              <TableCell>{request.document_type}</TableCell>
-              <TableCell>{format(new Date(request.submitted_at), "PPP")}</TableCell>
-              <TableCell><Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost" disabled={mutation.isPending}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setViewingRequest(request)}><Eye className="mr-2 h-4 w-4" /> View Document</DropdownMenuItem>
-                    {request.status === 'Pending' && (
-                      <>
-                        <DropdownMenuItem className="text-green-600" onClick={() => handleProcessRequest(request.request_id, 'Approved', 'Document verified.')}><CheckCircle className="mr-2 h-4 w-4" />Approve</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleRejectClick(request)}><XCircle className="mr-2 h-4 w-4" />Reject</DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
-  );
-
-  const renderMobileView = () => (
-    <div className="space-y-4">
-      {isLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)
-      ) : isError ? (
-        <div className="text-center text-red-500 p-4">Error: {error.message}</div>
-      ) : (
-        kycRequests?.map((request) => (
-          <Card key={request.request_id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{request.user_name}</CardTitle>
-                  <CardDescription>{request.document_type}</CardDescription>
-                </div>
-                <Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Submitted</span><span>{format(new Date(request.submitted_at), "PPP")}</span></div>
-            </CardContent>
-            <div className="p-4 border-t flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="mr-2 h-4 w-4" /> View</Button>
-              {request.status === 'Pending' && (
-                <>
-                  <Button size="sm" variant="outline" className="text-green-600 border-green-600" onClick={() => handleProcessRequest(request.request_id, 'Approved', 'Document verified.')}><CheckCircle className="mr-2 h-4 w-4" />Approve</Button>
-                  <Button size="sm" variant="outline" className="text-red-600 border-red-600" onClick={() => handleRejectClick(request)}><XCircle className="mr-2 h-4 w-4" />Reject</Button>
-                </>
-              )}
-            </div>
-          </Card>
-        ))
-      )}
-    </div>
-  );
-
   return (
     <>
       <Card>
@@ -217,7 +109,88 @@ const KycManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {isMobile ? renderMobileView() : renderDesktopView()}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User Name</TableHead>
+                <TableHead>Document Type</TableHead>
+                <TableHead>Submitted Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                [...Array(4)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : isError ? (
+                <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
+              ) : (
+                kycRequests?.map((request) => (
+                  <TableRow key={request.request_id}>
+                    <TableCell className="font-medium">{request.user_name}</TableCell>
+                    <TableCell>{request.document_type}</TableCell>
+                    <TableCell>{format(new Date(request.submitted_at), "PPP")}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          request.status === "Approved"
+                            ? "default"
+                            : request.status === "Pending"
+                            ? "outline"
+                            : "destructive"
+                        }
+                      >
+                        {request.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost" disabled={mutation.isPending}>
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setViewingRequest(request)}>
+                            <Eye className="mr-2 h-4 w-4" /> View Document
+                          </DropdownMenuItem>
+                          {request.status === 'Pending' && (
+                            <>
+                              <DropdownMenuItem
+                                className="text-green-600"
+                                onClick={() => handleProcessRequest(request.request_id, 'Approved', 'Document verified.')}
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleRejectClick(request)}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
       <KycViewerDialog

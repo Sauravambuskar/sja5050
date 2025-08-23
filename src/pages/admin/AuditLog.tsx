@@ -8,15 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { XCircle } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon, XCircle } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { AuditLogDetails } from "@/components/admin/AuditLogDetails";
-import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 const PAGE_SIZE = 20;
 
@@ -72,7 +72,8 @@ const AuditLog = () => {
   const [searchText, setSearchText] = useState("");
   const [selectedAdmin, setSelectedAdmin] = useState("");
   const [selectedAction, setSelectedAction] = useState("");
-  const [date, setDate] = useState<DateRange | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const debouncedSearchText = useDebounce(searchText, 500);
 
   const filters = {
@@ -80,8 +81,8 @@ const AuditLog = () => {
     searchText: debouncedSearchText,
     adminEmail: selectedAdmin,
     action: selectedAction,
-    startDate: date?.from,
-    endDate: date?.to,
+    startDate,
+    endDate,
   };
 
   const { data: logs, isLoading: isLogsLoading } = useQuery({
@@ -100,14 +101,14 @@ const AuditLog = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchText, selectedAdmin, selectedAction, date]);
+  }, [debouncedSearchText, selectedAdmin, selectedAction, startDate, endDate]);
 
   const paginationRange = usePagination({ currentPage, totalCount: totalLogs || 0, pageSize: PAGE_SIZE });
   const pageCount = totalLogs ? Math.ceil(totalLogs / PAGE_SIZE) : 0;
 
   const formatAction = (action: string) => action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  const areFiltersActive = searchText || selectedAdmin || selectedAction || date;
-  const handleClearFilters = () => { setSearchText(""); setSelectedAdmin(""); setSelectedAction(""); setDate(undefined); };
+  const areFiltersActive = searchText || selectedAdmin || selectedAction || startDate || endDate;
+  const handleClearFilters = () => { setSearchText(""); setSelectedAdmin(""); setSelectedAction(""); setStartDate(undefined); setEndDate(undefined); };
 
   return (
     <>
@@ -121,7 +122,10 @@ const AuditLog = () => {
             <Input placeholder="Search by Target User ID..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             <Select value={selectedAdmin} onValueChange={setSelectedAdmin}><SelectTrigger><SelectValue placeholder="Filter by Admin" /></SelectTrigger><SelectContent>{distinctAdmins?.map(email => <SelectItem key={email} value={email}>{email}</SelectItem>)}</SelectContent></Select>
             <Select value={selectedAction} onValueChange={setSelectedAction}><SelectTrigger><SelectValue placeholder="Filter by Action" /></SelectTrigger><SelectContent>{distinctActions?.map(action => <SelectItem key={action} value={action}>{formatAction(action)}</SelectItem>)}</SelectContent></Select>
-            <DateRangePicker date={date} onDateChange={setDate} />
+            <div className="flex gap-2">
+              <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP") : <span>Start Date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} /></PopoverContent></Popover>
+              <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP") : <span>End Date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} /></PopoverContent></Popover>
+            </div>
           </div>
           {areFiltersActive && <Button variant="ghost" size="sm" onClick={handleClearFilters} className="mt-2"><XCircle className="mr-2 h-4 w-4" />Clear Filters</Button>}
         </CardHeader>
