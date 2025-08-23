@@ -249,7 +249,7 @@ const DepositManagement = () => {
                 </div>
               </TableCell>
               <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
-              <TableCell><Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+              <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
               <TableCell className="text-right">
                 {request.status === 'Pending' && (
                   <div className="flex justify-end gap-2">
@@ -283,7 +283,7 @@ const DepositManagement = () => {
                     {request.user_name || 'Deleted User'}
                   </Button>
                 </div>
-                <Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
+                <Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
