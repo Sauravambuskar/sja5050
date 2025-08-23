@@ -1,11 +1,11 @@
 import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { customAuthTheme } from "@/lib/auth-theme";
 
 function UpdatePassword() {
   const navigate = useNavigate();
@@ -48,9 +48,8 @@ function UpdatePassword() {
         <CardContent>
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
+            appearance={{ theme: customAuthTheme }}
             providers={[]}
-            theme="light"
             view="update_password"
             showLinks={false}
           />

@@ -1,11 +1,11 @@
 import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useEffect } from "react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { customAuthTheme } from "@/lib/auth-theme";
 
 function Register() {
   const navigate = useNavigate();
@@ -31,18 +31,22 @@ function Register() {
         <CardContent>
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
-            providers={[]}
-            theme="light"
+            appearance={{ theme: customAuthTheme }}
+            providers={['google']}
             view="sign_up"
             redirectTo={`${window.location.origin}/`}
             showLinks={false}
+            fields={{
+              email: {
+                placeholder: 'Enter your email address',
+              },
+              password: {
+                placeholder: 'Create a strong password',
+              },
+            }}
             additionalData={{
               full_name: '',
               referral_code: referralCodeFromUrl || '',
-            }}
-            formOptions={{
-              shouldCreateUser: true,
             }}
             localization={{
               variables: {

@@ -1,12 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Users } from "lucide-react";
+import { DollarSign, Users, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CommissionStats, CommissionHistoryItem } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
+type CommissionHistoryReportData = {
+  report_date: string;
+  commission_income: number;
+  day: string;
+};
 
 const fetchCommissionStats = async (): Promise<CommissionStats> => {
   const { data, error } = await supabase.rpc('get_my_commission_stats');
@@ -20,7 +28,17 @@ const fetchCommissionHistory = async (): Promise<CommissionHistoryItem[]> => {
   return data;
 };
 
+const fetchCommissionHistoryReport = async (): Promise<CommissionHistoryReportData[]> => {
+  const { data, error } = await supabase.rpc('get_my_commission_history_report');
+  if (error) throw new Error(error.message);
+  return data.map((item: any) => ({
+    ...item,
+    day: format(new Date(item.report_date), "d MMM"),
+  }));
+};
+
 const CommissionAnalytics = () => {
+  const isMobile = useIsMobile();
   const { data: stats, isLoading: statsLoading } = useQuery<CommissionStats>({
     queryKey: ['commissionStats'],
     queryFn: fetchCommissionStats,
@@ -30,6 +48,106 @@ const CommissionAnalytics = () => {
     queryKey: ['commissionHistory'],
     queryFn: fetchCommissionHistory,
   });
+
+  const { data: chartData, isLoading: chartLoading } = useQuery<CommissionHistoryReportData[]>({
+    queryKey: ['commissionHistoryReport'],
+    queryFn: fetchCommissionHistoryReport,
+  });
+
+  const renderDesktopHistory = () => (
+    <div className="mt-4 rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>From User</TableHead>
+            <TableHead>Level</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {historyLoading ? (
+            [...Array(3)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
+              </TableRow>
+            ))
+          ) : history && history.length > 0 ? (
+            history.map((commission) => (
+              <TableRow key={commission.id}>
+                <TableCell className="font-medium">{commission.from_user_name}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">Lvl {commission.level}</Badge>
+                </TableCell>
+                <TableCell>₹{commission.amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell>{format(new Date(commission.payout_date), "PPP")}</TableCell>
+                <TableCell className="text-right">
+                  <Badge>Paid</Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center">No commission history yet.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderMobileHistory = () => (
+    <div className="mt-4 space-y-4">
+      {historyLoading ? (
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 w-32 mt-1" />
+              </div>
+              <Skeleton className="h-6 w-12" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        ))
+      ) : history && history.length > 0 ? (
+        history.map((commission) => (
+          <Card key={commission.id}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <CardTitle>₹{commission.amount.toLocaleString('en-IN')}</CardTitle>
+                <CardDescription>From: {commission.from_user_name}</CardDescription>
+              </div>
+              <Badge>Paid</Badge>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Date</span>
+                <span>{format(new Date(commission.payout_date), "PPP")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Level</span>
+                <Badge variant="secondary">Lvl {commission.level}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center text-muted-foreground p-8 border rounded-lg">
+          No commission history yet.
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card>
@@ -66,52 +184,37 @@ const CommissionAnalytics = () => {
             </CardContent>
           </Card>
         </div>
+
+        <div>
+          <h3 className="text-lg font-medium">30-Day Commission Trend</h3>
+          <div className="h-[250px] w-full mt-2">
+            {chartLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis tickFormatter={(value) => `₹${value}`} />
+                  <Tooltip
+                    formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="commission_income" name="Commission Earned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
         <div>
           <h3 className="text-lg font-medium">Commission History</h3>
-          <div className="mt-4 rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>From User</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historyLoading ? (
-                  [...Array(3)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-12" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : history && history.length > 0 ? (
-                  history.map((commission) => (
-                    <TableRow key={commission.id}>
-                      <TableCell className="font-medium">{commission.from_user_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Lvl {commission.level}</Badge>
-                      </TableCell>
-                      <TableCell>₹{commission.amount.toLocaleString('en-IN')}</TableCell>
-                      <TableCell>{format(new Date(commission.payout_date), "PPP")}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge>Paid</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">No commission history yet.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {isMobile ? renderMobileHistory() : renderDesktopHistory()}
         </div>
       </CardContent>
     </Card>

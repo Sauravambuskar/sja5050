@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sidebar } from "./Sidebar";
@@ -12,12 +12,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ModeToggle } from "./ModeToggle";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { Badge } from "@/components/ui/badge";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { AdminUserSearch } from "../admin/AdminUserSearch";
 
-export function Header() {
+export function Header({ handleViewUser }: { handleViewUser: (userId: string) => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { count: unreadCount } = useUnreadNotifications();
+  const { isAdmin } = useIsAdmin();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -43,8 +50,8 @@ export function Header() {
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-        <Sheet>
+      <header className="flex h-14 items-center gap-4 border-b bg-background px-2 sm:px-4 lg:h-[60px] lg:px-6">
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
               <Menu className="h-5 w-5" />
@@ -52,15 +59,26 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
-            <Sidebar />
+            <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
           </SheetContent>
         </Sheet>
 
-        <div className="w-full flex-1">
-          {/* Page title can be added here */}
+        <div className="w-full flex-1 min-w-0">
+          {isAdmin && <AdminUserSearch onUserSelect={handleViewUser} />}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link to="/notifications">
+            <Button variant="outline" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {unreadCount}
+                </Badge>
+              )}
+              <span className="sr-only">View notifications</span>
+            </Button>
+          </Link>
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -105,4 +123,4 @@ export function Header() {
       </AlertDialog>
     </>
   );
-}
+};

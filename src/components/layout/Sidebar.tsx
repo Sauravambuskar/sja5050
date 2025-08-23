@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
+import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -14,28 +15,49 @@ const userNavItems = [
   { to: "/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/referrals", label: "Referrals", icon: Users },
+  { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/support", label: "Support", icon: MessageSquare },
+  { to: "/faq", label: "FAQ", icon: HelpCircle },
 ];
 
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
+  { to: "/admin/deposits", label: "Deposits", icon: ArrowDownToDot },
   { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
+  { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
+  { to: "/admin/support", label: "Support Desk", icon: MessageSquare },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
+  { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
+  { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
+  { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
+  { to: "/admin/system", label: "System", icon: ServerCog },
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+interface SidebarProps {
+  onLinkClick?: () => void;
+}
+
+export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { pendingKycCount, pendingWithdrawalsCount } = useAdminActionCounts();
+  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount, openTicketsCount } = useAdminActionCounts();
+  const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   return (
-    <aside className={cn("flex h-full flex-col border-r bg-background p-4", className)}>
-      <div className="mb-8 flex items-center p-2 text-2xl font-bold text-primary">
-        SJA Foundation
+    <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
+      <div className="mb-8 flex h-10 items-center p-2">
+        {isSettingsLoading ? (
+          <Skeleton className="h-8 w-40" />
+        ) : settings?.logo_url ? (
+          <img src={settings.logo_url} alt={`${settings.company_name} Logo`} className="h-10" />
+        ) : (
+          <div className="text-2xl font-bold text-primary">{settings?.company_name}</div>
+        )}
       </div>
       <nav className="flex flex-col space-y-1">
         {userNavItems.map((item) => (
@@ -43,6 +65,7 @@ export function Sidebar({ className }: { className?: string }) {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={onLinkClick}
             className={({ isActive }) =>
               cn(
                 "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
@@ -84,6 +107,7 @@ export function Sidebar({ className }: { className?: string }) {
               key={item.to}
               to={item.to}
               end={item.to === "/admin"}
+              onClick={onLinkClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
@@ -107,10 +131,20 @@ export function Sidebar({ className }: { className?: string }) {
                   {pendingWithdrawalsCount}
                 </Badge>
               )}
+              {item.label === "Deposits" && pendingDepositsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {pendingDepositsCount}
+                </Badge>
+              )}
+              {item.label === "Support Desk" && openTicketsCount > 0 && (
+                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                  {openTicketsCount}
+                </Badge>
+              )}
             </NavLink>
           ))}
         </div>
       )}
     </aside>
   );
-}
+};

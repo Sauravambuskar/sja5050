@@ -15,6 +15,12 @@ import {
 export function ModeToggle() {
   const { setTheme } = useTheme()
 
+  const handleSetTheme = (theme: string) => {
+    setTheme(theme);
+    document.documentElement.setAttribute('data-theme', theme); // Explicitly set a data attribute
+    document.documentElement.className = theme; // Explicitly set the class
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -25,16 +31,16 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleSetTheme("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleSetTheme("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("warm")}>
+        <DropdownMenuItem onClick={() => handleSetTheme("warm")}>
           Warm
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleSetTheme("system")}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

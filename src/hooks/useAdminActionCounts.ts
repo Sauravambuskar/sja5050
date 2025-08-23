@@ -9,19 +9,35 @@ const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   return data[0];
 };
 
+const fetchOpenTicketsCount = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_open_tickets_count_admin');
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 export const useAdminActionCounts = () => {
   const { isAdmin } = useIsAdmin();
 
   const { data: stats } = useQuery<AdminDashboardStats>({
-    queryKey: ['adminDashboardStats'], // Re-use the same key as the dashboard
+    queryKey: ['adminDashboardStats'],
     queryFn: fetchAdminStats,
     enabled: isAdmin,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: openTicketsCount } = useQuery<number>({
+    queryKey: ['openTicketsCountAdmin'],
+    queryFn: fetchOpenTicketsCount,
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
 
   return {
     pendingKycCount: stats?.pending_kyc ?? 0,
     pendingWithdrawalsCount: stats?.pending_withdrawals_count ?? 0,
+    pendingDepositsCount: stats?.pending_deposits_count ?? 0,
+    openTicketsCount: openTicketsCount ?? 0,
   };
 };

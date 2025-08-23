@@ -5,10 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { UserInvestment } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { useAuth } from "../auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "../ui/button";
+import { TrendingUp, Download, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { exportToCsv, exportToPdf } from "@/lib/utils";
+import { toast } from "sonner";
 
 const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
@@ -33,21 +38,81 @@ const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> =
 const InvestmentHistory = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [isExporting, setIsExporting] = useState(false);
   const { data: investments, isLoading, isError, error } = useQuery<UserInvestment[]>({
     queryKey: ['userInvestments', user?.id],
     queryFn: () => fetchUserInvestments(user!.id),
     enabled: !!user,
   });
 
+  const handleExport = async (formatType: 'csv' | 'pdf') => {
+    setIsExporting(true);
+    toast.info(`Preparing your investment history as a ${formatType.toUpperCase()} file...`);
+
+    try {
+      const { data, error } = await supabase.rpc('get_my_full_investment_history');
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.warning("No investment history to export.");
+        return;
+      }
+
+      const filename = `SJA_Investment_History_${format(new Date(), 'yyyy-MM-dd')}`;
+      
+      if (formatType === 'csv') {
+        const formattedData = data.map(item => ({
+          "Plan Name": item.plan_name,
+          "Investment Amount": item.investment_amount,
+          "Start Date": item.start_date,
+          "Maturity Date": item.maturity_date,
+          "Status": item.status,
+          "Profit Earned": item.profit_earned,
+          "Total Payout": item.total_payout,
+        }));
+        exportToCsv(`${filename}.csv`, formattedData);
+      } else {
+        const title = "Investment History Statement";
+        const headers = ["Plan", "Amount", "Start", "Maturity", "Status", "Profit", "Payout"];
+        const body = data.map((item: any) => [
+          item.plan_name,
+          item.investment_amount.toLocaleString('en-IN'),
+          format(new Date(item.start_date), 'PPP'),
+          format(new Date(item.maturity_date), 'PPP'),
+          item.status,
+          item.profit_earned.toLocaleString('en-IN'),
+          item.total_payout.toLocaleString('en-IN'),
+        ]);
+        exportToPdf(`${filename}.pdf`, title, headers, body, user?.user_metadata?.full_name || "User");
+      }
+      toast.success(`Statement exported successfully as ${formatType.toUpperCase()}!`);
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+      <TrendingUp className="mx-auto h-12 w-12" />
+      <h3 className="mt-4 text-lg font-semibold text-foreground">No Investments Yet</h3>
+      <p className="mt-2 text-sm">
+        You haven't made any investments. Explore our plans to get started.
+      </p>
+      <Button size="sm" className="mt-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        View Investment Plans
+      </Button>
+    </div>
+  );
+
   const renderDesktopView = () => (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Plan Name</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Daily Earnings</TableHead>
-          <TableHead>Start Date</TableHead>
-          <TableHead>Maturity Date</TableHead>
+          <TableHead>Plan & Amount</TableHead>
+          <TableHead>Earnings (Daily / Total)</TableHead>
+          <TableHead className="w-[25%]">Progress</TableHead>
           <TableHead className="text-right">Status</TableHead>
         </TableRow>
       </TableHeader>
@@ -57,28 +122,58 @@ const InvestmentHistory = () => {
             <TableRow key={i}>
               <TableCell><Skeleton className="h-5 w-24" /></TableCell>
               <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-full" /></TableCell>
               <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
             </TableRow>
           ))
         ) : investments && investments.length > 0 ? (
           investments.map((investment) => {
             const plan = investment.investment_plans?.[0];
+            const startDate = new Date(investment.start_date);
+            const maturityDate = new Date(investment.maturity_date);
+            
             const dailyEarnings = plan && investment.status === 'Active'
               ? (investment.investment_amount * (plan.annual_rate / 100 / 365))
               : null;
 
+            const durationInDays = differenceInDays(maturityDate, startDate);
+            const totalProfit = dailyEarnings ? dailyEarnings * durationInDays : 0;
+            const totalReturn = investment.investment_amount + totalProfit;
+
+            const today = new Date();
+            const totalDuration = maturityDate.getTime() - startDate.getTime();
+            const elapsedDuration = today.getTime() - startDate.getTime();
+            const progress = totalDuration > 0 ? Math.min(100, (elapsedDuration / totalDuration) * 100) : (investment.status === 'Matured' ? 100 : 0);
+
             return (
               <TableRow key={investment.id}>
-                <TableCell className="font-medium">{plan?.name || 'N/A'}</TableCell>
-                <TableCell>₹{investment.investment_amount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="text-green-600 font-medium">
-                  {dailyEarnings !== null ? `₹${dailyEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                <TableCell>
+                  <div className="font-medium">{plan?.name || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">₹{investment.investment_amount.toLocaleString('en-IN')}</div>
                 </TableCell>
-                <TableCell>{format(new Date(investment.start_date), "PPP")}</TableCell>
-                <TableCell>{format(new Date(investment.maturity_date), "PPP")}</TableCell>
+                <TableCell>
+                  <div className="font-medium text-green-600">
+                    {dailyEarnings !== null ? `₹${dailyEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Est. Total: ₹{totalReturn.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {investment.status === 'Active' ? (
+                    <>
+                      <Progress value={progress} className="h-2" />
+                      <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                        <span>{format(startDate, "d MMM")}</span>
+                        <span>{format(maturityDate, "d MMM yyyy")}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Matured on {format(maturityDate, "PPP")}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <Badge variant={investment.status === "Active" ? "default" : "secondary"}>
                     {investment.status}
@@ -89,8 +184,8 @@ const InvestmentHistory = () => {
           })
         ) : (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
-              You have no investments yet.
+            <TableCell colSpan={4}>
+              <EmptyState />
             </TableCell>
           </TableRow>
         )}
@@ -101,7 +196,24 @@ const InvestmentHistory = () => {
   const renderMobileView = () => (
     <div className="space-y-4">
       {isLoading ? (
-        [...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-24 mt-1" />
+                </div>
+                <Skeleton className="h-6 w-16" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-4 w-full mt-2" />
+            </CardContent>
+          </Card>
+        ))
       ) : investments && investments.length > 0 ? (
         investments.map((investment) => {
           const plan = investment.investment_plans?.[0];
@@ -154,9 +266,7 @@ const InvestmentHistory = () => {
           );
         })
       ) : (
-        <div className="text-center text-muted-foreground p-8">
-          You have no investments yet.
-        </div>
+        <EmptyState />
       )}
     </div>
   );
@@ -164,8 +274,22 @@ const InvestmentHistory = () => {
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle>My Investment Portfolio</CardTitle>
-        <CardDescription>A record of all your active and past investments.</CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle>My Investment Portfolio</CardTitle>
+            <CardDescription>A record of all your active and past investments.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={isExporting} className="gap-1">
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} disabled={isExporting} className="gap-1">
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              PDF
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {isError ? (

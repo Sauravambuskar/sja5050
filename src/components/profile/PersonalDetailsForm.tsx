@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, Upload } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, Users } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -17,6 +17,7 @@ import { Profile } from "@/types/database";
 import { useEffect, useState, ChangeEvent } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name is too short").max(100, "Name is too long"),
@@ -26,6 +27,7 @@ const profileSchema = z.object({
   city: z.string().max(100).nullable(),
   state: z.string().max(100).nullable(),
   pincode: z.string().max(10).nullable(),
+  blood_group: z.string().nullable(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -42,6 +44,7 @@ const updatePersonalDetails = async (values: ProfileFormValues) => {
     p_city: values.city,
     p_state: values.state,
     p_pincode: values.pincode,
+    p_blood_group: values.blood_group,
   });
 
   if (error) throw new Error(error.message);
@@ -80,6 +83,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
         city: profile.city || "",
         state: profile.state || "",
         pincode: profile.pincode || "",
+        blood_group: profile.blood_group || "",
       });
     }
   }, [profile, form]);
@@ -89,7 +93,6 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     onSuccess: async (data) => {
       toast.success("Profile updated successfully!");
       
-      // Also update the auth user metadata for immediate UI feedback
       const { error } = await supabase.auth.updateUser({
         data: { full_name: data.full_name }
       });
@@ -152,6 +155,15 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
         <CardDescription>Update your personal and profile information here.</CardDescription>
       </CardHeader>
       <CardContent>
+        {profile.referrer_full_name && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/50 p-4">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm text-muted-foreground">You were referred by</p>
+              <p className="font-semibold">{profile.referrer_full_name}</p>
+            </div>
+          </div>
+        )}
         <div className="grid gap-8 md:grid-cols-3">
           <div className="flex flex-col items-center gap-4 text-center md:col-span-1 md:border-r md:pr-8">
             <Avatar className="h-32 w-32">
@@ -173,8 +185,9 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
                 <FormField control={form.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus captionLayout="dropdown-buttons" fromYear={1900} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                 </div>
+                <FormField control={form.control} name="blood_group" render={({ field }) => (<FormItem><FormLabel>Blood Group</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl><SelectContent><SelectItem value="A+">A+</SelectItem><SelectItem value="A-">A-</SelectItem><SelectItem value="B+">B+</SelectItem><SelectItem value="B-">B-</SelectItem><SelectItem value="AB+">AB+</SelectItem><SelectItem value="AB-">AB-</SelectItem><SelectItem value="O+">O+</SelectItem><SelectItem value="O-">O-</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                   <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />

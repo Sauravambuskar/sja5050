@@ -8,6 +8,7 @@ export type InvestmentPlan = {
   max_investment: number | null;
   is_active: boolean;
   created_at: string;
+  image_url: string | null;
 };
 
 export type AdminUserView = {
@@ -19,6 +20,7 @@ export type AdminUserView = {
   wallet_balance: number;
   role: 'user' | 'admin';
   banned_until: string | null;
+  last_sign_in_at: string | null;
 };
 
 export type AdminInvestmentView = {
@@ -34,10 +36,12 @@ export type AdminKycRequest = {
   request_id: string;
   user_id: string;
   user_name: string;
+  user_email: string;
   document_type: string;
   file_path: string;
   submitted_at: string;
   status: string;
+  admin_notes: string | null;
 };
 
 export type AdminDashboardStats = {
@@ -46,17 +50,36 @@ export type AdminDashboardStats = {
   pending_kyc: number;
   pending_withdrawals_count: number;
   pending_withdrawals_value: number;
+  pending_deposits_count: number;
+  pending_deposits_value: number;
 };
 
 export type AdminWithdrawalRequest = {
   request_id: string;
-  user_name: string;
+  user_name: string | null;
+  user_id: string;
+  user_email: string | null;
   amount: number;
   requested_at: string;
   status: string;
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
+  wallet_balance: number;
+  admin_notes: string | null;
+};
+
+export type AdminDepositRequest = {
+  request_id: string;
+  user_name: string | null; // Changed to allow null
+  user_id: string;
+  user_email: string | null; // Changed to allow null
+  amount: number;
+  reference_id: string;
+  requested_at: string;
+  status: string;
+  screenshot_path: string | null;
+  admin_notes: string | null;
   wallet_balance: number;
 };
 
@@ -114,6 +137,16 @@ export type WithdrawalRequest = {
   amount: number;
   status: string;
   requested_at: string;
+  admin_notes: string | null;
+};
+
+export type DepositRequest = {
+  id: string;
+  amount: number;
+  reference_id: string;
+  status: string;
+  requested_at: string;
+  admin_notes: string | null;
 };
 
 export type KycDocument = {
@@ -130,6 +163,18 @@ export type Referral = {
   full_name: string;
   join_date: string;
   kyc_status: string;
+  has_invested: boolean;
+};
+
+export type ReferralTreeUser = {
+  id: string;
+  full_name: string;
+  join_date: string;
+  kyc_status: string;
+  has_invested: boolean;
+  level: number;
+  parent_id: string;
+  children: ReferralTreeUser[];
 };
 
 export type UserGrowthReportData = {
@@ -178,6 +223,8 @@ export type DailyIncomeStats = {
 
 export type IncomeHistoryReportData = {
   report_date: string;
+  investment_income: number;
+  commission_income: number;
   total_income: number;
   day: string;
 };
@@ -204,6 +251,8 @@ export type Profile = {
   state: string | null;
   pincode: string | null;
   kyc_status: string | null;
+  referral_code: string | null;
+  referrer_id: string | null;
   nominee_name: string | null;
   nominee_relationship: string | null;
   nominee_dob: string | null;
@@ -211,4 +260,85 @@ export type Profile = {
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
+  referrer_full_name: string | null;
+  member_id: string | null;
+  pan_number: string | null;
+  aadhaar_number: string | null;
+  blood_group: string | null;
+  nominee_blood_group: string | null;
+};
+
+export type InvestmentSummary = {
+  total_invested: number;
+  active_investments_count: number;
+  estimated_daily_earnings: number;
+};
+
+export type BroadcastMessage = {
+  id: string;
+  admin_email: string;
+  title: string;
+  description: string;
+  created_at: string;
+};
+
+export type IdCardSettings = {
+  id: number;
+  company_name: string;
+  logo_url: string | null;
+  accent_color: string;
+  background_image_url: string | null;
+  updated_at: string;
+};
+
+export type SystemSettings = {
+  id: number;
+  maintenance_mode_enabled: boolean;
+  maintenance_message: string | null;
+  updated_at: string;
+  company_bank_details: {
+    bank_name: string;
+    account_holder_name: string;
+    account_number: string;
+    ifsc_code: string;
+    upi_id: string;
+  } | null;
+  auth_layout_image_url_1: string | null;
+  auth_layout_image_url_2: string | null;
+  splash_screen_url: string | null;
+};
+
+export type Faq = {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SupportTicket = {
+  id: string;
+  subject: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminSupportTicket = SupportTicket & {
+  user_id: string;
+  full_name: string;
+  email: string;
+};
+
+export type SupportMessage = {
+  id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    role: string;
+  } | null;
 };

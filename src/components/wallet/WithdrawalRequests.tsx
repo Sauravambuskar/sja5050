@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { WithdrawalRequest } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Info } from "lucide-react";
+import { useState } from "react";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
+import { usePagination, DOTS } from "@/hooks/usePagination";
+import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 5;
 
 const withdrawalSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be a positive number." }),
@@ -23,28 +32,54 @@ const requestWithdrawal = async (amount: number) => {
   if (error) throw new Error(error.message);
 };
 
-const fetchWithdrawalHistory = async (): Promise<WithdrawalRequest[]> => {
-  const { data, error } = await supabase.rpc('get_my_withdrawal_requests');
+const fetchWithdrawalHistory = async (page: number): Promise<WithdrawalRequest[]> => {
+  const { data, error } = await supabase.rpc('get_my_withdrawal_requests', {
+    p_limit: PAGE_SIZE,
+    p_offset: (page - 1) * PAGE_SIZE,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+const fetchWithdrawalHistoryCount = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_my_withdrawal_requests_count');
   if (error) throw new Error(error.message);
   return data;
 };
 
 const WithdrawalRequests = () => {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const [currentPage, setCurrentPage] = useState(1);
   const form = useForm<z.infer<typeof withdrawalSchema>>({
     resolver: zodResolver(withdrawalSchema),
   });
 
   const { data: history, isLoading } = useQuery<WithdrawalRequest[]>({
-    queryKey: ['withdrawalHistory'],
-    queryFn: fetchWithdrawalHistory,
+    queryKey: ['withdrawalHistory', currentPage],
+    queryFn: () => fetchWithdrawalHistory(currentPage),
+    placeholderData: keepPreviousData,
   });
+
+  const { data: totalRequests } = useQuery<number>({
+    queryKey: ['withdrawalHistoryCount'],
+    queryFn: fetchWithdrawalHistoryCount,
+  });
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: totalRequests || 0,
+    pageSize: PAGE_SIZE,
+  });
+  const pageCount = totalRequests ? Math.ceil(totalRequests / PAGE_SIZE) : 0;
 
   const mutation = useMutation({
     mutationFn: requestWithdrawal,
     onSuccess: () => {
       toast.success("Withdrawal request submitted successfully!");
       queryClient.invalidateQueries({ queryKey: ['withdrawalHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['withdrawalHistoryCount'] });
+      queryClient.invalidateQueries({ queryKey: ['walletBalance'] });
       form.reset({ amount: 0 });
     },
     onError: (error) => {
@@ -55,6 +90,141 @@ const WithdrawalRequests = () => {
   const onSubmit = (values: z.infer<typeof withdrawalSchema>) => {
     mutation.mutate(values.amount);
   };
+
+  const renderPagination = () => (
+    pageCount > 1 && (
+      <Pagination className="mt-6">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+          {paginationRange?.map((pageNumber, index) => {
+            if (pageNumber === DOTS) {
+              return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
+            }
+            return (
+              <PaginationItem key={pageNumber}>
+                <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+          <PaginationItem>
+            <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    )
+  );
+
+  const renderDesktopHistory = () => (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Details</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading && !history ? (
+            [...Array(3)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-20" /><Skeleton className="h-4 w-24 mt-1" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+              </TableRow>
+            ))
+          ) : history && history.length > 0 ? (
+            history.map((req) => (
+              <TableRow key={req.id}>
+                <TableCell>
+                  <div className="font-medium">₹{req.amount.toLocaleString('en-IN')}</div>
+                  <div className="text-sm text-muted-foreground">{format(new Date(req.requested_at), "PPP")}</div>
+                  {req.status === 'Rejected' && req.admin_notes && (
+                    <div className="text-xs text-destructive mt-1">Note: {req.admin_notes}</div>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Badge
+                    variant={
+                      req.status === "Completed" || req.status === "Approved"
+                        ? "success"
+                        : req.status === "Pending"
+                        ? "outline"
+                        : "destructive"
+                    }
+                  >
+                    {req.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} className="h-24 text-center">No withdrawal requests yet.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {renderPagination()}
+    </>
+  );
+
+  const renderMobileHistory = () => (
+    <div className="space-y-4">
+      {isLoading && !history ? (
+        [...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-16" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        ))
+      ) : history && history.length > 0 ? (
+        history.map((req) => (
+          <Card key={req.id}>
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <CardTitle className="text-xl">₹{req.amount.toLocaleString('en-IN')}</CardTitle>
+                <Badge
+                  variant={
+                    req.status === "Completed" || req.status === "Approved"
+                      ? "success"
+                      : req.status === "Pending"
+                      ? "outline"
+                      : "destructive"
+                  }
+                >
+                  {req.status}
+                </Badge>
+              </div>
+              <CardDescription>{format(new Date(req.requested_at), "PPP")}</CardDescription>
+            </CardHeader>
+            {req.status === 'Rejected' && req.admin_notes && (
+              <CardContent className="pb-4">
+                <Alert variant="destructive" className="p-3">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Note: {req.admin_notes}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            )}
+          </Card>
+        ))
+      ) : (
+        <div className="text-center text-muted-foreground p-8 border rounded-lg">
+          No withdrawal requests yet.
+        </div>
+      )}
+      {renderPagination()}
+    </div>
+  );
 
   return (
     <div className="grid gap-6 pt-4 lg:grid-cols-2">
@@ -92,50 +262,7 @@ const WithdrawalRequests = () => {
           <CardDescription>Your recent withdrawal requests.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(3)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : history && history.length > 0 ? (
-                history.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell className="font-medium">₹{req.amount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell>{format(new Date(req.requested_at), "PPP")}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant={
-                          req.status === "Completed" || req.status === "Approved"
-                            ? "default"
-                            : req.status === "Pending"
-                            ? "outline"
-                            : "destructive"
-                        }
-                      >
-                        {req.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">No withdrawal requests yet.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {isMobile ? renderMobileHistory() : renderDesktopHistory()}
         </CardContent>
       </Card>
     </div>
