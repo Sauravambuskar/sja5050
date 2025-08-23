@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Copy, Eye, Download, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Eye, Download, Loader2, Search } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDepositRequest } from "@/types/database";
@@ -20,22 +20,26 @@ import { usePageLayoutContext } from "@/components/layout/PageLayout";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const PAGE_SIZE = 10;
 
-const fetchDepositRequests = async (page: number, statusFilter: string | null): Promise<AdminDepositRequest[]> => {
+const fetchDepositRequests = async (page: number, statusFilter: string | null, searchTerm: string | null): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests', {
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
     p_status_filter: statusFilter,
+    p_search_text: searchTerm,
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchDepositRequestsCount = async (statusFilter: string | null): Promise<number> => {
+const fetchDepositRequestsCount = async (statusFilter: string | null, searchTerm: string | null): Promise<number> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests_count', {
     p_status_filter: statusFilter,
+    p_search_text: searchTerm,
   });
   if (error) throw new Error(error.message);
   return data;
@@ -79,24 +83,27 @@ const DepositManagement = () => {
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [isExporting, setIsExporting] = useState(false);
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
+  const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
-    queryKey: ['allDepositRequests', currentPage, filterValue],
-    queryFn: () => fetchDepositRequests(currentPage, filterValue),
+    queryKey: ['allDepositRequests', currentPage, filterValue, searchValue],
+    queryFn: () => fetchDepositRequests(currentPage, filterValue, searchValue),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allDepositRequestsCount', filterValue],
-    queryFn: () => fetchDepositRequestsCount(filterValue),
+    queryKey: ['allDepositRequestsCount', filterValue, searchValue],
+    queryFn: () => fetchDepositRequestsCount(filterValue, searchValue),
   });
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, debouncedSearchTerm]);
 
   const paginationRange = usePagination({
     currentPage,
@@ -313,22 +320,34 @@ const DepositManagement = () => {
               <CardDescription>Review and process all user deposit requests.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Approved">Approved</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
               <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
                 {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
               </Button>
             </div>
+          </div>
+          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="relative flex-grow">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by name, email, ref ID..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
