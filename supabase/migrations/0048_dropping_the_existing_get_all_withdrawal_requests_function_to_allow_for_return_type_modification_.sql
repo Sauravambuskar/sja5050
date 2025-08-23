@@ -1,1 +1,0 @@
-DROP FUNCTION IF EXISTS public.get_all_withdrawal_requests(integer, integer, text, text);

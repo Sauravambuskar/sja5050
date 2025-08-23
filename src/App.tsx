@@ -4,49 +4,49 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Layouts
-import { PageLayout } from "@/components/layout/PageLayout";
+import { PageLayout } from "./components/layout/PageLayout";
 
 // Auth
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import ForgotPassword from "@/pages/ForgotPassword";
-import UpdatePassword from "@/pages/UpdatePassword";
-import LoginMfa from "@/pages/LoginMfa";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AdminRoute } from "./components/auth/AdminRoute";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
+import LoginMfa from "./pages/LoginMfa";
 
 // Client Pages
-import DashboardLoader from "@/pages/DashboardLoader";
-import Investments from "@/pages/Investments";
-import Wallet from "@/pages/Wallet";
-import Profile from "@/pages/Profile";
-import Referrals from "@/pages/Referrals";
-import Notifications from "@/pages/Notifications";
-import NotFound from "@/pages/NotFound";
-import Agreement from "@/pages/Agreement";
-import Faq from "@/pages/Faq";
-import Support from "@/pages/Support";
-import TicketDetails from "@/pages/TicketDetails";
-import PaymentDetails from "@/pages/PaymentDetails";
-import Reports from "@/pages/Reports";
+import DashboardLoader from "./pages/DashboardLoader";
+import Investments from "./pages/Investments";
+import Wallet from "./pages/Wallet";
+import Profile from "./pages/Profile";
+import Referrals from "./pages/Referrals";
+import Notifications from "./pages/Notifications";
+import NotFound from "./pages/NotFound";
+import Agreement from "./pages/Agreement";
+import Faq from "./pages/Faq";
+import Support from "./pages/Support";
+import TicketDetails from "./pages/TicketDetails";
+import PaymentDetails from "./pages/PaymentDetails";
+import Reports from "./pages/Reports";
 
 // Admin Pages
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import UserManagement from "@/pages/admin/UserManagement";
-import InvestmentManagement from "@/pages/admin/InvestmentManagement";
-import WithdrawalManagement from "@/pages/admin/WithdrawalManagement";
-import KycManagement from "@/pages/admin/KycManagement";
-import CommissionRules from "@/pages/admin/CommissionRules";
-import Reporting from "@/pages/admin/Reporting";
-import AdminLogin from "@/pages/admin/AdminLogin";
-import AuditLog from "@/pages/admin/AuditLog";
-import SystemManagement from "@/pages/admin/SystemManagement";
-import DepositManagement from "@/pages/admin/DepositManagement";
-import PayoutReports from "@/pages/admin/PayoutReports";
-import FaqManagement from "@/pages/admin/FaqManagement";
-import SupportDesk from "@/pages/admin/SupportDesk";
-import AdminTicketDetails from "@/pages/admin/AdminTicketDetails";
-import ClientPaymentDetails from "@/pages/admin/ClientPaymentDetails";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import InvestmentManagement from "./pages/admin/InvestmentManagement";
+import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
+import KycManagement from "./pages/admin/KycManagement";
+import CommissionRules from "./pages/admin/CommissionRules";
+import Reporting from "./pages/admin/Reporting";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AuditLog from "./pages/admin/AuditLog";
+import SystemManagement from "./pages/admin/SystemManagement";
+import DepositManagement from "./pages/admin/DepositManagement";
+import PayoutReports from "./pages/admin/PayoutReports";
+import FaqManagement from "./pages/admin/FaqManagement";
+import SupportDesk from "./pages/admin/SupportDesk";
+import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
+import ClientPaymentDetails from "./pages/admin/ClientPaymentDetails";
 
 const queryClient = new QueryClient();
 
