@@ -31,11 +31,16 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
-const sendWithdrawalEmail = async ({ to, name, amount, status, notes }: { to: string; name: string; amount: number; status: string; notes: string }) => {
+const sendWithdrawalEmail = async ({ to, name, amount, status, notes }: { to: string | null; name: string | null; amount: number; status: string; notes: string }) => {
+  if (!to) {
+    console.error("Cannot send withdrawal email: user email is missing.");
+    toast.warning("Withdrawal processed, but the confirmation email could not be sent as the user's email is missing.");
+    return;
+  }
   const subject = `Your Withdrawal Request has been ${status}`;
   const html = status === 'Completed'
-    ? `<p>Hi ${name},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been successfully processed.</p><p>Thank you for choosing SJA Foundation.</p>`
-    : `<p>Hi ${name},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
+    ? `<p>Hi ${name || 'Valued Customer'},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been successfully processed.</p><p>Thank you for choosing SJA Foundation.</p>`
+    : `<p>Hi ${name || 'Valued Customer'},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
 
   const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
   if (error) {
@@ -129,7 +134,7 @@ const WithdrawalManagement = () => {
         ) : (
           requests?.map((request) => (
             <TableRow key={request.request_id}>
-              <TableCell className="font-medium">{request.user_name}</TableCell>
+              <TableCell className="font-medium">{request.user_name || 'Deleted User'}</TableCell>
               <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
               <TableCell className="flex items-center gap-2">
                 <span>₹{request.wallet_balance.toLocaleString('en-IN')}</span>
@@ -177,7 +182,7 @@ const WithdrawalManagement = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>₹{request.amount.toLocaleString('en-IN')}</CardTitle>
-                  <CardDescription>{request.user_name}</CardDescription>
+                  <CardDescription>{request.user_name || 'Deleted User'}</CardDescription>
                 </div>
                 <Badge variant={request.status === "Completed" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
@@ -241,7 +246,7 @@ const WithdrawalManagement = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Action</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to <span className="font-bold">{actionToConfirm?.status.toLowerCase()}</span> this withdrawal request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name}</span>?
+              Are you sure you want to <span className="font-bold">{actionToConfirm?.status.toLowerCase()}</span> this withdrawal request of <span className="font-bold">₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}</span> for <span className="font-bold">{actionToConfirm?.request.user_name || 'this user'}</span>?
               {actionToConfirm?.status === 'Completed' && <p className="mt-2 text-sm text-destructive">Please ensure you have completed the bank transfer before proceeding.</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>

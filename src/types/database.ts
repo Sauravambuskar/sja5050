@@ -56,8 +56,9 @@ export type AdminDashboardStats = {
 
 export type AdminWithdrawalRequest = {
   request_id: string;
-  user_name: string;
-  user_email: string;
+  user_name: string | null;
+  user_id: string;
+  user_email: string | null;
   amount: number;
   requested_at: string;
   status: string;
