@@ -1,9 +1,4 @@
-CREATE OR REPLACE FUNCTION public.get_all_deposit_requests(
-    p_status_filter text DEFAULT NULL::text,
-    p_search_text text DEFAULT NULL::text,
-    p_limit integer DEFAULT 10,
-    p_offset integer DEFAULT 0
-)
+CREATE OR REPLACE FUNCTION public.get_all_deposit_requests(p_status_filter text DEFAULT NULL::text, p_limit integer DEFAULT 10, p_offset integer DEFAULT 0)
  RETURNS TABLE(request_id uuid, user_name text, user_id uuid, user_email text, amount numeric, reference_id text, requested_at timestamp with time zone, status text, screenshot_path text, admin_notes text, wallet_balance numeric)
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -36,11 +31,7 @@ BEGIN
     LEFT JOIN
         public.wallets w ON dr.user_id = w.user_id
     WHERE
-        (p_status_filter IS NULL OR dr.status = p_status_filter) AND
-        (p_search_text IS NULL OR
-         COALESCE(p.full_name, '') ILIKE ('%' || p_search_text || '%') OR
-         COALESCE(u.email, '') ILIKE ('%' || p_search_text || '%') OR
-         dr.reference_id ILIKE ('%' || p_search_text || '%'))
+        (p_status_filter IS NULL OR dr.status = p_status_filter)
     ORDER BY
         CASE dr.status WHEN 'Pending' THEN 1 ELSE 2 END,
         dr.requested_at DESC

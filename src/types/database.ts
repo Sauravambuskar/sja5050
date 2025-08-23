@@ -17,6 +17,7 @@ export type AdminUserView = {
   email: string | undefined;
   join_date: string;
   kyc_status: string | null;
+  wallet_balance: number;
   role: 'user' | 'admin';
   banned_until: string | null;
   last_sign_in_at: string | null;
@@ -29,7 +30,6 @@ export type AdminInvestmentView = {
   amount: number;
   start_date: string;
   status: string;
-  admin_notes: string | null;
 };
 
 export type AdminKycRequest = {
@@ -48,6 +48,10 @@ export type AdminDashboardStats = {
   total_users: number;
   aum: number;
   pending_kyc: number;
+  pending_withdrawals_count: number;
+  pending_withdrawals_value: number;
+  pending_deposits_count: number;
+  pending_deposits_value: number;
 };
 
 export type AdminWithdrawalRequest = {
@@ -123,6 +127,7 @@ export type DashboardStats = {
   fullName: string | null;
   activeInvestmentsCount: number;
   totalInvested: number;
+  walletBalance: number;
   kycStatus: string | null;
   referralCount: number;
 };
