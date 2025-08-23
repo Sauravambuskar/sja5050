@@ -225,16 +225,19 @@ const DepositManagement = () => {
           <TableHead>Reference ID</TableHead>
           <TableHead>Requested Date</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Admin Notes</TableHead> {/* New TableHead */}
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {isLoading && !requests ? (
           [...Array(PAGE_SIZE)].map((_, i) => (
-            <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+            <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
           ))
         ) : isError ? (
-          <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
+          <TableRow><TableCell colSpan={7} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
+        ) : requests?.length === 0 ? (
+          <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No deposit requests found.</TableCell></TableRow>
         ) : (
           requests?.map((request) => (
             <TableRow key={request.request_id}>
@@ -247,6 +250,7 @@ const DepositManagement = () => {
               <TableCell>{request.reference_id}</TableCell>
               <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
               <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+              <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{request.admin_notes || '-'}</TableCell> {/* New TableCell */}
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setScreenshotRequestToView(request)} disabled={!request.screenshot_path}><Eye className="mr-2 h-4 w-4" /> Proof</Button>
@@ -271,6 +275,8 @@ const DepositManagement = () => {
         [...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
       ) : isError ? (
         <div className="text-center text-red-500 p-4">Error: {error.message}</div>
+      ) : requests?.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">No deposit requests found.</div>
       ) : (
         requests?.map((request) => (
           <Card key={request.request_id}>
@@ -288,6 +294,7 @@ const DepositManagement = () => {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(request.requested_at), "PPP")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Reference ID</span><span>{request.reference_id}</span></div>
+              {request.admin_notes && <div className="flex justify-between"><span className="text-muted-foreground">Admin Notes</span><span className="max-w-[60%] text-right truncate">{request.admin_notes}</span></div>} {/* New CardContent */}
             </CardContent>
             <div className="p-4 border-t flex flex-col sm:flex-row justify-end gap-2">
               <Button size="sm" variant="outline" onClick={() => setScreenshotRequestToView(request)} disabled={!request.screenshot_path}><Eye className="mr-2 h-4 w-4" /> View Proof</Button>
