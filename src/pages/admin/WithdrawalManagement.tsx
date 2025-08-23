@@ -121,13 +121,14 @@ const WithdrawalManagement = () => {
                     <TableHead>Requested At</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Wallet Balance</TableHead>
+                    <TableHead>Admin Notes</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center">
+                      <TableCell colSpan={8} className="text-center">
                         No withdrawal requests found.
                       </TableCell>
                     </TableRow>
@@ -140,6 +141,7 @@ const WithdrawalManagement = () => {
                         <TableCell>{format(new Date(request.requested_at), 'PPP p')}</TableCell>
                         <TableCell>{request.status}</TableCell>
                         <TableCell>₹{request.wallet_balance.toFixed(2)}</TableCell>
+                        <TableCell>{request.admin_notes || '-'}</TableCell>
                         <TableCell>
                           <Button
                             variant="outline"
