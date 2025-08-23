@@ -3,23 +3,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Copy, Eye, Download } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, XCircle, Copy, Eye, Download, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDepositRequest } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
-import { exportToCsv } from "@/lib/utils";
+import { cn, exportToCsv } from "@/lib/utils";
 import { usePageLayoutContext } from "@/components/layout/PageLayout";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
+import { usePagination, DOTS } from "@/hooks/usePagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const fetchDepositRequests = async (): Promise<AdminDepositRequest[]> => {
-  const { data, error } = await supabase.rpc('get_all_deposit_requests');
+const PAGE_SIZE = 10;
+
+const fetchDepositRequests = async (page: number, statusFilter: string | null): Promise<AdminDepositRequest[]> => {
+  const { data, error } = await supabase.rpc('get_all_deposit_requests', {
+    p_limit: PAGE_SIZE,
+    p_offset: (page - 1) * PAGE_SIZE,
+    p_status_filter: statusFilter,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+const fetchDepositRequestsCount = async (statusFilter: string | null): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_all_deposit_requests_count', {
+    p_status_filter: statusFilter,
+  });
   if (error) throw new Error(error.message);
   return data;
 };
@@ -60,17 +77,40 @@ const DepositManagement = () => {
   const [rejectionRequest, setRejectionRequest] = useState<AdminDepositRequest | null>(null);
   const [viewingRequest, setViewingRequest] = useState<AdminDepositRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const filterValue = statusFilter === 'all' ? null : statusFilter;
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
-    queryKey: ['allDepositRequests'],
-    queryFn: fetchDepositRequests,
+    queryKey: ['allDepositRequests', currentPage, filterValue],
+    queryFn: () => fetchDepositRequests(currentPage, filterValue),
+    placeholderData: keepPreviousData,
   });
+
+  const { data: totalRequests } = useQuery<number>({
+    queryKey: ['allDepositRequestsCount', filterValue],
+    queryFn: () => fetchDepositRequestsCount(filterValue),
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: totalRequests || 0,
+    pageSize: PAGE_SIZE,
+  });
+  const pageCount = totalRequests ? Math.ceil(totalRequests / PAGE_SIZE) : 0;
 
   const mutation = useMutation({
     mutationFn: processRequest,
     onSuccess: (data, variables) => {
       toast.success(`Request has been ${variables.status.toLowerCase()}.`);
       queryClient.invalidateQueries({ queryKey: ['allDepositRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['allDepositRequestsCount'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
 
@@ -116,23 +156,63 @@ const DepositManagement = () => {
     toast.success("Copied to clipboard!");
   };
 
-  const handleExport = () => {
-    if (!requests || requests.length === 0) {
-      toast.warning("No data to export.");
-      return;
+  const handleExport = async () => {
+    setIsExporting(true);
+    toast.info("Preparing your full deposit history for export...");
+    try {
+      const { data, error } = await supabase.rpc('export_all_deposit_requests');
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.warning("No data to export.");
+        return;
+      }
+      const dataToExport = data.map(req => ({
+        RequestID: req.request_id,
+        UserName: req.user_name,
+        UserEmail: req.user_email,
+        Amount: req.amount,
+        ReferenceID: req.reference_id,
+        RequestedAt: format(new Date(req.requested_at), 'yyyy-MM-dd HH:mm'),
+        Status: req.status,
+        AdminNotes: req.admin_notes,
+      }));
+      const filename = `all_deposit_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCsv(filename, dataToExport);
+      toast.success("Deposit data exported successfully.");
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
     }
-    const dataToExport = requests.map(req => ({
-      RequestID: req.request_id,
-      UserName: req.user_name,
-      Amount: req.amount,
-      ReferenceID: req.reference_id,
-      RequestedAt: format(new Date(req.requested_at), 'yyyy-MM-dd HH:mm'),
-      Status: req.status,
-    }));
-    const filename = `deposit_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCsv(filename, dataToExport);
-    toast.success("Deposit data exported successfully.");
   };
+
+  const renderPagination = () => (
+    pageCount > 1 && (
+      <Pagination className="mt-6">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+          {paginationRange?.map((pageNumber, index) => {
+            if (pageNumber === DOTS) {
+              return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
+            }
+            return (
+              <PaginationItem key={pageNumber}>
+                <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+          <PaginationItem>
+            <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    )
+  );
 
   const renderDesktopView = () => (
     <Table>
@@ -147,9 +227,9 @@ const DepositManagement = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {isLoading ? (
-          [...Array(4)].map((_, i) => (
-            <TableRow key={i}><TableCell><Skeleton className="h-5 w-24" /></TableCell><TableCell><Skeleton className="h-5 w-20" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell><Skeleton className="h-5 w-28" /></TableCell><TableCell><Skeleton className="h-6 w-20" /></TableCell><TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell></TableRow>
+        {isLoading && !requests ? (
+          [...Array(PAGE_SIZE)].map((_, i) => (
+            <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
           ))
         ) : isError ? (
           <TableRow><TableCell colSpan={6} className="text-center text-red-500">Error: {error.message}</TableCell></TableRow>
@@ -188,7 +268,7 @@ const DepositManagement = () => {
 
   const renderMobileView = () => (
     <div className="space-y-4">
-      {isLoading ? (
+      {isLoading && !requests ? (
         [...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
       ) : isError ? (
         <div className="text-center text-red-500 p-4">Error: {error.message}</div>
@@ -227,19 +307,33 @@ const DepositManagement = () => {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Deposit Management</CardTitle>
               <CardDescription>Review and process all user deposit requests.</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
-              <Download className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" className="gap-1" onClick={handleExport} disabled={isExporting}>
+                {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           {isMobile ? renderMobileView() : renderDesktopView()}
+          {renderPagination()}
         </CardContent>
       </Card>
 
