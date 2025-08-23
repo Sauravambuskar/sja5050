@@ -45,7 +45,7 @@ interface SidebarProps {
 export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount, openTicketsCount } = useAdminActionCounts();
+  const { pendingKycCount, openTicketsCount } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   return (
@@ -124,16 +124,6 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
               {item.label === "KYC Toolkit" && pendingKycCount > 0 && (
                 <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
                   {pendingKycCount}
-                </Badge>
-              )}
-              {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingWithdrawalsCount}
-                </Badge>
-              )}
-              {item.label === "Deposits" && pendingDepositsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingDepositsCount}
                 </Badge>
               )}
               {item.label === "Support Desk" && openTicketsCount > 0 && (

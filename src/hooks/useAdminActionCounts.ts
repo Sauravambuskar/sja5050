@@ -1,43 +1,34 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { useIsAdmin } from './useIsAdmin';
-import { AdminDashboardStats } from '@/types/database';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
-const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
-  const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
-  if (error) throw new Error(error.message);
-  return data[0];
-};
+const fetchAdminActionCounts = async () => {
+  const { count: kycCount, error: kycError } = await supabase
+    .from("kyc_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "Pending");
 
-const fetchOpenTicketsCount = async (): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_open_tickets_count_admin');
-  if (error) throw new Error(error.message);
-  return data;
+  const { data: ticketsData, error: ticketsError } = await supabase.rpc('get_open_tickets_count_admin');
+
+  if (kycError) console.error("Error fetching pending KYC count:", kycError.message);
+  if (ticketsError) console.error("Error fetching open tickets count:", ticketsError.message);
+
+  return {
+    pendingKycCount: kycCount ?? 0,
+    openTicketsCount: ticketsData ?? 0,
+  };
 };
 
 export const useAdminActionCounts = () => {
-  const { isAdmin } = useIsAdmin();
-
-  const { data: stats } = useQuery<AdminDashboardStats>({
-    queryKey: ['adminDashboardStats'],
-    queryFn: fetchAdminStats,
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-  });
-
-  const { data: openTicketsCount } = useQuery<number>({
-    queryKey: ['openTicketsCountAdmin'],
-    queryFn: fetchOpenTicketsCount,
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["adminActionCounts"],
+    queryFn: fetchAdminActionCounts,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   return {
-    pendingKycCount: stats?.pending_kyc ?? 0,
-    pendingWithdrawalsCount: stats?.pending_withdrawals_count ?? 0,
-    pendingDepositsCount: stats?.pending_deposits_count ?? 0,
-    openTicketsCount: openTicketsCount ?? 0,
+    pendingKycCount: data?.pendingKycCount ?? 0,
+    openTicketsCount: data?.openTicketsCount ?? 0,
+    isLoading,
+    error,
   };
 };
