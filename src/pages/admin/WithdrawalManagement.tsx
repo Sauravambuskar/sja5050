@@ -51,6 +51,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   return data;
 };
 
+// Moved outside the component for better performance
 const sendWithdrawalEmail = async ({ to, name, amount, status, notes }: { to: string | null; name: string | null; amount: number; status: string; notes: string }) => {
   if (!to) {
     console.error("Cannot send withdrawal email: user email is missing.");
@@ -60,12 +61,17 @@ const sendWithdrawalEmail = async ({ to, name, amount, status, notes }: { to: st
   const subject = `Your Withdrawal Request has been ${status}`;
   const html = status === 'Completed'
     ? `<p>Hi ${name || 'Valued Customer'},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been successfully processed.</p><p>Thank you for choosing SJA Foundation.</p>`
-    : `<p>Hi ${name || 'Valued Customer'},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} has been rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
+    : `<p>Hi ${name || 'Valued Customer'},</p><p>Your withdrawal request for ₹${amount.toLocaleString('en-IN')} was rejected.</p><p>Reason: ${notes}</p><p>Please contact support if you have any questions.</p>`;
 
-  const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
-  if (error) {
-    console.error("Failed to send withdrawal email:", error);
-    toast.warning("Withdrawal processed, but the confirmation email could not be sent.");
+  try {
+    const { error } = await supabase.functions.invoke('send-transactional-email', { body: { to, subject, html } });
+    if (error) {
+      console.error("Failed to send withdrawal email:", error);
+      toast.warning("Withdrawal processed, but the confirmation email could not be sent.");
+    }
+  } catch (error) {
+    console.error("Error invoking send-transactional-email function:", error);
+    toast.warning("Withdrawal processed, but there was an error sending the confirmation email.");
   }
 };
 
