@@ -98,6 +98,9 @@ importers:
       '@stripe/stripe-js':
         specifier: ^7.8.0
         version: 7.8.0
+      '@supabase/auth-helpers-react':
+        specifier: ^0.5.0
+        version: 0.5.0(@supabase/supabase-js@2.52.1)
       '@supabase/auth-ui-react':
         specifier: ^0.4.7
         version: 0.4.7(@supabase/supabase-js@2.52.1)
@@ -105,7 +108,7 @@ importers:
         specifier: ^0.1.8
         version: 0.1.8(@supabase/supabase-js@2.52.1)
       '@supabase/supabase-js':
-        specifier: ^2.52.1
+        specifier: latest
         version: 2.52.1
       '@tanstack/react-query':
         specifier: ^5.56.2
@@ -208,7 +211,7 @@ importers:
         specifier: ^0.5.15
         version: 0.5.16(tailwindcss@3.4.17)
       '@types/node':
-        specifier: latest
+        specifier: ^2.52.1
         version: 22.14.1
       '@types/react':
         specifier: latest
@@ -1276,6 +1279,12 @@ packages:
   '@stripe/stripe-js@7.8.0':
     resolution: {integrity: sha512-DNXRfYUgkZlrniQORbA/wH8CdFRhiBSE0R56gYU0V5vvpJ9WZwvGrz9tBAZmfq2aTgw6SK7mNpmTizGzLWVezw==}
     engines: {node: '>=12.16'}
+
+  '@supabase/auth-helpers-react@0.5.0':
+    resolution: {integrity: sha512-5QSaV2CGuhDhd7RlQCoviVEAYsP7XnrFMReOcBazDvVmqSIyjKcDwhLhWvnrxMOq5qjOaA44MHo7wXqDiF0puQ==}
+    deprecated: This package is now deprecated - please use the @supabase/ssr package instead.
+    peerDependencies:
+      '@supabase/supabase-js': ^2.39.8
 
   '@supabase/auth-js@2.71.1':
     resolution: {integrity: sha512-mMIQHBRc+SKpZFRB2qtupuzulaUhFYupNyxqDj5Jp/LyPvcWvjaJzZzObv6URtL/O6lPxkanASnotGtNpS3H2Q==}
@@ -3737,6 +3746,10 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   '@stripe/stripe-js@7.8.0': {}
+
+  '@supabase/auth-helpers-react@0.5.0(@supabase/supabase-js@2.52.1)':
+    dependencies:
+      '@supabase/supabase-js': 2.52.1
 
   '@supabase/auth-js@2.71.1':
     dependencies:
