@@ -135,6 +135,7 @@ export type WithdrawalRequest = {
   amount: number;
   status: string;
   requested_at: string;
+  admin_notes: string | null;
 };
 
 export type DepositRequest = {

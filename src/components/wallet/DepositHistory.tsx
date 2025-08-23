@@ -7,6 +7,8 @@ import { DepositRequest } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Info } from "lucide-react";
 
 const fetchDepositHistory = async (): Promise<DepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_my_deposit_requests');
@@ -25,8 +27,7 @@ const DepositHistory = () => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Amount</TableHead>
-          <TableHead>Reference ID</TableHead>
+          <TableHead>Details</TableHead>
           <TableHead>Date</TableHead>
           <TableHead className="text-right">Status</TableHead>
         </TableRow>
@@ -35,8 +36,7 @@ const DepositHistory = () => {
         {isLoading ? (
           [...Array(3)].map((_, i) => (
             <TableRow key={i}>
-              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-20" /><Skeleton className="h-4 w-28 mt-1" /></TableCell>
               <TableCell><Skeleton className="h-5 w-24" /></TableCell>
               <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
             </TableRow>
@@ -44,8 +44,13 @@ const DepositHistory = () => {
         ) : history && history.length > 0 ? (
           history.map((req) => (
             <TableRow key={req.id}>
-              <TableCell className="font-medium">₹{req.amount.toLocaleString('en-IN')}</TableCell>
-              <TableCell className="font-mono">{req.reference_id}</TableCell>
+              <TableCell>
+                <div className="font-medium">₹{req.amount.toLocaleString('en-IN')}</div>
+                <div className="text-sm text-muted-foreground font-mono">{req.reference_id}</div>
+                 {req.status === 'Rejected' && req.admin_notes && (
+                  <div className="text-xs text-destructive mt-1">Note: {req.admin_notes}</div>
+                )}
+              </TableCell>
               <TableCell>{format(new Date(req.requested_at), "PPP")}</TableCell>
               <TableCell className="text-right">
                 <Badge variant={req.status === "Approved" ? "default" : req.status === "Pending" ? "outline" : "destructive"}>
@@ -83,21 +88,28 @@ const DepositHistory = () => {
       ) : history && history.length > 0 ? (
         history.map((req) => (
           <Card key={req.id}>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>₹{req.amount.toLocaleString('en-IN')}</CardTitle>
-                <CardDescription>Ref: {req.reference_id}</CardDescription>
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>₹{req.amount.toLocaleString('en-IN')}</CardTitle>
+                  <CardDescription>Ref: {req.reference_id}</CardDescription>
+                </div>
+                <Badge variant={req.status === "Approved" ? "default" : req.status === "Pending" ? "outline" : "destructive"}>
+                  {req.status}
+                </Badge>
               </div>
-              <Badge variant={req.status === "Approved" ? "default" : req.status === "Pending" ? "outline" : "destructive"}>
-                {req.status}
-              </Badge>
+               <CardDescription>{format(new Date(req.requested_at), "PPP")}</CardDescription>
             </CardHeader>
-            <CardContent className="text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date</span>
-                <span>{format(new Date(req.requested_at), "PPP")}</span>
-              </div>
-            </CardContent>
+            {req.status === 'Rejected' && req.admin_notes && (
+              <CardContent className="pb-4">
+                <Alert variant="destructive" className="p-3">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Note: {req.admin_notes}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            )}
           </Card>
         ))
       ) : (
