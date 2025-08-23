@@ -133,7 +133,7 @@ const UserManagement = () => {
         JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'),
         LastLogin: user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm') : 'Never',
         KYCStatus: user.kyc_status,
-        WalletBalance: user.wallet_balance,
+        WalletBalance: user.wallet_balance || 0,
         Role: user.role,
         IsSuspended: isUserSuspended(user) ? 'Yes' : 'No',
       }));
