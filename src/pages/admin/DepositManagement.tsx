@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,22 +22,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
+import { Input } from "@/components/ui/input"; // Import Input component
+import { useDebounce } from "@/hooks/useDebounce"; // Import useDebounce hook
 
 const PAGE_SIZE = 10;
 
-const fetchDepositRequests = async (page: number, statusFilter: string | null): Promise<AdminDepositRequest[]> => {
+const fetchDepositRequests = async (page: number, statusFilter: string | null, searchText: string): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests', {
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
     p_status_filter: statusFilter,
+    p_search_text: searchText, // Pass search text
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchDepositRequestsCount = async (statusFilter: string | null): Promise<number> => {
+const fetchDepositRequestsCount = async (statusFilter: string | null, searchText: string): Promise<number> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests_count', {
     p_status_filter: statusFilter,
+    p_search_text: searchText, // Pass search text
   });
   if (error) throw new Error(error.message);
   return data;
@@ -78,29 +84,31 @@ const DepositManagement = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { handleViewUser } = usePageLayoutContext();
-  const [screenshotRequestToView, setScreenshotRequestToView] = useState<AdminDepositRequest | null>(null); // Changed state type
+  const [screenshotRequestToView, setScreenshotRequestToView] = useState<AdminDepositRequest | null>(null);
   const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState(''); // New state for search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 500); // Debounced search query
   const [isExporting, setIsExporting] = useState(false);
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
-    queryKey: ['allDepositRequests', currentPage, filterValue],
-    queryFn: () => fetchDepositRequests(currentPage, filterValue),
+    queryKey: ['allDepositRequests', currentPage, filterValue, debouncedSearchQuery], // Add debouncedSearchQuery to queryKey
+    queryFn: () => fetchDepositRequests(currentPage, filterValue, debouncedSearchQuery), // Pass debouncedSearchQuery
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allDepositRequestsCount', filterValue],
-    queryFn: () => fetchDepositRequestsCount(filterValue),
+    queryKey: ['allDepositRequestsCount', filterValue, debouncedSearchQuery], // Add debouncedSearchQuery to queryKey
+    queryFn: () => fetchDepositRequestsCount(filterValue, debouncedSearchQuery), // Pass debouncedSearchQuery
   });
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, debouncedSearchQuery]); // Reset page when filter or search changes
 
   const paginationRange = usePagination({
     currentPage,
@@ -306,6 +314,12 @@ const DepositManagement = () => {
               <CardDescription>Review and process all user deposit requests.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search by user name, email, or ref ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-sm"
+              />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
@@ -333,7 +347,7 @@ const DepositManagement = () => {
       <ScreenshotViewerDialog
         isOpen={!!screenshotRequestToView}
         onClose={() => setScreenshotRequestToView(null)}
-        request={screenshotRequestToView} // Changed prop name
+        request={screenshotRequestToView}
       />
 
       <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
