@@ -69,9 +69,9 @@ export type AdminWithdrawalRequest = {
 
 export type AdminDepositRequest = {
   request_id: string;
-  user_name: string | null;
+  user_name: string | null; // Changed to allow null
   user_id: string;
-  user_email: string | null;
+  user_email: string | null; // Changed to allow null
   amount: number;
   reference_id: string;
   requested_at: string;
