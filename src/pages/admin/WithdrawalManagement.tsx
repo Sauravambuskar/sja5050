@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { ProcessWithdrawalDialog } from '@/components/admin/ProcessWithdrawalDialog';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -33,15 +34,17 @@ const WithdrawalManagement = () => {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [selectedRequest, setSelectedRequest] = useState<AdminWithdrawalRequest | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery<AdminWithdrawalRequest[]>({
-    queryKey: ['adminWithdrawalRequests', page, statusFilter],
+    queryKey: ['adminWithdrawalRequests', page, statusFilter, debouncedSearchQuery],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_all_withdrawal_requests', {
         p_limit: ITEMS_PER_PAGE,
         p_offset: page * ITEMS_PER_PAGE,
         p_status_filter: statusFilter === 'All' ? null : statusFilter,
+        p_search_text: debouncedSearchQuery,
       });
       if (error) throw error;
       return data;
@@ -49,10 +52,11 @@ const WithdrawalManagement = () => {
   });
 
   const { data: totalCountData } = useQuery<number>({
-    queryKey: ['adminWithdrawalRequestsCount', statusFilter],
+    queryKey: ['adminWithdrawalRequestsCount', statusFilter, debouncedSearchQuery],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count', {
         p_status_filter: statusFilter === 'All' ? null : statusFilter,
+        p_search_text: debouncedSearchQuery,
       });
       if (error) throw error;
       return data;
