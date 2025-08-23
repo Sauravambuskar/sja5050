@@ -5,6 +5,7 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "allowJs": true, // Allow JavaScript files to be compiled
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -14,18 +15,18 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path Aliases */
+    "baseUrl": ".", // This must be set to resolve paths relative to the project root
+    "paths": {
+      "@/*": ["./src/*"] // Map @ to the src directory
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-
-    /* Path Aliases */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src"], // Ensure all files in src are included
   "references": [{ "path": "./tsconfig.node.json" }]
 }
