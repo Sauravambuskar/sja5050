@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoreHorizontal, PlusCircle, Download } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { InvestmentPlanDialog } from "@/components/admin/InvestmentPlanDialog";
 import { toast } from "sonner";
-import { exportToCsv } from "@/lib/utils";
 
 const fetchAllInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -83,24 +82,6 @@ const InvestmentManagement = () => {
 
   const handleToggleStatus = (plan: InvestmentPlan) => {
     mutation.mutate({ ...plan, is_active: !plan.is_active });
-  };
-
-  const handleExportInvestments = () => {
-    if (!allInvestments || allInvestments.length === 0) {
-      toast.warning("No investment data to export.");
-      return;
-    }
-    const dataToExport = allInvestments.map(inv => ({
-      InvestmentID: inv.investment_id,
-      UserName: inv.user_name,
-      PlanName: inv.plan_name,
-      Amount: inv.amount,
-      StartDate: format(new Date(inv.start_date), 'yyyy-MM-dd'),
-      Status: inv.status,
-    }));
-    const filename = `all_investments_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCsv(filename, dataToExport);
-    toast.success("Investment data exported successfully.");
   };
 
   return (
@@ -178,16 +159,8 @@ const InvestmentManagement = () => {
         <TabsContent value="all-investments">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>All Active Investments</CardTitle>
-                  <CardDescription>A complete log of all ongoing investments across the platform.</CardDescription>
-                </div>
-                <Button size="sm" variant="outline" className="gap-1" onClick={handleExportInvestments}>
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
-                </Button>
-              </div>
+              <CardTitle>All Active Investments</CardTitle>
+              <CardDescription>A complete log of all ongoing investments across the platform.</CardDescription>
             </CardHeader>
             <CardContent>
               {investmentsLoading ? (

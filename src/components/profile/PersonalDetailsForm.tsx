@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, Upload, Users } from "lucide-react";
+import { CalendarIcon, Loader2, Upload } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -89,6 +89,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     onSuccess: async (data) => {
       toast.success("Profile updated successfully!");
       
+      // Also update the auth user metadata for immediate UI feedback
       const { error } = await supabase.auth.updateUser({
         data: { full_name: data.full_name }
       });
@@ -151,15 +152,6 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
         <CardDescription>Update your personal and profile information here.</CardDescription>
       </CardHeader>
       <CardContent>
-        {profile.referrer_full_name && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/50 p-4">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-sm text-muted-foreground">You were referred by</p>
-              <p className="font-semibold">{profile.referrer_full_name}</p>
-            </div>
-          </div>
-        )}
         <div className="grid gap-8 md:grid-cols-3">
           <div className="flex flex-col items-center gap-4 text-center md:col-span-1 md:border-r md:pr-8">
             <Avatar className="h-32 w-32">

@@ -1,11 +1,23 @@
-import { Navigate, Outlet, useOutletContext } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { PageLayoutContext } from '../layout/PageLayout';
+
+const checkIsAdmin = async () => {
+  const { data, error } = await supabase.rpc('is_admin');
+  if (error) {
+    console.error('Admin check failed:', error);
+    return false;
+  }
+  return data;
+};
 
 export const AdminRoute = () => {
-  const { isAdmin, isLoading } = useIsAdmin();
-  const context = useOutletContext<PageLayoutContext>();
+  const { data: isAdmin, isLoading, isError } = useQuery<boolean>({
+    queryKey: ['isAdmin'],
+    queryFn: checkIsAdmin,
+    retry: false, // Don't retry on failure
+  });
 
   if (isLoading) {
     return (
@@ -15,10 +27,10 @@ export const AdminRoute = () => {
     );
   }
 
-  if (!isAdmin) {
+  if (isError || !isAdmin) {
     // Redirect non-admins to the user dashboard
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet context={context} />;
+  return <Outlet />;
 };

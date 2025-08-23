@@ -6,7 +6,6 @@ import { InvestmentPlan } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { InvestDialog } from "./InvestDialog";
-import { TrendingUp } from "lucide-react";
 
 const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -30,10 +29,8 @@ const InvestmentPlans = () => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-6 pt-4 md:grid-cols-2 xl:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-80 w-full" />
-        ))}
+      <div className="flex justify-center pt-4">
+        <Skeleton className="h-80 w-full max-w-md" />
       </div>
     );
   }
@@ -42,25 +39,13 @@ const InvestmentPlans = () => {
     return <div className="mt-4 rounded-md border border-destructive bg-destructive/10 p-4 text-destructive-foreground">Error: {error.message}</div>;
   }
 
-  if (!plans || plans.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 bg-muted/20 p-12 text-center">
-        <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">No Active Investment Plans</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          There are currently no investment plans available. Please check back later.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 pt-4 md:grid-cols-2 xl:grid-cols-3">
-        {plans.map((plan) => {
+      <div className="flex justify-center pt-4">
+        {plans?.map((plan) => {
           const monthlyRate = plan.annual_rate / 12;
           return (
-            <Card key={plan.id} className="flex flex-col">
+            <Card key={plan.id} className="flex w-full max-w-md flex-col">
               <CardHeader>
                 <CardTitle>{plan.name}</CardTitle>
                 <CardDescription>{plan.description}</CardDescription>

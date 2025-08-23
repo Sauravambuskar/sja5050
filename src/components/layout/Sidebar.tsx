@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -20,21 +20,17 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/deposits", label: "Deposits", icon: ArrowDownToDot },
-  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
+  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
-  { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
-  { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
-  { to: "/admin/system", label: "System", icon: ServerCog },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount } = useAdminActionCounts();
+  const { pendingKycCount, pendingWithdrawalsCount } = useAdminActionCounts();
 
   return (
     <aside className={cn("flex h-full flex-col border-r bg-background p-4", className)}>
@@ -109,11 +105,6 @@ export function Sidebar({ className }: { className?: string }) {
               {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
                 <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
                   {pendingWithdrawalsCount}
-                </Badge>
-              )}
-              {item.label === "Deposits" && pendingDepositsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingDepositsCount}
                 </Badge>
               )}
             </NavLink>

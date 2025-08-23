@@ -13,7 +13,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import UpdatePassword from "./pages/UpdatePassword";
-import LoginMfa from "./pages/LoginMfa";
 
 // Client Pages
 import Dashboard from "./pages/Dashboard";
@@ -33,10 +32,6 @@ import KycManagement from "./pages/admin/KycManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
-import AuditLog from "./pages/admin/AuditLog";
-import SystemManagement from "./pages/admin/SystemManagement";
-import DepositManagement from "./pages/admin/DepositManagement";
-import PayoutReports from "./pages/admin/PayoutReports";
 
 const queryClient = new QueryClient();
 
@@ -60,22 +55,17 @@ const App = () => (
               <Route path="/admin" element={<AdminRoute />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
-                <Route path="deposits" element={<DepositManagement />} />
                 <Route path="investments" element={<InvestmentManagement />} />
                 <Route path="withdrawals" element={<WithdrawalManagement />} />
                 <Route path="kyc" element={<KycManagement />} />
                 <Route path="commissions" element={<CommissionRules />} />
                 <Route path="reports" element={<Reporting />} />
-                <Route path="payout-reports" element={<PayoutReports />} />
-                <Route path="audit-log" element={<AuditLog />} />
-                <Route path="system" element={<SystemManagement />} />
               </Route>
             </Route>
           </Route>
 
           {/* Auth & Fallback */}
           <Route path="/login" element={<Login />} />
-          <Route path="/login/mfa" element={<LoginMfa />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
