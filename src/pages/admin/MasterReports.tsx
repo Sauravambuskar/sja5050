@@ -2,14 +2,26 @@ import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Download, Loader2, Users } from 'lucide-react';
+import { Download, Loader2, Users, Landmark, Banknote } from 'lucide-react';
 import { exportToCsv } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { MasterUserReportItem } from '@/types/database';
+import { MasterUserReportItem, MasterInvestmentReportItem, MasterTransactionReportItem } from '@/types/database';
 
 const fetchAllUsersData = async (): Promise<MasterUserReportItem[]> => {
     const { data, error } = await supabase.rpc('export_all_users_details');
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+const fetchAllInvestmentsData = async (): Promise<MasterInvestmentReportItem[]> => {
+    const { data, error } = await supabase.rpc('export_all_investments_details');
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+const fetchAllTransactionsData = async (): Promise<MasterTransactionReportItem[]> => {
+    const { data, error } = await supabase.rpc('export_all_transactions_details');
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -24,6 +36,38 @@ const MasterReports = () => {
                 toast.success(`Successfully exported ${data.length} user records.`);
             } else {
                 toast.info('No user data found to export.');
+            }
+        },
+        onError: (error: Error) => {
+            toast.error(`Export failed: ${error.message}`);
+        },
+    });
+
+    const exportInvestmentsMutation = useMutation({
+        mutationFn: fetchAllInvestmentsData,
+        onSuccess: (data) => {
+            if (data && data.length > 0) {
+                const filename = `Master_Investments_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                exportToCsv(filename, data);
+                toast.success(`Successfully exported ${data.length} investment records.`);
+            } else {
+                toast.info('No investment data found to export.');
+            }
+        },
+        onError: (error: Error) => {
+            toast.error(`Export failed: ${error.message}`);
+        },
+    });
+
+    const exportTransactionsMutation = useMutation({
+        mutationFn: fetchAllTransactionsData,
+        onSuccess: (data) => {
+            if (data && data.length > 0) {
+                const filename = `Master_Transactions_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                exportToCsv(filename, data);
+                toast.success(`Successfully exported ${data.length} transaction records.`);
+            } else {
+                toast.info('No transaction data found to export.');
             }
         },
         onError: (error: Error) => {
@@ -69,31 +113,55 @@ const MasterReports = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="border-dashed">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="text-muted-foreground">
+                        <CardTitle className="flex items-center gap-2">
+                            <Landmark className="h-5 w-5" />
                             Investments Master Report
                         </CardTitle>
                         <CardDescription>
-                            (Coming Soon) Export all investment records.
+                            Export a complete CSV file of all investment records across all users.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button disabled className="w-full">Download</Button>
+                        <Button
+                            onClick={() => exportInvestmentsMutation.mutate()}
+                            disabled={exportInvestmentsMutation.isPending}
+                            className="w-full"
+                        >
+                            {exportInvestmentsMutation.isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download Investments CSV
+                        </Button>
                     </CardContent>
                 </Card>
 
-                <Card className="border-dashed">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="text-muted-foreground">
+                        <CardTitle className="flex items-center gap-2">
+                            <Banknote className="h-5 w-5" />
                             Transactions Master Report
                         </CardTitle>
                         <CardDescription>
-                            (Coming Soon) Export all financial transactions.
+                            Export a complete CSV file of all financial transactions, including deposits, withdrawals, and commissions.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button disabled className="w-full">Download</Button>
+                        <Button
+                            onClick={() => exportTransactionsMutation.mutate()}
+                            disabled={exportTransactionsMutation.isPending}
+                            className="w-full"
+                        >
+                            {exportTransactionsMutation.isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download Transactions CSV
+                        </Button>
                     </CardContent>
                 </Card>
             </div>

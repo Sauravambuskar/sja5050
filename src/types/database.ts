@@ -407,3 +407,28 @@ export type MasterUserReportItem = {
   referral_code: string | null;
   referrer_id: string | null;
 };
+
+export type MasterInvestmentReportItem = {
+  investment_id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  plan_name: string | null;
+  investment_amount: number;
+  start_date: string;
+  maturity_date: string;
+  status: string;
+  created_at: string;
+};
+
+export type MasterTransactionReportItem = {
+  transaction_id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  type: string;
+  amount: number;
+  status: string;
+  description: string | null;
+  created_at: string;
+};
