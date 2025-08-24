@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Eye } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,8 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ScreenshotViewerDialog } from "@/components/admin/ScreenshotViewerDialog";
+import { AdminDepositRequest } from "@/types/database";
 
 type InvestmentRequest = {
   request_id: string;
@@ -27,6 +29,8 @@ type InvestmentRequest = {
   requested_at: string;
   status: string;
   admin_notes: string | null;
+  reference_id: string | null;
+  screenshot_path: string | null;
 };
 
 const PAGE_SIZE = 10;
@@ -65,6 +69,7 @@ const InvestmentRequestManagement = () => {
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("Pending");
+  const [viewingScreenshot, setViewingScreenshot] = useState<AdminDepositRequest | null>(null);
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
 
@@ -126,6 +131,15 @@ const InvestmentRequestManagement = () => {
     handleProcessRequest(rejectionRequest, 'Rejected');
   };
 
+  const handleViewScreenshot = (request: InvestmentRequest) => {
+    // Adapt the InvestmentRequest type to what ScreenshotViewerDialog expects
+    setViewingScreenshot({
+      ...request,
+      user_email: null, // Not available in this context, but not used by dialog
+      wallet_balance: 0, // Not available, not used
+    } as AdminDepositRequest);
+  };
+
   return (
     <>
       <Card>
@@ -153,7 +167,8 @@ const InvestmentRequestManagement = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Requested Date</TableHead>
+                <TableHead>Reference ID</TableHead>
+                <TableHead>Requested</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -161,7 +176,7 @@ const InvestmentRequestManagement = () => {
             <TableBody>
               {isLoading ? (
                 [...Array(PAGE_SIZE)].map((_, i) => (
-                  <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                  <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                 ))
               ) : (
                 requests?.map((request) => (
@@ -173,15 +188,21 @@ const InvestmentRequestManagement = () => {
                     </TableCell>
                     <TableCell>{request.plan_name}</TableCell>
                     <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell>{request.reference_id}</TableCell>
                     <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
                     <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                     <TableCell className="text-right">
-                      {request.status === 'Pending' && (
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                        </div>
-                      )}
+                      <div className="flex justify-end gap-2">
+                        {request.screenshot_path && (
+                          <Button size="sm" variant="ghost" onClick={() => handleViewScreenshot(request)}><Eye className="h-4 w-4" /></Button>
+                        )}
+                        {request.status === 'Pending' && (
+                          <>
+                            <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -235,6 +256,12 @@ const InvestmentRequestManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <ScreenshotViewerDialog 
+        isOpen={!!viewingScreenshot}
+        onClose={() => setViewingScreenshot(null)}
+        request={viewingScreenshot}
+      />
     </>
   );
 };
