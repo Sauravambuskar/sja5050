@@ -36,15 +36,13 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import InvestmentManagement from "./pages/admin/InvestmentManagement";
 import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
-import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
-import InvestmentWithdrawalManagement from "./pages/admin/InvestmentWithdrawalManagement";
+import RequestManagement from "./pages/admin/RequestManagement";
 import KycManagement from "./pages/admin/KycManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AuditLog from "./pages/admin/AuditLog";
 import SystemManagement from "./pages/admin/SystemManagement";
-import DepositManagement from "./pages/admin/DepositManagement";
 import PayoutReports from "./pages/admin/PayoutReports";
 import FinancialReporting from "./pages/admin/FinancialReporting";
 import FaqManagement from "./pages/admin/FaqManagement";
@@ -83,11 +81,9 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
-                <Route path="deposits" element={<DepositManagement />} />
+                <Route path="requests" element={<RequestManagement />} />
                 <Route path="investment-requests" element={<InvestmentRequestManagement />} />
                 <Route path="investments" element={<InvestmentManagement />} />
-                <Route path="withdrawals" element={<WithdrawalManagement />} />
-                <Route path="investment-withdrawals" element={<InvestmentWithdrawalManagement />} />
                 <Route path="kyc" element={<KycManagement />} />
                 <Route path="support" element={<SupportDesk />} />
                 <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />

@@ -26,10 +26,8 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/deposits", label: "Deposits", icon: ArrowDownToDot },
-  { to: "/admin/investment-requests", label: "Investment Requests", icon: Banknote },
-  { to: "/admin/investment-withdrawals", label: "Inv. Withdrawals", icon: Banknote, badgeKey: "pendingInvestmentWithdrawalsCount" },
-  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote, badgeKey: "pendingWithdrawalsCount" },
+  { to: "/admin/requests", label: "Requests", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
+  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
@@ -52,19 +50,15 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { 
     pendingKycCount, 
-    pendingWithdrawalsCount, 
-    pendingDepositsCount, 
+    pendingRequestsCount,
     openTicketsCount,
-    pendingInvestmentWithdrawalsCount,
   } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   const adminBadges: { [key: string]: number } = {
     pendingKycCount,
-    pendingWithdrawalsCount,
-    pendingDepositsCount,
+    pendingRequestsCount,
     openTicketsCount,
-    pendingInvestmentWithdrawalsCount,
   };
 
   return (
