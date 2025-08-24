@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { InvestmentWithdrawal } from "@/components/investments/InvestmentWithdrawal";
 import { useSearchParams } from "react-router-dom";
 
 const fetchAgreement = async (userId: string) => {
