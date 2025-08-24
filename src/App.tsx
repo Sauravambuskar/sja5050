@@ -14,6 +14,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import UpdatePassword from "./pages/UpdatePassword";
 import LoginMfa from "./pages/LoginMfa";
+import { AuthProvider } from "./components/auth/AuthProvider"; // Import AuthProvider here
 
 // Client Pages
 import DashboardLoader from "./pages/DashboardLoader";
@@ -58,56 +59,58 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          {/* Client Portal */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<PageLayout />}>
-              <Route path="/" element={<DashboardLoader />} />
-              <Route path="/investments" element={<Investments />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/withdrawals" element={<Withdrawals />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/referrals" element={<Referrals />} />
-              <Route path="/payment-details" element={<PaymentDetails />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/agreement" element={<Agreement />} />
-              <Route path="/faq" element={<Faq />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
-              
-              {/* Admin Portal Routes */}
-              <Route path="/admin" element={<AdminRoute />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
-                <Route path="requests" element={<RequestManagement />} />
-                <Route path="investment-requests" element={<InvestmentRequestManagement />} />
-                <Route path="investments" element={<InvestmentManagement />} />
-                <Route path="kyc" element={<KycManagement />} />
-                <Route path="support" element={<SupportDesk />} />
-                <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
-                <Route path="commissions" element={<CommissionRules />} />
-                <Route path="reports" element={<Reporting />} />
-                <Route path="payout-reports" element={<PayoutReports />} />
-                <Route path="financial-reports" element={<FinancialReporting />} />
-                <Route path="master-reports" element={<MasterReports />} />
-                <Route path="faqs" element={<FaqManagement />} />
-                <Route path="audit-log" element={<AuditLog />} />
-                <Route path="system" element={<SystemManagement />} />
+        <AuthProvider> {/* AuthProvider is now inside QueryClientProvider */}
+          <Routes>
+            {/* Client Portal */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<PageLayout />}>
+                <Route path="/" element={<DashboardLoader />} />
+                <Route path="/investments" element={<Investments />} />
+                <Route path="/wallet" element={<Wallet />} />
+                <Route path="/withdrawals" element={<Withdrawals />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/referrals" element={<Referrals />} />
+                <Route path="/payment-details" element={<PaymentDetails />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/agreement" element={<Agreement />} />
+                <Route path="/faq" element={<Faq />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
+                
+                {/* Admin Portal Routes */}
+                <Route path="/admin" element={<AdminRoute />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
+                  <Route path="requests" element={<RequestManagement />} />
+                  <Route path="investment-requests" element={<InvestmentRequestManagement />} />
+                  <Route path="investments" element={<InvestmentManagement />} />
+                  <Route path="kyc" element={<KycManagement />} />
+                  <Route path="support" element={<SupportDesk />} />
+                  <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
+                  <Route path="commissions" element={<CommissionRules />} />
+                  <Route path="reports" element={<Reporting />} />
+                  <Route path="payout-reports" element={<PayoutReports />} />
+                  <Route path="financial-reports" element={<FinancialReporting />} />
+                  <Route path="master-reports" element={<MasterReports />} />
+                  <Route path="faqs" element={<FaqManagement />} />
+                  <Route path="audit-log" element={<AuditLog />} />
+                  <Route path="system" element={<SystemManagement />} />
+                </Route>
               </Route>
             </Route>
-          </Route>
 
-          {/* Auth & Fallback */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/login/mfa" element={<LoginMfa />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Auth & Fallback */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/login/mfa" element={<LoginMfa />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
