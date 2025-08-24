@@ -12,6 +12,7 @@ import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/investments", label: "Investments", icon: TrendingUp },
+  { to: "/investments?tab=withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/referrals", label: "Referrals", icon: Users },
