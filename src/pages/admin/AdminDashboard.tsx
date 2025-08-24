@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, UserCheck, Hourglass, ArrowDownToDot } from "lucide-react";
+import { DollarSign, Users, UserCheck, Hourglass, ArrowDownToDot, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDashboardStats } from "@/types/database";
@@ -24,13 +24,14 @@ const AdminDashboard = () => {
     queryFn: fetchAdminStats,
   });
 
-  const kpiData = [
-    { title: "Total Users", value: stats?.total_users.toLocaleString() ?? "0", icon: Users, to: "/admin/users" },
-    { title: "Assets Under Management", value: `₹${stats?.aum.toLocaleString('en-IN') ?? "0"}`, icon: DollarSign, to: "/admin/investments" },
-    { title: "Pending KYC Verifications", value: stats?.pending_kyc.toLocaleString() ?? "0", icon: UserCheck, to: "/admin/kyc" },
-    { title: "Pending Deposits", value: `${stats?.pending_deposits_count ?? "0"} (₹${stats?.pending_deposits_value.toLocaleString('en-IN') ?? "0"})`, icon: ArrowDownToDot, to: "/admin/deposits" },
-    { title: "Pending Withdrawals", value: `${stats?.pending_withdrawals_count ?? "0"} (₹${stats?.pending_withdrawals_value.toLocaleString('en-IN') ?? "0"})`, icon: Hourglass, to: "/admin/withdrawals" },
-  ];
+  const kpiData = stats ? [
+    { title: "Total Users", value: stats.total_users.toLocaleString(), icon: Users, to: "/admin/users" },
+    { title: "Assets Under Management", value: `₹${stats.aum.toLocaleString('en-IN')}`, icon: DollarSign, to: "/admin/investments" },
+    { title: "Pending KYC Verifications", value: stats.pending_kyc.toLocaleString(), icon: UserCheck, to: "/admin/kyc" },
+    { title: "Pending Deposits", value: `${stats.pending_deposits_count} (₹${stats.pending_deposits_value.toLocaleString('en-IN')})`, icon: ArrowDownToDot, to: "/admin/deposits" },
+    { title: "Pending Withdrawals", value: `${stats.pending_withdrawals_count} (₹${stats.pending_withdrawals_value.toLocaleString('en-IN')})`, icon: Hourglass, to: "/admin/withdrawals" },
+    { title: "Pending Investments", value: `${stats.pending_investments_count} (₹${stats.pending_investments_value.toLocaleString('en-IN')})`, icon: TrendingUp, to: "/admin/investment-requests" },
+  ] : [];
 
   return (
     <>
@@ -41,9 +42,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {statsLoading ? (
-          [...Array(5)].map((_, i) => (
+          [...Array(6)].map((_, i) => (
             <Card key={i}>
               <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
               <CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent>

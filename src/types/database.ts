@@ -52,6 +52,8 @@ export type AdminDashboardStats = {
   pending_withdrawals_value: number;
   pending_deposits_count: number;
   pending_deposits_value: number;
+  pending_investments_count: number;
+  pending_investments_value: number;
 };
 
 export type AdminWithdrawalRequest = {
