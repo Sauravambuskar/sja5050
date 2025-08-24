@@ -1,0 +1,1 @@
+DROP FUNCTION public.get_admin_dashboard_stats();
