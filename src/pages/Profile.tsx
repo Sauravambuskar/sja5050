@@ -17,6 +17,7 @@ import { exportToPdf } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import ProfileStatus from "@/components/profile/ProfileStatus";
+import { AdditionalDocuments } from "@/components/profile/AdditionalDocuments";
 
 const fetchMyProfile = async (): Promise<ProfileType> => {
   const { data, error } = await supabase.rpc('get_my_profile');
@@ -110,6 +111,7 @@ const Profile = () => {
                   <TabsTrigger value="bank">Bank Details</TabsTrigger>
                   <TabsTrigger value="nominee">Nominee</TabsTrigger>
                   <TabsTrigger value="kyc">KYC</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
                   <TabsTrigger value="id-card">ID Card</TabsTrigger>
                 </TabsList>
@@ -125,6 +127,9 @@ const Profile = () => {
               </TabsContent>
               <TabsContent value="kyc" className="mt-6">
                 <KycDocuments profile={profile} />
+              </TabsContent>
+              <TabsContent value="documents" className="mt-6">
+                <AdditionalDocuments />
               </TabsContent>
               <TabsContent value="security" className="mt-6">
                 <SecuritySettings />

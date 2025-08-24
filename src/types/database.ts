@@ -352,3 +352,12 @@ export type SupportMessage = {
     role: string;
   } | null;
 };
+
+export type AdditionalDocument = {
+  id: string;
+  user_id: string;
+  document_name: string;
+  file_path: string;
+  uploaded_at: string;
+  uploaded_by: string;
+};
