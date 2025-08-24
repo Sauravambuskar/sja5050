@@ -34,6 +34,7 @@ const adminNavItems = [
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
+  { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
   { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
   { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
   { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },

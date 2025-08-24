@@ -220,6 +220,21 @@ export type AdminHighValueTransaction = {
   created_at: string;
 };
 
+export type PayoutReportItem = {
+  user_id: string;
+  user_name: string;
+  investment_id: string;
+  plan_name: string;
+  investment_amount: number;
+  start_date: string;
+  maturity_date: string;
+  monthly_profit: number;
+  status: string;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
+};
+
 export type CommissionPayoutReportData = {
   month_start: string;
   total_commission: number;
