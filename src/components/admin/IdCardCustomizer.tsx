@@ -34,7 +34,15 @@ const updateSettings = async (values: SettingsFormValues) => {
 
 export const IdCardCustomizer = () => {
   const queryClient = useQueryClient();
-  const form = useForm<SettingsFormValues>({ resolver: zodResolver(settingsSchema) });
+  const form = useForm<SettingsFormValues>({ 
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      company_name: "",
+      logo_url: "",
+      accent_color: "#000000",
+      background_image_url: "",
+    }
+  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['idCardSettings'],
