@@ -121,7 +121,7 @@ export type UserInvestment = {
   investment_plans: {
     name: string;
     annual_rate: number;
-  }[] | null;
+  }[] | null; // Changed to array
 };
 
 export type Transaction = {
