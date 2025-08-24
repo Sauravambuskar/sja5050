@@ -97,7 +97,7 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
       // 1. Upload screenshot
       const fileExt = screenshotFile.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      const filePath = `${fileName}`; // Changed from `public/${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('deposit_proofs')
