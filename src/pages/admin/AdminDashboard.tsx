@@ -32,6 +32,7 @@ const AdminDashboard = () => {
     { title: "Pending KYC Verifications", value: stats.pending_kyc.toLocaleString(), icon: UserCheck, to: "/admin/kyc" },
     { title: "Pending Deposits", value: `${stats.pending_deposits_count} (₹${stats.pending_deposits_value.toLocaleString('en-IN')})`, icon: ArrowDownToDot, to: "/admin/deposits" },
     { title: "Pending Withdrawals", value: `${stats.pending_withdrawals_count} (₹${stats.pending_withdrawals_value.toLocaleString('en-IN')})`, icon: Hourglass, to: "/admin/withdrawals" },
+    { title: "Pending Inv. Withdrawals", value: `${stats.pending_investment_withdrawals_count} (₹${stats.pending_investment_withdrawals_value.toLocaleString('en-IN')})`, icon: Hourglass, to: "/admin/investment-withdrawals" },
     { title: "Pending Investments", value: `${stats.pending_investments_count} (₹${stats.pending_investments_value.toLocaleString('en-IN')})`, icon: TrendingUp, to: "/admin/investment-requests" },
   ] : [];
 
@@ -44,9 +45,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         {statsLoading ? (
-          [...Array(7)].map((_, i) => (
+          [...Array(8)].map((_, i) => (
             <Card key={i}>
               <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
               <CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent>

@@ -54,6 +54,8 @@ export type AdminDashboardStats = {
   pending_deposits_value: number;
   pending_investments_count: number;
   pending_investments_value: number;
+  pending_investment_withdrawals_count: number;
+  pending_investment_withdrawals_value: number;
   monthly_payout_projection: number;
 };
 

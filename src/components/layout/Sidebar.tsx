@@ -27,10 +27,11 @@ const adminNavItems = [
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/deposits", label: "Deposits", icon: ArrowDownToDot },
   { to: "/admin/investment-requests", label: "Investment Requests", icon: Banknote },
-  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
+  { to: "/admin/investment-withdrawals", label: "Inv. Withdrawals", icon: Banknote, badgeKey: "pendingInvestmentWithdrawalsCount" },
+  { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote, badgeKey: "pendingWithdrawalsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
-  { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
-  { to: "/admin/support", label: "Support Desk", icon: MessageSquare },
+  { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
+  { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
   { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
@@ -46,8 +47,22 @@ interface SidebarProps {
 export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { pendingKycCount, pendingWithdrawalsCount, pendingDepositsCount, openTicketsCount } = useAdminActionCounts();
+  const { 
+    pendingKycCount, 
+    pendingWithdrawalsCount, 
+    pendingDepositsCount, 
+    openTicketsCount,
+    pendingInvestmentWithdrawalsCount,
+  } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
+
+  const adminBadges: { [key: string]: number } = {
+    pendingKycCount,
+    pendingWithdrawalsCount,
+    pendingDepositsCount,
+    openTicketsCount,
+    pendingInvestmentWithdrawalsCount,
+  };
 
   return (
     <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
@@ -103,47 +118,35 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
           <div className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">
             Admin Portal
           </div>
-          {adminNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/admin"}
-              onClick={onLinkClick}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )
-              }
-            >
-              <div className="flex items-center">
-                <item.icon className="mr-3 h-5 w-5" />
-                <span>{item.label}</span>
-              </div>
-              {item.label === "KYC Toolkit" && pendingKycCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingKycCount}
-                </Badge>
-              )}
-              {item.label === "Withdrawals" && pendingWithdrawalsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingWithdrawalsCount}
-                </Badge>
-              )}
-              {item.label === "Deposits" && pendingDepositsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {pendingDepositsCount}
-                </Badge>
-              )}
-              {item.label === "Support Desk" && openTicketsCount > 0 && (
-                <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                  {openTicketsCount}
-                </Badge>
-              )}
-            </NavLink>
-          ))}
+          {adminNavItems.map((item) => {
+            const badgeCount = item.badgeKey ? adminBadges[item.badgeKey] : 0;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/admin"}
+                onClick={onLinkClick}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )
+                }
+              >
+                <div className="flex items-center">
+                  <item.icon className="mr-3 h-5 w-5" />
+                  <span>{item.label}</span>
+                </div>
+                {badgeCount > 0 && (
+                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                    {badgeCount}
+                  </Badge>
+                )}
+              </NavLink>
+            );
+          })}
         </div>
       )}
     </aside>
