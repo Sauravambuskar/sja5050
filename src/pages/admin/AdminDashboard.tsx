@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, UserCheck, Hourglass, ArrowDownToDot, TrendingUp } from "lucide-react";
+import { DollarSign, Users, UserCheck, Hourglass, ArrowDownToDot, TrendingUp, CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminDashboardStats } from "@/types/database";
@@ -11,6 +11,7 @@ import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
 import { Link } from "react-router-dom";
 import { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
 import { HighValueTransactions } from "@/components/admin/HighValueTransactions";
+import { BirthdayList } from "@/components/admin/BirthdayList";
 
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
@@ -27,6 +28,7 @@ const AdminDashboard = () => {
   const kpiData = stats ? [
     { title: "Total Users", value: stats.total_users.toLocaleString(), icon: Users, to: "/admin/users" },
     { title: "Assets Under Management", value: `₹${stats.aum.toLocaleString('en-IN')}`, icon: DollarSign, to: "/admin/investments" },
+    { title: "This Month's Payout Projection", value: `₹${stats.monthly_payout_projection.toLocaleString('en-IN')}`, icon: CalendarClock, to: "/admin/payout-reports" },
     { title: "Pending KYC Verifications", value: stats.pending_kyc.toLocaleString(), icon: UserCheck, to: "/admin/kyc" },
     { title: "Pending Deposits", value: `${stats.pending_deposits_count} (₹${stats.pending_deposits_value.toLocaleString('en-IN')})`, icon: ArrowDownToDot, to: "/admin/deposits" },
     { title: "Pending Withdrawals", value: `${stats.pending_withdrawals_count} (₹${stats.pending_withdrawals_value.toLocaleString('en-IN')})`, icon: Hourglass, to: "/admin/withdrawals" },
@@ -42,9 +44,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         {statsLoading ? (
-          [...Array(6)].map((_, i) => (
+          [...Array(7)].map((_, i) => (
             <Card key={i}>
               <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
               <CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent>
@@ -67,16 +69,21 @@ const AdminDashboard = () => {
         )}
       </div>
 
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <AdminActivityFeed />
+        </div>
+        <div className="space-y-6">
+          <BirthdayList />
+          <HighValueTransactions />
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <UserGrowthChart />
         <AumGrowthChart />
         <NewInvestmentsChart />
         <CommissionPayoutChart />
-      </div>
-
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <AdminActivityFeed />
-        <HighValueTransactions />
       </div>
     </>
   );

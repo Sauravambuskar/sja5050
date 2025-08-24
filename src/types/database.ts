@@ -54,6 +54,13 @@ export type AdminDashboardStats = {
   pending_deposits_value: number;
   pending_investments_count: number;
   pending_investments_value: number;
+  monthly_payout_projection: number;
+};
+
+export type BirthdayUser = {
+  id: string;
+  full_name: string;
+  dob: string;
 };
 
 export type AdminWithdrawalRequest = {
