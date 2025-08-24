@@ -18,12 +18,14 @@ const fetchOpenTicketsCount = async (): Promise<number> => {
 export const useAdminActionCounts = () => {
   const { isAdmin } = useIsAdmin();
 
-  const { data: stats } = useQuery<AdminDashboardStats>({
+  const { data, isLoading, error } = useQuery<AdminDashboardStats>({
     queryKey: ['adminDashboardStats'],
-    queryFn: fetchAdminStats,
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+      if (error) throw new Error(error.message);
+      return data[0];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const { data: openTicketsCount } = useQuery<number>({
@@ -35,10 +37,10 @@ export const useAdminActionCounts = () => {
   });
 
   return {
-    pendingKycCount: stats?.pending_kyc ?? 0,
-    pendingWithdrawalsCount: stats?.pending_withdrawals_count ?? 0,
-    pendingDepositsCount: stats?.pending_deposits_count ?? 0,
-    pendingInvestmentWithdrawalsCount: stats?.pending_investment_withdrawals_count ?? 0,
+    pendingKycCount: data?.pending_kyc ?? 0,
+    pendingWithdrawalsCount: data?.pending_withdrawals_count ?? 0,
+    pendingDepositsCount: data?.pending_deposits_count ?? 0,
+    pendingInvestmentWithdrawalsCount: data?.pending_investment_withdrawals_count ?? 0,
     openTicketsCount: openTicketsCount ?? 0,
   };
 };

@@ -23,20 +23,17 @@ import { Label } from "@/components/ui/label";
 
 const PAGE_SIZE = 10;
 
-const fetchWithdrawalRequests = async (page: number, statusFilter: string | null): Promise<AdminWithdrawalRequest[]> => {
+const fetchRequests = async ({ pageParam = 0 }): Promise<AdminWithdrawalRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_withdrawal_requests', {
-    p_limit: PAGE_SIZE,
-    p_offset: (page - 1) * PAGE_SIZE,
-    p_status_filter: statusFilter,
+    p_limit: 10,
+    p_offset: pageParam * 10,
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchWithdrawalRequestsCount = async (statusFilter: string | null): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count', {
-    p_status_filter: statusFilter,
-  });
+const fetchTotalCount = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count');
   if (error) throw new Error(error.message);
   return data;
 };
@@ -90,13 +87,13 @@ const WithdrawalManagement = () => {
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminWithdrawalRequest[]>({
     queryKey: ['allWithdrawalRequests', currentPage, filterValue],
-    queryFn: () => fetchWithdrawalRequests(currentPage, filterValue),
+    queryFn: () => fetchRequests({ pageParam: currentPage - 1 }),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
     queryKey: ['allWithdrawalRequestsCount', filterValue],
-    queryFn: () => fetchWithdrawalRequestsCount(filterValue),
+    queryFn: () => fetchTotalCount(),
   });
 
   useEffect(() => {

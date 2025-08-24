@@ -25,22 +25,17 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 const PAGE_SIZE = 10;
 
-const fetchDepositRequests = async (page: number, statusFilter: string | null, searchTerm: string | null): Promise<AdminDepositRequest[]> => {
+const fetchRequests = async ({ pageParam = 0 }): Promise<AdminDepositRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_deposit_requests', {
-    p_limit: PAGE_SIZE,
-    p_offset: (page - 1) * PAGE_SIZE,
-    p_status_filter: statusFilter,
-    p_search_text: searchTerm,
+    p_limit: 10,
+    p_offset: pageParam * 10,
   });
   if (error) throw new Error(error.message);
   return data;
 };
 
-const fetchDepositRequestsCount = async (statusFilter: string | null, searchTerm: string | null): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_all_deposit_requests_count', {
-    p_status_filter: statusFilter,
-    p_search_text: searchTerm,
-  });
+const fetchTotalCount = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_all_deposit_requests_count');
   if (error) throw new Error(error.message);
   return data;
 };
@@ -92,13 +87,13 @@ const DepositManagement = () => {
 
   const { data: requests, isLoading, isError, error } = useQuery<AdminDepositRequest[]>({
     queryKey: ['allDepositRequests', currentPage, filterValue, searchValue],
-    queryFn: () => fetchDepositRequests(currentPage, filterValue, searchValue),
+    queryFn: () => fetchRequests({ pageParam: currentPage - 1 }),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allDepositRequestsCount', filterValue, searchValue],
-    queryFn: () => fetchDepositRequestsCount(filterValue, searchValue),
+    queryKey: ['allDepositRequestsCount'],
+    queryFn: fetchTotalCount,
   });
 
   useEffect(() => {
