@@ -36,6 +36,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import InvestmentManagement from "./pages/admin/InvestmentManagement";
 import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
 import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
+import InvestmentWithdrawalManagement from "./pages/admin/InvestmentWithdrawalManagement";
 import KycManagement from "./pages/admin/KycManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
@@ -82,6 +83,7 @@ const App = () => (
                 <Route path="investment-requests" element={<InvestmentRequestManagement />} />
                 <Route path="investments" element={<InvestmentManagement />} />
                 <Route path="withdrawals" element={<WithdrawalManagement />} />
+                <Route path="investment-withdrawals" element={<InvestmentWithdrawalManagement />} />
                 <Route path="kyc" element={<KycManagement />} />
                 <Route path="support" element={<SupportDesk />} />
                 <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
