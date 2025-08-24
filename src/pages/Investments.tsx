@@ -6,6 +6,9 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InvestmentWithdrawal } from "@/components/investments/InvestmentWithdrawal";
+import { useSearchParams } from "react-router-dom";
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -19,6 +22,9 @@ const fetchAgreement = async (userId: string) => {
 
 const Investments = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'portfolio';
+
   const { data: signedAgreement, isLoading } = useQuery({
     queryKey: ['investmentAgreementCheck', user?.id],
     queryFn: () => fetchAgreement(user!.id),
@@ -41,10 +47,22 @@ const Investments = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : signedAgreement ? (
-          <>
-            <InvestmentPlans />
-            <InvestmentHistory />
-          </>
+          <Tabs defaultValue={defaultTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+              <TabsTrigger value="plans">Investment Plans</TabsTrigger>
+              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+            </TabsList>
+            <TabsContent value="portfolio">
+              <InvestmentHistory />
+            </TabsContent>
+            <TabsContent value="plans">
+              <InvestmentPlans />
+            </TabsContent>
+            <TabsContent value="withdrawals">
+              <InvestmentWithdrawal />
+            </TabsContent>
+          </Tabs>
         ) : (
           <SignAgreementPrompt />
         )}
