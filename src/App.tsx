@@ -33,7 +33,7 @@ import Withdrawals from "./pages/Withdrawals";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import UserManagement from "./pages/admin/UserManagement";
+import { UserManagement } from "./pages/admin/UserManagement";
 import InvestmentManagement from "./pages/admin/InvestmentManagement";
 import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
 import RequestManagement from "./pages/admin/RequestManagement";

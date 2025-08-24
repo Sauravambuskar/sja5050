@@ -7,11 +7,15 @@ import { Loader2 } from "lucide-react";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useAuth } from "../auth/AuthProvider";
 import { useState } from "react";
-import { UserDetailsSheet } from "../admin/users/UserDetailsSheet";
+import { UserDetailsSheet } from "@/components/admin/users/UserDetailsSheet"; // Corrected import path
 
 export type PageLayoutContext = {
   handleViewUser: (userId: string) => void;
 };
+
+export function usePageLayoutContext() {
+  return useOutletContext<PageLayoutContext>();
+}
 
 export function PageLayout() {
   const { isImpersonating } = useAuth();

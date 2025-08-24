@@ -8,16 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Eye, Loader2, Search, UserCog, UserPlus, Download } from "lucide-react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
-import { useOutletContext } from "react-router-dom";
-import { PageLayoutContext } from "@/components/layout/PageLayout";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { EditUserSheet } from "@/components/admin/users/EditUserSheet";
+import { EditUserSheet } from "@/components/admin/users/EditUserSheet"; // Corrected import path
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils";
 
@@ -56,7 +55,7 @@ const exportAllUsers = async (searchTerm: string, kycStatus: string, accountStat
 };
 
 export const UserManagement = () => {
-  const { handleViewUser } = useOutletContext<PageLayoutContext>();
+  const { handleViewUser } = usePageLayoutContext();
   const { impersonateUser } = useAuth();
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUserView | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -84,7 +83,7 @@ export const UserManagement = () => {
     setIsExporting(true);
     try {
       const dataToExport = await exportAllUsers(debouncedSearchTerm, kycStatusFilter, accountStatusFilter);
-      exportToCsv(dataToExport, `sja_users_${new Date().toISOString().split('T')[0]}.csv`);
+      exportToCsv(`sja_users_${new Date().toISOString().split('T')[0]}.csv`, dataToExport);
       toast.success("User data exported successfully.");
     } catch (error: any) {
       toast.error(`Export failed: ${error.message}`);
