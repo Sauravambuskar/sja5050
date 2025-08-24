@@ -48,19 +48,15 @@ const Investments = () => {
           </div>
         ) : signedAgreement ? (
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
               <TabsTrigger value="plans">Investment Plans</TabsTrigger>
-              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
             </TabsList>
             <TabsContent value="portfolio">
               <InvestmentHistory />
             </TabsContent>
             <TabsContent value="plans">
               <InvestmentPlans />
-            </TabsContent>
-            <TabsContent value="withdrawals">
-              <InvestmentWithdrawal />
             </TabsContent>
           </Tabs>
         ) : (
