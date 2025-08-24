@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ const adminNavItems = [
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
   { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
   { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
+  { to: "/admin/master-reports", label: "Master Reports", icon: Database },
   { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
   { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
   { to: "/admin/system", label: "System", icon: ServerCog },

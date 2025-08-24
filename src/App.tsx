@@ -50,6 +50,7 @@ import FaqManagement from "./pages/admin/FaqManagement";
 import SupportDesk from "./pages/admin/SupportDesk";
 import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
 import ClientPaymentDetails from "./pages/admin/ClientPaymentDetails";
+import MasterReports from "./pages/admin/MasterReports";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
                 <Route path="reports" element={<Reporting />} />
                 <Route path="payout-reports" element={<PayoutReports />} />
                 <Route path="financial-reports" element={<FinancialReporting />} />
+                <Route path="master-reports" element={<MasterReports />} />
                 <Route path="faqs" element={<FaqManagement />} />
                 <Route path="audit-log" element={<AuditLog />} />
                 <Route path="system" element={<SystemManagement />} />

@@ -376,3 +376,34 @@ export type AdditionalDocument = {
   uploaded_at: string;
   uploaded_by: string;
 };
+
+export type MasterUserReportItem = {
+  member_id: string | null;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: string;
+  join_date: string;
+  last_sign_in_at: string | null;
+  account_status: string;
+  kyc_status: string | null;
+  wallet_balance: number | null;
+  dob: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  pan_number: string | null;
+  aadhaar_number: string | null;
+  blood_group: string | null;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
+  nominee_name: string | null;
+  nominee_relationship: string | null;
+  nominee_dob: string | null;
+  nominee_blood_group: string | null;
+  referral_code: string | null;
+  referrer_id: string | null;
+};
