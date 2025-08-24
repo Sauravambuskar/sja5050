@@ -26,6 +26,7 @@ const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/deposits", label: "Deposits", icon: ArrowDownToDot },
+  { to: "/admin/investment-requests", label: "Investment Requests", icon: Banknote },
   { to: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck },
