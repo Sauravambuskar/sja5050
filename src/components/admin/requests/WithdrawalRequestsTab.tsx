@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const PAGE_SIZE = 10;
 
@@ -62,6 +64,7 @@ export const WithdrawalRequestsTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const isMobile = useIsMobile();
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
@@ -110,6 +113,104 @@ export const WithdrawalRequestsTab = () => {
     mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
+  const renderDesktopView = () => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Wallet Balance</TableHead>
+            <TableHead>Requested</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
+          ) : requests && requests.length > 0 ? (
+            requests.map((request) => (
+              <TableRow key={request.request_id}>
+                <TableCell>
+                  <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
+                </TableCell>
+                <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="flex items-center gap-2">
+                  <span>₹{request.wallet_balance.toLocaleString('en-IN')}</span>
+                  {request.amount > request.wallet_balance && (
+                    <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
+                  )}
+                </TableCell>
+                <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
+                <TableCell><Badge variant={request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+                <TableCell className="text-right">
+                  {request.status === 'Pending' && (
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow><TableCell colSpan={6} className="h-24 text-center">No withdrawal requests found.</TableCell></TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderMobileView = () => (
+    <div className="space-y-4">
+      {isLoading ? (
+        [...Array(3)].map((_, i) => <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><Skeleton className="h-10 w-full" /></CardContent></Card>)
+      ) : requests && requests.length > 0 ? (
+        requests.map((request) => (
+          <Card key={request.request_id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-base">
+                    <Button variant="link" className="p-0 h-auto text-base" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
+                  </CardTitle>
+                  <div className="text-lg font-bold text-primary">₹{request.amount.toLocaleString('en-IN')}</div>
+                </div>
+                <Badge variant={request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <div className="flex items-center">
+                <span className="text-muted-foreground w-28">Wallet Balance:</span>
+                <span className="flex items-center gap-2">
+                  ₹{request.wallet_balance.toLocaleString('en-IN')}
+                  {request.amount > request.wallet_balance && (
+                    <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-muted-foreground w-28">Requested:</span>
+                <span>{format(new Date(request.requested_at), "PP")}</span>
+              </div>
+            </CardContent>
+            {request.status === 'Pending' && (
+              <CardFooter className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
+                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+              </CardFooter>
+            )}
+          </Card>
+        ))
+      ) : (
+        <div className="h-24 text-center flex items-center justify-center">No withdrawal requests found.</div>
+      )}
+    </div>
+  );
+
   return (
     <div>
       <div className="flex flex-col gap-4 md:flex-row md:items-center mb-4">
@@ -127,53 +228,7 @@ export const WithdrawalRequestsTab = () => {
           </SelectContent>
         </Select>
       </div>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Wallet Balance</TableHead>
-              <TableHead>Requested</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
-            ) : requests && requests.length > 0 ? (
-              requests.map((request) => (
-                <TableRow key={request.request_id}>
-                  <TableCell>
-                    <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
-                  </TableCell>
-                  <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
-                  <TableCell className="flex items-center gap-2">
-                    <span>₹{request.wallet_balance.toLocaleString('en-IN')}</span>
-                    {request.amount > request.wallet_balance && (
-                      <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
-                    )}
-                  </TableCell>
-                  <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
-                  <TableCell><Badge variant={request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    {request.status === 'Pending' && (
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
-                        <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                        <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow><TableCell colSpan={6} className="h-24 text-center">No withdrawal requests found.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {isMobile ? renderMobileView() : renderDesktopView()}
       {pageCount > 1 && (
         <Pagination className="mt-6">
           <PaginationContent>

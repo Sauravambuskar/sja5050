@@ -65,11 +65,13 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
       <div className="mb-8 flex h-10 items-center p-2">
         {isSettingsLoading ? (
-          <Skeleton className="h-8 w-40" />
-        ) : settings?.logo_url ? (
-          <img src={settings.logo_url} alt={`${settings.company_name} Logo`} className="h-10" />
+          <Skeleton className="h-10 w-50" />
         ) : (
-          <div className="text-2xl font-bold text-primary">{settings?.company_name}</div>
+          <img 
+            src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" 
+            alt="Company Logo" 
+            className="h-100 w-auto object-contain" 
+          />
         )}
       </div>
       <nav className="flex flex-col space-y-1">
