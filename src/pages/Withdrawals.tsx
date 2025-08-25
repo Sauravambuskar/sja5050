@@ -25,14 +25,7 @@ type InvestmentWithdrawalRequest = {
 const fetchActiveInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
     .from('user_investments')
-    .select(`
-      id, 
-      investment_amount, 
-      start_date, 
-      maturity_date, 
-      status, 
-      investment_plans ( name, annual_rate )
-    `)
+    .select(`*, investment_plans(name)`)
     .eq('user_id', userId)
     .eq('status', 'Active');
   if (error) throw new Error(error.message);
@@ -105,7 +98,7 @@ const Withdrawals = () => {
         <AlertDescription>
           <ul className="list-disc pl-5 space-y-1">
             <li>All withdrawal requests are subject to admin approval and may take 2-3 business days to process.</li>
-            <li>Withdrawing an investment before its maturity date may result in forfeiture of accrued profits. The principal amount will be returned to your wallet.</li>
+            <li>Emergency withdrawals of 10% of the principal are permitted. Please use this option wisely.</li>
           </ul>
         </AlertDescription>
       </Alert>

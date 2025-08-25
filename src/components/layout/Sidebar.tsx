@@ -1,233 +1,151 @@
-import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Bell,
-  Home,
-  Package2,
-  Users,
-  LineChart,
-  HandCoins,
-  Wallet,
-  Landmark,
-  LifeBuoy,
-  ShieldCheck,
-  FileText,
-  Settings,
-  FileDown,
-  MessageSquareQuote,
-  UserCog,
-  History,
-  Network,
-  GanttChartSquare,
-  UserPlus,
-  FilePieChart,
-  LogOut,
-  User,
-  Building,
-  FileKey2,
-  Newspaper,
-  ShieldQuestion,
-  CreditCard,
-  FileSliders,
-  FileClock,
-  FileBarChart,
-  FileCheck2,
-  FileX2,
-  FileQuestion,
-  FileSearch,
-  FileCog,
-  FileDiff,
-  FileJson,
-  FileTerminal,
-  FileBox,
-  FileArchive,
-  FileBadge,
-  FileKey,
-  FileLock,
-  FilePlus,
-  FileMinus,
-  FileUp,
-  FileDown as FileDownIcon,
-  FileText as FileTextIcon,
-  FileCode,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileSpreadsheet,
-  FileArchive as FileArchiveIcon,
-  File as FileIcon,
-  Folder,
-  FolderOpen,
-  FolderPlus,
-  FolderMinus,
-  FolderCog,
-  FolderSearch,
-  FolderLock,
-  FolderKey,
-  FolderSymlink,
-  FolderGit2,
-  FolderGit,
-  FolderInput,
-  FolderOutput,
-  FolderDown,
-  FolderUp,
-  FolderClock,
-  FolderCheck,
-  FolderX,
-  FileQuestion as FolderQuestion, // Corrected import
-  FolderHeart,
-  FolderKanban,
-  FolderSync,
-  FolderTree,
-  FolderDot,
-  FolderClosed,
-  FolderArchive,
-  FolderGit as FolderGitIcon,
-  FolderGit2 as FolderGit2Icon,
-  FolderSymlink as FolderSymlinkIcon,
-  FolderKey as FolderKeyIcon,
-  FolderLock as FolderLockIcon,
-  FolderSearch as FolderSearchIcon,
-  FolderCog as FolderCogIcon,
-  FolderMinus as FolderMinusIcon,
-  FolderPlus as FolderPlusIcon,
-  FolderOpen as FolderOpenIcon,
-  Folder as FolderIcon,
-  File as FileIcon2,
-  FileArchive as FileArchiveIcon2,
-  FileSpreadsheet as FileSpreadsheetIcon,
-  FileAudio as FileAudioIcon,
-  FileVideo as FileVideoIcon,
-  FileImage as FileImageIcon,
-  FileCode as FileCodeIcon,
-  FileTextIcon as FileTextIcon2,
-  FileDown as FileDownIcon2,
-  FileUp as FileUpIcon,
-  FileMinus as FileMinusIcon,
-  FilePlus as FilePlusIcon,
-  FileLock as FileLockIcon,
-  FileKey as FileKeyIcon,
-  FileBadge as FileBadgeIcon,
-  FileArchive as FileArchiveIcon3,
-  FileBox as FileBoxIcon,
-  FileTerminal as FileTerminalIcon,
-  FileJson as FileJsonIcon,
-  FileDiff as FileDiffIcon,
-  FileCog as FileCogIcon,
-  FileSearch as FileSearchIcon,
-  FileQuestion as FileQuestionIcon,
-  FileX2 as FileX2Icon,
-  FileCheck2 as FileCheck2Icon,
-  FileBarChart as FileBarChartIcon,
-  FileClock as FileClockIcon,
-  FileSliders as FileSlidersIcon,
-  CreditCard as IdIcon, // Corrected import
-  ShieldQuestion as ShieldQuestionIcon,
-  Newspaper as NewspaperIcon,
-  FileKey2 as FileKey2Icon,
-  Building as BuildingIcon,
-  User as UserIcon,
-  LogOut as LogOutIcon,
-  FilePieChart as FilePieChartIcon,
-  UserPlus as UserPlusIcon,
-  GanttChartSquare as GanttChartSquareIcon,
-  Network as NetworkIcon,
-  History as HistoryIcon,
-  UserCog as UserCogIcon,
-  MessageSquareQuote as MessageSquareQuoteIcon,
-  FileDown as FileDownIcon3,
-  Settings as SettingsIcon,
-  FileText as FileTextIcon3,
-  ShieldCheck as ShieldCheckIcon,
-  LifeBuoy as LifeBuoyIcon,
-  Landmark as LandmarkIcon,
-  Wallet as WalletIcon,
-  HandCoins as HandCoinsIcon,
-  LineChart as LineChartIcon,
-  Users as UsersIcon,
-  Home as HomeIcon,
-  Bell as BellIcon,
-  Package2 as Package2Icon,
-} from "lucide-react";
-import { useAuth } from "../auth/AuthProvider";
-import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
+import { NavLink } from "react-router-dom";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { Badge } from "@/components/ui/badge";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "../ui/skeleton";
+import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
+import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 
-const NavLink = ({ to, icon: Icon, children, badgeCount }: { to: string; icon: React.ElementType; children: React.ReactNode; badgeCount?: number }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
+const userNavItems = [
+  { to: "/", label: "Dashboard", icon: Home },
+  { to: "/investments", label: "Investments", icon: TrendingUp },
+  { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
+  { to: "/wallet", label: "Wallet", icon: WalletIcon },
+  { to: "/profile", label: "Profile", icon: User },
+  { to: "/referrals", label: "Referrals", icon: Users },
+  { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/support", label: "Support", icon: MessageSquare },
+  { to: "/faq", label: "FAQ", icon: HelpCircle },
+];
+
+const adminNavItems = [
+  { to: "/admin", label: "Admin Dashboard", icon: Home },
+  { to: "/admin/users", label: "User Management", icon: Users },
+  { to: "/admin/requests", label: "Requests", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
+  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
+  { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
+  { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
+  { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
+  { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
+  { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
+  { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
+  { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
+  { to: "/admin/master-reports", label: "Master Reports", icon: Database },
+  { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
+  { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
+  { to: "/admin/system", label: "System", icon: ServerCog },
+];
+
+interface SidebarProps {
+  onLinkClick?: () => void;
+}
+
+export function Sidebar({ onLinkClick }: SidebarProps) {
+  const { count: unreadCount } = useUnreadNotifications();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
+  const { 
+    pendingKycCount, 
+    pendingRequestsCount,
+    openTicketsCount,
+  } = useAdminActionCounts();
+  const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
+
+  const adminBadges: { [key: string]: number } = {
+    pendingKycCount,
+    pendingRequestsCount,
+    openTicketsCount,
+  };
+
   return (
-    <Link
-      to={to}
-      className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-        isActive && "bg-muted text-primary"
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {children}
-      {badgeCount !== undefined && badgeCount > 0 && (
-        <span className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">
-          {badgeCount}
-        </span>
-      )}
-    </Link>
-  );
-};
-
-export const Sidebar = () => {
-  const { user, isAdmin, signOut } = useAuth();
-  const counts = useAdminActionCounts();
-
-  const totalPendingRequests = (counts?.pendingDepositsCount ?? 0) + (counts?.pendingWithdrawalsCount ?? 0) + (counts?.pendingKycCount ?? 0) + (counts?.pendingInvestmentWithdrawalsCount ?? 0);
-
-  return (
-    <div className="hidden border-r bg-muted/40 md:block">
-      <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <img src="/logo.png" alt="SJA Logo" className="h-10 w-auto" />
-          </Link>
-        </div>
-        <div className="flex-1">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {isAdmin ? (
-              <>
-                <NavLink to="/admin/dashboard" icon={HomeIcon}>Dashboard</NavLink>
-                <NavLink to="/admin/users" icon={UsersIcon}>Users</NavLink>
-                <NavLink to="/admin/investments" icon={LandmarkIcon}>Investments</NavLink>
-                <NavLink to="/admin/requests" icon={FileClock} badgeCount={totalPendingRequests}>Requests</NavLink>
-                <NavLink to="/admin/reports" icon={FilePieChartIcon}>Reports</NavLink>
-                <NavLink to="/admin/support" icon={LifeBuoyIcon} badgeCount={counts?.openTicketsCount}>Support</NavLink>
-                <NavLink to="/admin/settings" icon={SettingsIcon}>System</NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink to="/" icon={HomeIcon}>Dashboard</NavLink>
-                <NavLink to="/investments" icon={LandmarkIcon}>Investments</NavLink>
-                <NavLink to="/wallet" icon={WalletIcon}>Wallet</NavLink>
-                <NavLink to="/withdrawals" icon={HandCoinsIcon}>Withdrawals</NavLink>
-                <NavLink to="/referrals" icon={UsersIcon}>Referrals</NavLink>
-                <NavLink to="/income" icon={LineChartIcon}>Income</NavLink>
-                <NavLink to="/support" icon={LifeBuoyIcon}>Support</NavLink>
-              </>
-            )}
-          </nav>
-        </div>
-        <div className="mt-auto p-4 border-t">
-          <div className="flex items-center gap-3 mb-4">
-            <User className="h-8 w-8 rounded-full bg-muted p-1" />
-            <div>
-              <p className="text-sm font-semibold leading-none">{user?.email}</p>
-              <p className="text-xs text-muted-foreground">{isAdmin ? 'Administrator' : 'Member'}</p>
-            </div>
-          </div>
-          <Button size="sm" variant="outline" className="w-full" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
+    <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
+      <div className="mb-8 flex h-10 items-center p-2">
+        {isSettingsLoading ? (
+          <Skeleton className="h-8 w-40" />
+        ) : settings?.logo_url ? (
+          <img src={settings.logo_url} alt={`${settings.company_name} Logo`} className="h-10" />
+        ) : (
+          <div className="text-2xl font-bold text-primary">{settings?.company_name}</div>
+        )}
       </div>
-    </div>
+      <nav className="flex flex-col space-y-1">
+        {userNavItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
+            onClick={onLinkClick}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )
+            }
+          >
+            <div className="flex items-center">
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.label}</span>
+            </div>
+            {item.label === "Notifications" && unreadCount > 0 && (
+              <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                {unreadCount}
+              </Badge>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {isAdminLoading && (
+        <div className="mt-auto flex flex-col space-y-1">
+          <Separator className="my-4" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mt-auto flex flex-col space-y-1">
+          <Separator className="my-4" />
+          <div className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">
+            Admin Portal
+          </div>
+          {adminNavItems.map((item) => {
+            const badgeCount = item.badgeKey ? adminBadges[item.badgeKey] : 0;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/admin"}
+                onClick={onLinkClick}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )
+                }
+              >
+                <div className="flex items-center">
+                  <item.icon className="mr-3 h-5 w-5" />
+                  <span>{item.label}</span>
+                </div>
+                {badgeCount > 0 && (
+                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
+                    {badgeCount}
+                  </Badge>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </aside>
   );
 };

@@ -28,10 +28,7 @@ const withdrawalSchema = z.object({
 });
 
 const requestWithdrawal = async (amount: number) => {
-  // This function doesn't exist in the provided schema, assuming it should be a direct insert or a different RPC.
-  // For now, let's assume a direct insert into `withdrawal_requests` table.
-  // A proper RPC `request_withdrawal` should be created for better security and logic.
-  const { error } = await supabase.from('withdrawal_requests').insert({ amount: amount });
+  const { error } = await supabase.rpc('request_withdrawal', { request_amount: amount });
   if (error) throw new Error(error.message);
 };
 
@@ -151,7 +148,7 @@ const WithdrawalRequests = () => {
                 <TableCell className="text-right">
                   <Badge
                     variant={
-                      req.status === "Completed"
+                      req.status === "Completed" || req.status === "Approved"
                         ? "success"
                         : req.status === "Pending"
                         ? "outline"
@@ -196,7 +193,7 @@ const WithdrawalRequests = () => {
                 <CardTitle className="text-xl">₹{req.amount.toLocaleString('en-IN')}</CardTitle>
                 <Badge
                   variant={
-                    req.status === "Completed"
+                    req.status === "Completed" || req.status === "Approved"
                       ? "success"
                       : req.status === "Pending"
                       ? "outline"

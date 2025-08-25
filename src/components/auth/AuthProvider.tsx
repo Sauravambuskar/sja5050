@@ -1,99 +1,119 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  isAdmin: boolean;
   loading: boolean;
   isImpersonating: boolean;
-  impersonateUser: (userId: string) => void;
-  stopImpersonating: () => void;
-  signOut: () => void;
+  impersonateUser: (userId: string) => Promise<void>;
+  stopImpersonating: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const fetchUserRole = async (user: User | null) => {
-  if (!user) return false;
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-  if (error) {
-    console.error("Error fetching user role:", error);
-    return false;
-  }
-  return data?.role === 'admin';
-};
+const ADMIN_SESSION_KEY = 'supabase.admin-session';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
-    });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+      const adminSessionStr = localStorage.getItem(ADMIN_SESSION_KEY);
+      if (adminSessionStr) {
+        setIsImpersonating(true);
+      }
 
-    return () => subscription.unsubscribe();
+      setLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
-  const { data: isAdmin } = useQuery({
-    queryKey: ['userRole', user?.id],
-    queryFn: () => fetchUserRole(user),
-    enabled: !!user,
-    initialData: false,
-  });
+  const impersonateUser = async (userId: string) => {
+    const currentSession = session;
+    if (!currentSession) {
+      toast.error("You must be logged in to impersonate a user.");
+      return;
+    }
 
-  const impersonateUser = (userId: string) => {
-    // In a real app, you'd get a special token from a secure backend function
-    console.log(`Impersonating user ${userId}. This is a placeholder.`);
-    setIsImpersonating(true);
-    // You might store the original admin session in local storage
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-impersonate-user', {
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Store the admin session
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(currentSession));
+      setIsImpersonating(true);
+
+      // Set the new user session
+      const { error: sessionError } = await supabase.auth.setSession(data);
+      if (sessionError) throw sessionError;
+
+      toast.success(`Now viewing as user ${userId}.`);
+      // A full page reload ensures all components re-fetch data with the new user identity
+      window.location.reload();
+
+    } catch (err: any) {
+      toast.error(`Impersonation failed: ${err.message}`);
+    }
   };
 
-  const stopImpersonating = () => {
-    console.log("Stopping impersonation.");
-    setIsImpersonating(false);
-    // Restore original admin session
-    queryClient.invalidateQueries(); // Refetch data as the original user
-  };
+  const stopImpersonating = async () => {
+    const adminSessionStr = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (!adminSessionStr) {
+      toast.error("No admin session found to return to.");
+      return;
+    }
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const adminSession = JSON.parse(adminSessionStr);
+      const { error } = await supabase.auth.setSession(adminSession);
+      if (error) throw error;
+
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      setIsImpersonating(false);
+      toast.success("Returned to your admin session.");
+      window.location.reload();
+
+    } catch (err: any) {
+      toast.error(`Failed to stop impersonating: ${err.message}`);
+    }
   };
 
   const value = {
     session,
     user,
-    isAdmin: (isAdmin || false) && !isImpersonating,
     loading,
     isImpersonating,
     impersonateUser,
     stopImpersonating,
-    signOut,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

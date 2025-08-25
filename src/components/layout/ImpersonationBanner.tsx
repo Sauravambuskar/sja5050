@@ -1,36 +1,37 @@
-import { useAuth } from "../auth/AuthProvider";
-import { Button } from "../ui/button";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "../ui/button";
+import { useAuth } from "../auth/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
-const fetchProfile = async (userId: string | undefined) => {
-  if (!userId) return null;
-  const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+const fetchCurrentProfile = async () => {
+  const { data, error } = await supabase.rpc('get_my_profile');
   if (error) throw error;
-  return data;
+  return data[0];
 };
 
 export const ImpersonationBanner = () => {
   const { stopImpersonating } = useAuth();
   const { data: profile } = useQuery({
-    queryKey: ['impersonatedUserProfile'],
-    queryFn: () => fetchProfile(supabase.auth.getUser()?.id),
+    queryKey: ['myProfile'], // Re-uses the existing query
+    queryFn: fetchCurrentProfile,
   });
 
   return (
-    <div className="bg-yellow-500 text-yellow-900 p-2 text-center text-sm flex items-center justify-center gap-4">
-      <AlertTriangle className="h-5 w-5" />
-      <span>
-        You are currently impersonating <strong>{profile?.full_name || 'a user'}</strong>.
-      </span>
+    <div className="sticky top-0 z-50 flex items-center justify-center gap-x-6 bg-yellow-500 px-6 py-2.5 sm:px-3.5">
+      <div className="flex items-center text-sm leading-6 text-white">
+        <AlertTriangle className="h-5 w-5 mr-2" />
+        <p>
+          <strong>Admin View:</strong> You are currently viewing the platform as <span className="font-bold underline">{profile?.full_name || '...'}</span>.
+        </p>
+      </div>
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
+        className="bg-white text-yellow-600 hover:bg-gray-100"
         onClick={stopImpersonating}
-        className="hover:bg-yellow-600/50"
       >
-        Return to Admin View
+        Return to Admin
       </Button>
     </div>
   );
