@@ -4,10 +4,9 @@ import { AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
-const fetchProfile = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+const fetchProfile = async (userId: string | undefined) => {
+  if (!userId) return null;
+  const { data, error } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   if (error) throw error;
   return data;
 };
@@ -16,7 +15,7 @@ export const ImpersonationBanner = () => {
   const { stopImpersonating } = useAuth();
   const { data: profile } = useQuery({
     queryKey: ['impersonatedUserProfile'],
-    queryFn: fetchProfile,
+    queryFn: () => fetchProfile(supabase.auth.getUser()?.id),
   });
 
   return (

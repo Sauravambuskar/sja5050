@@ -4,7 +4,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { PageLayoutContext } from '../layout/PageLayout';
 
 export const AdminRoute = () => {
-  const { isAdmin, authLoading: isLoading } = useIsAdmin();
+  const { isAdmin, isLoading } = useIsAdmin();
   const context = useOutletContext<PageLayoutContext>();
 
   if (isLoading) {

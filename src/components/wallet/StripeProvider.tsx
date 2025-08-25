@@ -12,7 +12,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-// Removed: console.error("VITE_STRIPE_PUBLISHABLE_KEY is not set in .env file.");
+if (!stripePublishableKey) {
+  console.error("VITE_STRIPE_PUBLISHABLE_KEY is not set in .env file.");
+}
 
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
