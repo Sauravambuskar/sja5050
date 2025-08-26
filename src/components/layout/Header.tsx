@@ -16,8 +16,6 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { AdminUserSearch } from "../admin/AdminUserSearch";
-import { useTranslation } from "react-i18next";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function Header({ handleViewUser }: { handleViewUser: (userId: string) => void }) {
   const { user } = useAuth();
@@ -27,7 +25,6 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin } = useIsAdmin();
-  const { t } = useTranslation();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -82,7 +79,6 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
               <span className="sr-only">View notifications</span>
             </Button>
           </Link>
-          <LanguageSwitcher />
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -95,17 +91,17 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('header.my_account')}</DropdownMenuLabel>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/profile">{t('header.profile')}</Link>
+                <Link to="/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="mailto:support@sja-foundation.com">{t('header.support')}</a>
+                <a href="mailto:support@sja-foundation.com">Support</a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsLogoutDialogOpen(true)} className="text-destructive focus:text-destructive">
-                {t('header.logout')}
+                Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

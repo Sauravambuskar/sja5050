@@ -22,7 +22,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE = 10;
 
@@ -66,7 +65,6 @@ export const WithdrawalRequestsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
@@ -120,12 +118,12 @@ export const WithdrawalRequestsTab = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t('requests.user')}</TableHead>
-            <TableHead>{t('requests.amount')}</TableHead>
+            <TableHead>User</TableHead>
+            <TableHead>Amount</TableHead>
             <TableHead>Wallet Balance</TableHead>
-            <TableHead>{t('requests.requested')}</TableHead>
-            <TableHead>{t('requests.status')}</TableHead>
-            <TableHead className="text-right">{t('requests.actions')}</TableHead>
+            <TableHead>Requested</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -150,15 +148,15 @@ export const WithdrawalRequestsTab = () => {
                   {request.status === 'Pending' && (
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
-                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> {t('requests.approve')}</Button>
-                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> {t('requests.reject')}</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                     </div>
                   )}
                 </TableCell>
               </TableRow>
             ))
           ) : (
-            <TableRow><TableCell colSpan={6} className="h-24 text-center">{t('requests.no_withdrawals')}</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="h-24 text-center">No withdrawal requests found.</TableCell></TableRow>
           )}
         </TableBody>
       </Table>
@@ -201,14 +199,14 @@ export const WithdrawalRequestsTab = () => {
             {request.status === 'Pending' && (
               <CardFooter className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
-                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> {t('requests.reject')}</Button>
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> {t('requests.approve')}</Button>
+                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
               </CardFooter>
             )}
           </Card>
         ))
       ) : (
-        <div className="h-24 text-center flex items-center justify-center">{t('requests.no_withdrawals')}</div>
+        <div className="h-24 text-center flex items-center justify-center">No withdrawal requests found.</div>
       )}
     </div>
   );
