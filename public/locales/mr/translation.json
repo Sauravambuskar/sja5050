@@ -1,0 +1,35 @@
+{
+  "header": {
+    "my_account": "माझे खाते",
+    "profile": "प्रोफाइल",
+    "support": "समर्थन",
+    "logout": "लॉग आउट"
+  },
+  "sidebar": {
+    "dashboard": "डॅशबोर्ड",
+    "investments": "गुंतवणूक",
+    "wallet": "वॉलेट",
+    "withdrawals": "पैसे काढणे",
+    "referrals": "रेफरल्स",
+    "admin_dashboard": "प्रशासक डॅशबोर्ड",
+    "user_management": "वापरकर्ता व्यवस्थापन",
+    "request_management": "विनंती व्यवस्थापन"
+  },
+  "requests": {
+    "title": "विनंती व्यवस्थापन",
+    "description": "या एकीकृत डॅशबोर्डवरून सर्व प्रलंबित आर्थिक विनंत्यांवर प्रक्रिया करा.",
+    "deposits": "ठेवी",
+    "withdrawals": "पैसे काढणे",
+    "investment_withdrawals": "गुंतवणूक काढणे",
+    "user": "वापरकर्ता",
+    "amount": "रक्कम",
+    "status": "स्थिती",
+    "requested": "विनंती केली",
+    "actions": "क्रिया",
+    "approve": "मंजूर",
+    "reject": "नाकारणे",
+    "no_deposits": "कोणतीही ठेव विनंती आढळली नाही.",
+    "no_withdrawals": "कोणतीही पैसे काढण्याची विनंती आढळली नाही.",
+    "no_investment_withdrawals": "कोणतीही गुंतवणूक काढण्याची विनंती आढळली नाही."
+  }
+}

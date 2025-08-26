@@ -1,0 +1,35 @@
+{
+  "header": {
+    "my_account": "मेरा खाता",
+    "profile": "प्रोफ़ाइल",
+    "support": "सहायता",
+    "logout": "लॉग आउट"
+  },
+  "sidebar": {
+    "dashboard": "डैशबोर्ड",
+    "investments": "निवेश",
+    "wallet": "वॉलेट",
+    "withdrawals": "निकासी",
+    "referrals": "रेफरल",
+    "admin_dashboard": "एडमिन डैशबोर्ड",
+    "user_management": "उपयोगकर्ता प्रबंधन",
+    "request_management": "अनुरोध प्रबंधन"
+  },
+  "requests": {
+    "title": "अनुरोध प्रबंधन",
+    "description": "इस एकीकृत डैशबोर्ड से सभी लंबित वित्तीय अनुरोधों को संसाधित करें।",
+    "deposits": "जमा",
+    "withdrawals": "निकासी",
+    "investment_withdrawals": "निवेश निकासी",
+    "user": "उपयोगकर्ता",
+    "amount": "राशि",
+    "status": "स्थिति",
+    "requested": "अनुरोध किया गया",
+    "actions": "कार्रवाई",
+    "approve": "स्वीकृत",
+    "reject": "अस्वीकार",
+    "no_deposits": "कोई जमा अनुरोध नहीं मिला।",
+    "no_withdrawals": "कोई निकासी अनुरोध नहीं मिला।",
+    "no_investment_withdrawals": "कोई निवेश निकासी अनुरोध नहीं मिला।"
+  }
+}
