@@ -113,7 +113,7 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
                 )}
               />
             </div>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" loading={mutation.isPending}>
               {mutation.isPending ? "Saving..." : "Save Bank Details"}
             </Button>
           </form>
