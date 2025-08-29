@@ -17,16 +17,16 @@ const RequestManagement = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="deposits">
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
-            <TabsTrigger value="deposits">
+          <TabsList className="grid w-full grid-cols-1 h-auto sm:grid-cols-3">
+            <TabsTrigger value="deposits" className="py-2.5">
               Deposits
               {pendingDepositsCount > 0 && <Badge className="ml-2">{pendingDepositsCount}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="withdrawals">
+            <TabsTrigger value="withdrawals" className="py-2.5">
               Withdrawals
               {pendingWithdrawalsCount > 0 && <Badge className="ml-2">{pendingWithdrawalsCount}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="investment-withdrawals">
+            <TabsTrigger value="investment-withdrawals" className="py-2.5">
               Investment Withdrawals
               {pendingInvestmentWithdrawalsCount > 0 && <Badge className="ml-2">{pendingInvestmentWithdrawalsCount}</Badge>}
             </TabsTrigger>
