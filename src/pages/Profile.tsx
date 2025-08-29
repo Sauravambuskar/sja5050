@@ -5,6 +5,8 @@ import { BankDetailsForm } from "@/components/profile/BankDetailsForm";
 import { NomineeForm } from "@/components/profile/NomineeForm";
 import { KycForm } from "@/components/profile/KycForm";
 import { SecuritySettings } from "@/components/profile/SecuritySettings";
+import { VideoKyc } from "@/components/profile/VideoKyc";
+import { AdditionalDocuments } from "@/components/profile/AdditionalDocuments";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -33,6 +35,8 @@ const ProfilePage = () => {
     { value: "bank", label: "Bank", component: <BankDetailsForm profile={profile} /> },
     { value: "nominee", label: "Nominee", component: <NomineeForm profile={profile} /> },
     { value: "kyc", label: "KYC", component: <KycForm profile={profile} /> },
+    { value: "video-kyc", label: "Video KYC", component: <VideoKyc /> },
+    { value: "additional-docs", label: "Additional Documents", component: <AdditionalDocuments /> },
     { value: "security", label: "Security", component: <SecuritySettings /> },
   ];
 
