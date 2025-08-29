@@ -19,10 +19,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <TooltipProvider>
               <App />
+              <Toaster richColors />
             </TooltipProvider>
           </AuthProvider>
         </QueryClientProvider>
-        <Toaster richColors />
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
