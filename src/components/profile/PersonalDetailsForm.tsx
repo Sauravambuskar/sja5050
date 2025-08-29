@@ -172,7 +172,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
             </Avatar>
             <div className="w-full space-y-2">
               <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} disabled={avatarMutation.isPending} />
-              <Button onClick={handleUpload} disabled={!selectedFile || avatarMutation.isPending} className="w-full">
+              <Button onClick={handleUpload} loading={avatarMutation.isPending} disabled={!selectedFile || avatarMutation.isPending} className="w-full">
                 {avatarMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload Photo
               </Button>
@@ -194,7 +194,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
                   <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="pincode" render={({ field }) => (<FormItem><FormLabel>Pincode</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
-                <Button type="submit" disabled={detailsMutation.isPending}>{detailsMutation.isPending ? "Saving..." : "Save Changes"}</Button>
+                <Button type="submit" loading={detailsMutation.isPending}>{detailsMutation.isPending ? "Saving..." : "Save Changes"}</Button>
               </form>
             </Form>
           </div>

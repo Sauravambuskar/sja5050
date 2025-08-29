@@ -163,7 +163,7 @@ export const NomineeForm = ({ profile }: { profile: Profile }) => {
               />
               <FormField control={form.control} name="nominee_blood_group" render={({ field }) => (<FormItem><FormLabel>Nominee's Blood Group</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl><SelectContent><SelectItem value="A+">A+</SelectItem><SelectItem value="A-">A-</SelectItem><SelectItem value="B+">B+</SelectItem><SelectItem value="B-">B-</SelectItem><SelectItem value="AB+">AB+</SelectItem><SelectItem value="AB-">AB-</SelectItem><SelectItem value="O+">O+</SelectItem><SelectItem value="O-">O-</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" loading={mutation.isPending}>
               {mutation.isPending ? "Saving..." : "Save Nominee Details"}
             </Button>
           </form>
