@@ -86,7 +86,7 @@ export const SecuritySettings = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" loading={mutation.isPending}>
                 {mutation.isPending ? "Updating..." : "Update Password"}
               </Button>
             </form>
