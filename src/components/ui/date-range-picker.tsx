@@ -78,7 +78,7 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 flex" align="start">
+        <PopoverContent className="w-auto p-0 flex flex-col sm:flex-row" align="start">
           <div className="flex flex-col space-y-2 border-r p-4">
             <Select onValueChange={handlePreset}>
               <SelectTrigger>
