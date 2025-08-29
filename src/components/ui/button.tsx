@@ -51,7 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={loading || props.disabled} // Disable when loading or explicitly disabled
         {...props}
       >
-        {loading && <Loader2 className="animate-spin" />} {/* Show spinner when loading */}
+        {loading && !asChild && <Loader2 className="animate-spin" />} {/* Show spinner when loading */}
         {children}
       </Comp>
     );
