@@ -19,7 +19,12 @@ import { exportToCsv } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const fetchKycRequests = async (): Promise<AdminKycRequest[]> => {
-  const { data, error } = await supabase.rpc('get_all_kyc_requests');
+  const { data, error } = await supabase.rpc('get_all_kyc_requests', {
+    p_status_filter: null,
+    p_search_text: null,
+    p_limit: null,
+    p_offset: null,
+  });
   if (error) throw new Error(error.message);
   return data;
 };
