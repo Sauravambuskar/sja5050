@@ -2,9 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Loader2, Search } from "lucide-react";
+import { CheckCircle, XCircle, Search } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { AdminInvestmentWithdrawalRequest } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -12,9 +13,9 @@ import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { usePageLayoutContext } from "@/components/layout/PageLayout";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { usePagination, DOTS } from "@/hooks/usePagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
@@ -23,19 +24,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 
 const PAGE_SIZE = 10;
 
-type InvestmentWithdrawalRequest = {
-  request_id: string;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  plan_name: string;
-  investment_amount: number;
-  investment_start_date: string;
-  requested_at: string;
-  status: string;
-};
-
-const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<InvestmentWithdrawalRequest[]> => {
+const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<AdminInvestmentWithdrawalRequest[]> => {
   const { data, error } = await supabase.rpc('get_all_investment_withdrawal_requests', {
     p_status_filter: status,
     p_search_text: search,
@@ -67,7 +56,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
 export const InvestmentWithdrawalRequestsTab = () => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
-  const [rejectionRequest, setRejectionRequest] = useState<InvestmentWithdrawalRequest | null>(null);
+  const [rejectionRequest, setRejectionRequest] = useState<AdminInvestmentWithdrawalRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -78,7 +67,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
 
-  const { data: requests, isLoading } = useQuery<InvestmentWithdrawalRequest[]>({
+  const { data: requests, isLoading } = useQuery<AdminInvestmentWithdrawalRequest[]>({
     queryKey: ['allInvestmentWithdrawalRequests', currentPage, filterValue, searchValue],
     queryFn: () => fetchRequests(filterValue, searchValue, currentPage),
     placeholderData: keepPreviousData,
@@ -111,12 +100,12 @@ export const InvestmentWithdrawalRequestsTab = () => {
     }
   });
 
-  const handleProcessRequest = (request: InvestmentWithdrawalRequest, status: 'Approved' | 'Rejected') => {
+  const handleProcessRequest = (request: AdminInvestmentWithdrawalRequest, status: 'Approved' | 'Rejected') => {
     const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
     mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
-  const handleRejectClick = (request: InvestmentWithdrawalRequest) => {
+  const handleRejectClick = (request: AdminInvestmentWithdrawalRequest) => {
     setRejectionNotes("");
     setRejectionRequest(request);
   };
@@ -150,22 +139,19 @@ export const InvestmentWithdrawalRequestsTab = () => {
             requests.map((request) => (
               <TableRow key={request.request_id}>
                 <TableCell>
-                  <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name}</Button>
-                  <div className="text-xs text-muted-foreground">{request.user_email}</div>
+                  <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
                 </TableCell>
                 <TableCell>{request.plan_name}</TableCell>
                 <TableCell>₹{request.investment_amount.toLocaleString('en-IN')}</TableCell>
                 <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
                 <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {request.status === 'Pending' && (
-                      <>
-                        <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                        <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                      </>
-                    )}
-                  </div>
+                  {request.status === 'Pending' && (
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))
@@ -188,18 +174,15 @@ export const InvestmentWithdrawalRequestsTab = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-base">
-                    <Button variant="link" className="p-0 h-auto text-base" onClick={() => handleViewUser(request.user_id)}>{request.user_name}</Button>
+                    <Button variant="link" className="p-0 h-auto text-base" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
                   </CardTitle>
+                  <div className="text-sm text-muted-foreground">{request.plan_name}</div>
                   <div className="text-lg font-bold text-primary">₹{request.investment_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
-              <div className="flex items-center">
-                <span className="text-muted-foreground w-24">Plan:</span>
-                <span>{request.plan_name}</span>
-              </div>
               <div className="flex items-center">
                 <span className="text-muted-foreground w-24">Requested:</span>
                 <span>{format(new Date(request.requested_at), "PP p")}</span>
@@ -214,7 +197,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
           </Card>
         ))
       ) : (
-        <div className="h-24 text-center flex items-center justify-center">No investment withdrawal requests found.</div>
+        <div className="h-24 text-center flex items-center justify-center">No requests found.</div>
       )}
     </div>
   );
@@ -254,11 +237,11 @@ export const InvestmentWithdrawalRequestsTab = () => {
           </AlertDialogHeader>
           <div className="py-2">
             <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
-            <Textarea id="rejection-notes" placeholder="e.g., Investment has not reached minimum term..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
+            <Textarea id="rejection-notes" placeholder="e.g., Investment not eligible for early withdrawal..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>{mutation.isPending ? <Loader2 className="animate-spin" /> : "Confirm Rejection"}</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>{mutation.isPending ? "Processing..." : "Confirm Rejection"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

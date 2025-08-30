@@ -79,6 +79,18 @@ export type AdminWithdrawalRequest = {
   wallet_balance: number;
 };
 
+export type AdminInvestmentWithdrawalRequest = {
+  request_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  plan_name: string;
+  investment_amount: number;
+  investment_start_date: string;
+  requested_at: string;
+  status: string;
+};
+
 export type AdminDepositRequest = {
   request_id: string;
   user_name: string | null; // Changed to allow null
