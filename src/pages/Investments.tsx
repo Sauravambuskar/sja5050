@@ -8,6 +8,9 @@ import { Loader2 } from "lucide-react";
 import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { History, DollarSign } from "lucide-react";
+import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -46,16 +49,31 @@ const Investments = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : signedAgreement ? (
-          <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+          <Tabs defaultValue="plans" className="w-full mt-6">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="plans">Investment Plans</TabsTrigger>
+              <TabsTrigger value="history">My Investments</TabsTrigger>
+              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
             </TabsList>
-            <TabsContent value="portfolio">
-              <InvestmentHistory />
-            </TabsContent>
             <TabsContent value="plans">
               <InvestmentPlans />
+            </TabsContent>
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <History />
+                    <CardTitle>My Investment History</CardTitle>
+                  </div>
+                  <CardDescription>Track your active, matured, and withdrawn investments.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <InvestmentHistory />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="withdrawals">
+              <InvestmentWithdrawalRequests />
             </TabsContent>
           </Tabs>
         ) : (
@@ -65,4 +83,5 @@ const Investments = () => {
     </>
   );
 };
+
 export default Investments;

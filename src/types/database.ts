@@ -444,3 +444,12 @@ export type MasterTransactionReportItem = {
   description: string | null;
   created_at: string;
 };
+
+export type UserInvestmentWithdrawalRequest = {
+  request_id: string;
+  plan_name: string;
+  investment_amount: number;
+  requested_at: string;
+  status: string;
+  admin_notes: string | null;
+};
