@@ -16,7 +16,7 @@ export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps
     {
       title: "Complete Your Profile",
       description: "Fill in your personal, bank, and nominee details.",
-      isComplete: !!(profile.phone && profile.address && profile.bank_account_number && profile.nominee_name),
+      isComplete: !!(profile.phone && profile.address && profile.bank_account_number),
       link: "/profile",
     },
     {
@@ -45,6 +45,21 @@ export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps
   if (completionPercentage === 100) {
     return null;
   }
+
+  const completenessChecks = [
+    { key: 'full_name', label: 'Add your full name', tab: 'personal' },
+    { key: 'phone', label: 'Add your phone number', tab: 'personal' },
+    { key: 'dob', label: 'Add your date of birth', tab: 'personal' },
+    { key: 'address', label: 'Add your full address', tab: 'personal' },
+    { key: 'bank_account_number', label: 'Add your bank details', tab: 'bank' },
+    { key: 'kyc_status', label: 'Complete KYC verification', tab: 'kyc', check: (val: any) => val === 'Approved' },
+  ];
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '';
+    const words = name.split(' ');
+    return words.length > 1 ? `${words[0][0]}${words[1][0]}` : words[0][0];
+  };
 
   return (
     <Card className="my-6">

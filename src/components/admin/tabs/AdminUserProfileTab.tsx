@@ -15,8 +15,8 @@ import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon, Download } f
 import { cn, exportToPdf } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { NomineeManager } from "../NomineeManager";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name is required.").max(100),
@@ -26,12 +26,10 @@ const profileSchema = z.object({
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   pincode: z.string().optional().nullable(),
+  bank_name: z.string().optional().nullable(),
   bank_account_holder_name: z.string().optional().nullable(),
   bank_account_number: z.string().optional().nullable(),
   bank_ifsc_code: z.string().optional().nullable(),
-  nominee_name: z.string().optional().nullable(),
-  nominee_relationship: z.string().optional().nullable(),
-  nominee_dob: z.date().optional().nullable(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -77,12 +75,10 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
         city: profile.city || "",
         state: profile.state || "",
         pincode: profile.pincode || "",
+        bank_name: profile.bank_name || "",
         bank_account_holder_name: profile.bank_account_holder_name || "",
         bank_account_number: profile.bank_account_number || "",
         bank_ifsc_code: profile.bank_ifsc_code || "",
-        nominee_name: profile.nominee_name || "",
-        nominee_relationship: profile.nominee_relationship || "",
-        nominee_dob: profile.nominee_dob ? new Date(profile.nominee_dob) : null,
       });
     }
   }, [profile, isEditingProfile, profileForm]);
@@ -90,7 +86,7 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   const updateProfileMutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
       if (!userId) throw new Error("User ID is missing.");
-      const profileData = { ...values, dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null, nominee_dob: values.nominee_dob ? format(values.nominee_dob, 'yyyy-MM-dd') : null };
+      const profileData = { ...values, dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null };
       const { error } = await supabase.functions.invoke('admin-update-profile', { body: { userId, profileData } });
       if (error) throw error;
     },
@@ -125,12 +121,10 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
       ["KYC Status", profile.kyc_status || 'N/A'],
       ["Referral Code", profile.referral_code || 'N/A'],
       ["Referred By", profile.referrer_full_name || 'N/A'],
+      ["Bank Name", profile.bank_name || 'N/A'],
       ["Bank Account Holder", profile.bank_account_holder_name || 'N/A'],
       ["Bank Account Number", profile.bank_account_number || 'N/A'],
       ["Bank IFSC Code", profile.bank_ifsc_code || 'N/A'],
-      ["Nominee Name", profile.nominee_name || 'N/A'],
-      ["Nominee Relationship", profile.nominee_relationship || 'N/A'],
-      ["Nominee DOB", profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : 'N/A'],
     ];
 
     exportToPdf(filename, title, headers, data.map(row => [row[0], String(row[1])]), profile.full_name || "User");
@@ -141,59 +135,57 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   if (!profile) return <p>Could not load profile.</p>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1.5">
-          <CardTitle>User Profile Details</CardTitle>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isEditingProfile && (
-            <Button variant="outline" size="sm" onClick={handleDownloadProfile}>
-              <Download className="mr-2 h-4 w-4" /> Download
-            </Button>
-          )}
-          {!isEditingProfile && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
-              <Edit className="mr-2 h-4 w-4" /> Edit
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isEditingProfile ? (
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-              <h4 className="font-semibold">Personal Details</h4>
-              <FormField control={profileForm.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1900} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              
-              <h4 className="font-semibold pt-4">Bank Details</h4>
-              <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-
-              <h4 className="font-semibold pt-4">Nominee Details</h4>
-              <FormField control={profileForm.control} name="nominee_name" render={({ field }) => (<FormItem><FormLabel>Nominee Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="nominee_relationship" render={({ field }) => (<FormItem><FormLabel>Relationship</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select relationship" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Spouse">Spouse</SelectItem><SelectItem value="Child">Child</SelectItem><SelectItem value="Parent">Parent</SelectItem><SelectItem value="Sibling">Sibling</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              <FormField control={profileForm.control} name="nominee_dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Nominee DOB</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1900} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-              
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
-                <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
-              </div>
-            </form>
-          </Form>
-        ) : (
-          <div className="space-y-4">
-            <div><h4 className="font-semibold mb-2">Account Details</h4><DetailRow label="Referral Code" value={profile.referral_code} /><DetailRow label="Referred By">{profile.referrer_id && profile.referrer_full_name ? (<Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>{profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" /></Button>) : (<span>N/A</span>)}</DetailRow></div>
-            <div><h4 className="font-semibold mb-2">Personal Details</h4><DetailRow label="Full Name" value={profile.full_name} /><DetailRow label="Phone" value={profile.phone} /><DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} /><DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} /></div>
-            <div><h4 className="font-semibold mb-2">Bank Details</h4><DetailRow label="Account Holder" value={profile.bank_account_holder_name} /><DetailRow label="Account Number" value={profile.bank_account_number} /><DetailRow label="IFSC Code" value={profile.bank_ifsc_code} /></div>
-            <div><h4 className="font-semibold mb-2">Nominee Details</h4><DetailRow label="Nominee Name" value={profile.nominee_name} /><DetailRow label="Relationship" value={profile.nominee_relationship} /><DetailRow label="Nominee DOB" value={profile.nominee_dob ? format(new Date(profile.nominee_dob), 'PPP') : null} /></div>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>User Profile Details</CardTitle>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <div className="flex items-center gap-2">
+            {!isEditingProfile && (
+              <Button variant="outline" size="sm" onClick={handleDownloadProfile}>
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Button>
+            )}
+            {!isEditingProfile && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isEditingProfile ? (
+            <Form {...profileForm}>
+              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                <h4 className="font-semibold">Personal Details</h4>
+                <FormField control={profileForm.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1900} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                
+                <h4 className="font-semibold pt-4">Bank Details</h4>
+                <FormField control={profileForm.control} name="bank_name" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
+                </div>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-4">
+              <div><h4 className="font-semibold mb-2">Account Details</h4><DetailRow label="Referral Code" value={profile.referral_code} /><DetailRow label="Referred By">{profile.referrer_id && profile.referrer_full_name ? (<Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>{profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" /></Button>) : (<span>N/A</span>)}</DetailRow></div>
+              <div><h4 className="font-semibold mb-2">Personal Details</h4><DetailRow label="Full Name" value={profile.full_name} /><DetailRow label="Phone" value={profile.phone} /><DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} /><DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} /></div>
+              <div><h4 className="font-semibold mb-2">Bank Details</h4><DetailRow label="Bank Name" value={profile.bank_name} /><DetailRow label="Account Holder" value={profile.bank_account_holder_name} /><DetailRow label="Account Number" value={profile.bank_account_number} /><DetailRow label="IFSC Code" value={profile.bank_ifsc_code} /></div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <NomineeManager userId={userId} />
+    </div>
   );
 };

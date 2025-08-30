@@ -22,7 +22,6 @@ const completenessChecks = [
   { key: 'phone', check: (p: Profile) => !!p.phone },
   { key: 'address', check: (p: Profile) => !!p.address },
   { key: 'bank_account_number', check: (p: Profile) => !!p.bank_account_number },
-  { key: 'nominee_name', check: (p: Profile) => !!p.nominee_name },
   { key: 'kyc_status', check: (p: Profile) => p.kyc_status === 'Approved' },
 ];
 

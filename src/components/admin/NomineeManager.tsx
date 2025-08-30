@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Nominee } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,7 +19,6 @@ import { format } from 'date-fns';
 import { Loader2, PlusCircle, Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { useProfile } from '@/hooks/useProfile';
 
 const nomineeSchema = z.object({
   full_name: z.string().min(2, "Name is required"),
@@ -30,23 +29,22 @@ const nomineeSchema = z.object({
 
 type NomineeFormValues = z.infer<typeof nomineeSchema>;
 
-export const NomineeForm = () => {
+interface NomineeManagerProps {
+  userId: string;
+}
+
+export const NomineeManager = ({ userId }: NomineeManagerProps) => {
   const queryClient = useQueryClient();
-  const { data: profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingNominee, setEditingNominee] = useState<Nominee | null>(null);
 
-  const userId = profile?.id;
-
   const { data: nominees, isLoading } = useQuery({
-    queryKey: ['myNominees', userId],
+    queryKey: ['nominees', userId],
     queryFn: async () => {
-      if (!userId) return [];
       const { data, error } = await supabase.from('nominees').select('*').eq('user_id', userId).order('created_at');
       if (error) throw new Error(error.message);
       return data;
     },
-    enabled: !!userId,
   });
 
   const form = useForm<NomineeFormValues>({
@@ -55,7 +53,6 @@ export const NomineeForm = () => {
 
   const mutation = useMutation({
     mutationFn: async (values: NomineeFormValues) => {
-      if (!userId) throw new Error("User not found");
       const nomineeData = {
         ...values,
         user_id: userId,
@@ -72,7 +69,7 @@ export const NomineeForm = () => {
     },
     onSuccess: () => {
       toast.success(`Nominee ${editingNominee ? 'updated' : 'added'} successfully!`);
-      queryClient.invalidateQueries({ queryKey: ['myNominees', userId] });
+      queryClient.invalidateQueries({ queryKey: ['nominees', userId] });
       setIsDialogOpen(false);
       setEditingNominee(null);
     },
@@ -88,7 +85,7 @@ export const NomineeForm = () => {
     },
     onSuccess: () => {
       toast.success("Nominee deleted successfully!");
-      queryClient.invalidateQueries({ queryKey: ['myNominees', userId] });
+      queryClient.invalidateQueries({ queryKey: ['nominees', userId] });
     },
     onError: (error) => {
       toast.error(`Failed to delete: ${error.message}`);
@@ -118,14 +115,9 @@ export const NomineeForm = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Nominee Details</CardTitle>
-            <CardDescription>Designate one or more nominees for your account.</CardDescription>
-          </div>
-          <Button size="sm" onClick={handleAddNew}><PlusCircle className="mr-2 h-4 w-4" /> Add Nominee</Button>
-        </div>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Nominee Details</CardTitle>
+        <Button size="sm" onClick={handleAddNew}><PlusCircle className="mr-2 h-4 w-4" /> Add Nominee</Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (

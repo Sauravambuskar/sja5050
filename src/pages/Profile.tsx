@@ -33,7 +33,7 @@ const ProfilePage = () => {
   const tabs = [
     { value: "personal", label: "Personal", component: <PersonalDetailsForm profile={profile} /> },
     { value: "bank", label: "Bank", component: <BankDetailsForm profile={profile} /> },
-    { value: "nominee", label: "Nominee", component: <NomineeForm profile={profile} /> },
+    { value: "nominee", label: "Nominee", component: <NomineeForm /> },
     { value: "kyc", label: "KYC", component: <KycForm profile={profile} /> },
     { value: "video-kyc", label: "Video KYC", component: <VideoKyc /> },
     { value: "additional-docs", label: "Additional Documents", component: <AdditionalDocuments /> },

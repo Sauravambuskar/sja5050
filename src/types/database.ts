@@ -11,6 +11,16 @@ export type InvestmentPlan = {
   image_url: string | null;
 };
 
+export type Nominee = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  relationship: string;
+  dob: string | null;
+  blood_group: string | null;
+  created_at: string;
+};
+
 export type AdminUserView = {
   id: string;
   full_name: string | null;
@@ -290,9 +300,6 @@ export type Profile = {
   kyc_status: string | null;
   referral_code: string | null;
   referrer_id: string | null;
-  nominee_name: string | null;
-  nominee_relationship: string | null;
-  nominee_dob: string | null;
   role: string;
   bank_name: string | null;
   bank_account_holder_name: string | null;
@@ -303,7 +310,6 @@ export type Profile = {
   pan_number: string | null;
   aadhaar_number: string | null;
   blood_group: string | null;
-  nominee_blood_group: string | null;
 };
 
 export type InvestmentSummary = {
@@ -413,10 +419,6 @@ export type MasterUserReportItem = {
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
-  nominee_name: string | null;
-  nominee_relationship: string | null;
-  nominee_dob: string | null;
-  nominee_blood_group: string | null;
   referral_code: string | null;
   referrer_id: string | null;
 };
