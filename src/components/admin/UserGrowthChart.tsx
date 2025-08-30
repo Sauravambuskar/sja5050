@@ -2,7 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { UserGrowthReportData } from "@/types/database";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 
@@ -24,6 +32,13 @@ const fetchUserGrowth = async (): Promise<UserGrowthReportData[]> => {
   }));
 };
 
+const chartConfig = {
+  user_count: {
+    label: "New Users",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
+
 const UserGrowthChart = () => {
   const { data: chartData, isLoading } = useQuery<UserGrowthReportData[]>({
     queryKey: ['adminUserGrowthChart'],
@@ -43,21 +58,24 @@ const UserGrowthChart = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                  }}
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
                 />
-                <Legend />
-                <Bar dataKey="user_count" name="New Users" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <YAxis allowDecimals={false} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="user_count" fill="var(--color-user_count)" radius={4} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           )}
         </div>
       </CardContent>

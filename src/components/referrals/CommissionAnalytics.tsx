@@ -8,7 +8,13 @@ import { CommissionStats, CommissionHistoryItem } from "@/types/database";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 type CommissionHistoryReportData = {
   report_date: string;
@@ -36,6 +42,13 @@ const fetchCommissionHistoryReport = async (): Promise<CommissionHistoryReportDa
     day: format(new Date(item.report_date), "d MMM"),
   }));
 };
+
+const chartConfig = {
+  commission_income: {
+    label: "Commission Earned",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 const CommissionAnalytics = () => {
   const isMobile = useIsMobile();
@@ -193,21 +206,23 @@ const CommissionAnalytics = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig} className="h-full w-full">
                 <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis tickFormatter={(value) => `₹${value}`} />
-                  <Tooltip
-                    formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                    }}
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
                   />
-                  <Bar dataKey="commission_income" name="Commission Earned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <YAxis tickFormatter={(value) => `₹${value}`} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`} />}
+                  />
+                  <Bar dataKey="commission_income" fill="var(--color-commission_income)" radius={4} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             )}
           </div>
         </div>

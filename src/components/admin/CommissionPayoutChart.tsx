@@ -2,7 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { CommissionPayoutReportData } from "@/types/database";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 
@@ -23,6 +31,13 @@ const fetchCommissionPayouts = async (): Promise<CommissionPayoutReportData[]> =
   }));
 };
 
+const chartConfig = {
+  total_commission: {
+    label: "Commission Paid",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
+
 const CommissionPayoutChart = () => {
   const { data: chartData, isLoading } = useQuery<CommissionPayoutReportData[]>({
     queryKey: ['adminCommissionPayoutChart'],
@@ -42,22 +57,24 @@ const CommissionPayoutChart = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`} />
-                <Tooltip
-                  formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                  }}
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
                 />
-                <Legend />
-                <Bar dataKey="total_commission" name="Commission Paid" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <YAxis tickFormatter={(value) => `₹${Number(value / 1000).toLocaleString('en-IN')}k`} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`} />}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="total_commission" fill="var(--color-total_commission)" radius={4} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           )}
         </div>
       </CardContent>

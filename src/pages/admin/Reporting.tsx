@@ -1,10 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
-import { cn, exportToCsv } from "@/lib/utils";
+import { Download, Loader2 } from "lucide-react";
+import { exportToCsv } from "@/lib/utils";
 import { format } from "date-fns";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -51,6 +59,13 @@ const fetchReportData = async (reportType: ReportType, startDate?: Date, endDate
   }));
 };
 
+const chartConfigs = {
+  user_growth: { dataKey: 'user_count', name: 'New Users', unit: '', color: 'hsl(var(--chart-1))' },
+  commission_payouts: { dataKey: 'total_commission', name: 'Commission Paid', unit: '₹', color: 'hsl(var(--chart-2))' },
+  new_investments: { dataKey: 'total_investment_amount', name: 'New Investment Volume', unit: '₹', color: 'hsl(var(--chart-3))' },
+  aum_growth: { dataKey: 'total_aum', name: 'Assets Under Management', unit: '₹', color: 'hsl(var(--chart-4))' },
+};
+
 const Reporting = () => {
   const [reportType, setReportType] = React.useState<ReportType>('user_growth');
   const [date, setDate] = React.useState<DateRange | undefined>();
@@ -60,14 +75,13 @@ const Reporting = () => {
     queryFn: () => fetchReportData(reportType, date?.from, date?.to),
   });
 
+  const currentChartDetails = chartConfigs[reportType];
   const chartConfig = {
-    user_growth: { dataKey: 'user_count', name: 'New Users', unit: '' },
-    commission_payouts: { dataKey: 'total_commission', name: 'Commission Paid', unit: '₹' },
-    new_investments: { dataKey: 'total_investment_amount', name: 'New Investment Volume', unit: '₹' },
-    aum_growth: { dataKey: 'total_aum', name: 'Assets Under Management', unit: '₹' },
-  };
-
-  const currentChartConfig = chartConfig[reportType];
+    [currentChartDetails.dataKey]: {
+      label: currentChartDetails.name,
+      color: currentChartDetails.color,
+    },
+  } satisfies ChartConfig;
 
   const handleExport = () => {
     if (!reportData || reportData.length === 0) {
@@ -115,28 +129,30 @@ const Reporting = () => {
             <DateRangePicker date={date} onDateChange={setDate} />
           </div>
           <div className="h-[350px] w-full rounded-lg border p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              {isReportLoading ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
+            {isReportLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <ChartContainer config={chartConfig} className="h-full w-full">
                 <BarChart data={reportData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => `${currentChartConfig.unit}${value}`} />
-                  <Tooltip
-                    formatter={(value) => `${currentChartConfig.unit}${Number(value).toLocaleString()}`}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                    }}
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
                   />
-                  <Legend />
-                  <Bar dataKey={currentChartConfig.dataKey} name={currentChartConfig.name} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <YAxis tickFormatter={(value) => `${currentChartDetails.unit}${value}`} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent formatter={(value) => `${currentChartDetails.unit}${Number(value).toLocaleString()}`} />}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar dataKey={currentChartDetails.dataKey} fill={`var(--color-${currentChartDetails.dataKey})`} radius={4} />
                 </BarChart>
-              )}
-            </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </div>
           <div className="mt-6">
             <h3 className="text-lg font-medium">Report Data</h3>
@@ -145,7 +161,7 @@ const Reporting = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Month</TableHead>
-                    <TableHead className="text-right">{currentChartConfig.name}</TableHead>
+                    <TableHead className="text-right">{currentChartDetails.name}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -161,8 +177,8 @@ const Reporting = () => {
                       <TableRow key={index}>
                         <TableCell>{(row as any).month}</TableCell>
                         <TableCell className="text-right">
-                          {currentChartConfig.unit}
-                          {(row as any)[currentChartConfig.dataKey].toLocaleString()}
+                          {currentChartDetails.unit}
+                          {(row as any)[currentChartDetails.dataKey].toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))
