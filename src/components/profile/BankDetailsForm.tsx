@@ -12,6 +12,7 @@ import { Profile } from "@/types/database";
 import { useEffect } from "react";
 
 const bankDetailsSchema = z.object({
+  bank_name: z.string().min(2, "Bank name is too short").max(100).nullable(),
   bank_account_holder_name: z.string().min(2, "Name is too short").max(100).nullable(),
   bank_account_number: z.string().min(5, "Account number is too short").max(20).nullable(),
   bank_ifsc_code: z.string().min(4, "IFSC code is too short").max(15).nullable(),
@@ -21,6 +22,7 @@ type BankDetailsFormValues = z.infer<typeof bankDetailsSchema>;
 
 const updateBankDetails = async (values: BankDetailsFormValues) => {
   const { error } = await supabase.rpc('update_my_bank_details', {
+    p_bank_name: values.bank_name,
     p_bank_account_holder_name: values.bank_account_holder_name,
     p_bank_account_number: values.bank_account_number,
     p_bank_ifsc_code: values.bank_ifsc_code,
@@ -39,6 +41,7 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
   useEffect(() => {
     if (profile) {
       form.reset({
+        bank_name: profile.bank_name || "",
         bank_account_holder_name: profile.bank_account_holder_name || "",
         bank_account_number: profile.bank_account_number || "",
         bank_ifsc_code: profile.bank_ifsc_code || "",
@@ -72,19 +75,34 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="bank_account_holder_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Holder Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., John Doe" {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="bank_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bank Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., State Bank of India" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bank_account_holder_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Holder Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., John Doe" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
