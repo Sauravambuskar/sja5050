@@ -26,29 +26,9 @@ type UserInvestment = {
 };
 
 const fetchActiveInvestments = async (): Promise<UserInvestment[]> => {
-  const { data, error } = await supabase
-    .from('user_investments')
-    .select(`
-      id,
-      investment_amount,
-      start_date,
-      maturity_date,
-      status,
-      investment_plans (name)
-    `)
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-    .eq('status', 'Active');
-
+  const { data, error } = await supabase.rpc('get_my_active_investments_for_withdrawal');
   if (error) throw new Error(error.message);
-
-  return data.map(item => ({
-    id: item.id,
-    investment_amount: item.investment_amount,
-    start_date: item.start_date,
-    maturity_date: item.maturity_date,
-    status: item.status,
-    plan_name: (item.investment_plans as Array<{ name: string }>)?.[0]?.name || 'Unknown Plan',
-  }));
+  return data;
 };
 
 const fetchInvestmentWithdrawalRequests = async (): Promise<UserInvestmentWithdrawalRequest[]> => {
