@@ -21,6 +21,8 @@ import { AdminInvestmentWithdrawalRequest } from "@/types/database";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -59,14 +61,14 @@ const InvestmentWithdrawalManagement = () => {
   const [rejectionRequest, setRejectionRequest] = useState<AdminInvestmentWithdrawalRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>("Pending");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm;
 
-  const { data: requests, isLoading } = useQuery<AdminInvestmentWithdrawalRequest[]>({
+  const { data: requests, isLoading, error } = useQuery<AdminInvestmentWithdrawalRequest[]>({
     queryKey: ['allInvestmentWithdrawalRequests', currentPage, filterValue, searchValue],
     queryFn: () => fetchRequests(currentPage, filterValue, searchValue),
     placeholderData: keepPreviousData,
@@ -146,91 +148,110 @@ const InvestmentWithdrawalManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <TooltipProvider>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Plan & Amounts</TableHead>
-                  <TableHead>Requested</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  [...Array(PAGE_SIZE)].map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                  ))
-                ) : (
-                  requests?.map((request) => (
-                    <TableRow key={request.request_id}>
-                      <TableCell>
-                        <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>
-                          {request.user_name}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">{request.user_email}</p>
-                      </TableCell>
-                      <TableCell>
-                        {request.plan_name}
-                        <p className="text-sm font-semibold text-primary">
-                          Request: ₹{request.requested_amount.toLocaleString('en-IN')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Total Principal: ₹{request.investment_amount.toLocaleString('en-IN')}
-                        </p>
-                      </TableCell>
-                      <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
-                      <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {request.reason && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="ghost"><Info className="h-4 w-4" /></Button>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <p><strong>User's Reason:</strong> {request.reason}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {request.status === 'Pending' && (
-                            <>
-                              <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                              <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error Fetching Requests</AlertTitle>
+              <AlertDescription>
+                There was a problem loading the withdrawal requests. Please try again later.
+                <p className="text-xs mt-2 font-mono">{error.message}</p>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <TooltipProvider>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Plan & Amounts</TableHead>
+                      <TableHead>Requested</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TooltipProvider>
-          {pageCount > 1 && (
-            <Pagination className="mt-6">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
-                </PaginationItem>
-                {paginationRange?.map((pageNumber, index) => {
-                  if (pageNumber === DOTS) {
-                    return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
-                  }
-                  return (
-                    <PaginationItem key={pageNumber}>
-                      <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
-                        {pageNumber}
-                      </PaginationLink>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      [...Array(PAGE_SIZE)].map((_, i) => (
+                        <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                      ))
+                    ) : requests?.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center h-24">
+                          No withdrawal requests found for the selected filters.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      requests?.map((request) => (
+                        <TableRow key={request.request_id}>
+                          <TableCell>
+                            <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>
+                              {request.user_name}
+                            </Button>
+                            <p className="text-xs text-muted-foreground">{request.user_email}</p>
+                          </TableCell>
+                          <TableCell>
+                            {request.plan_name}
+                            <p className="text-sm font-semibold text-primary">
+                              Request: ₹{request.requested_amount.toLocaleString('en-IN')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Total Principal: ₹{request.investment_amount.toLocaleString('en-IN')}
+                            </p>
+                          </TableCell>
+                          <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
+                          <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {request.reason && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="ghost"><Info className="h-4 w-4" /></Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p><strong>User's Reason:</strong> {request.reason}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {request.status === 'Pending' && (
+                                <>
+                                  <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                                  <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
+              {pageCount > 1 && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(p => p - 1); }} className={cn(currentPage === 1 && "pointer-events-none opacity-50")} />
                     </PaginationItem>
-                  );
-                })}
-                <PaginationItem>
-                  <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                    {paginationRange?.map((pageNumber, index) => {
+                      if (pageNumber === DOTS) {
+                        return <PaginationItem key={`dots-${index}`}><PaginationEllipsis /></PaginationItem>;
+                      }
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }} isActive={currentPage === pageNumber}>
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < pageCount) setCurrentPage(p => p + 1); }} className={cn(currentPage === pageCount && "pointer-events-none opacity-50")} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
