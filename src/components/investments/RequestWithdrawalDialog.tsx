@@ -26,9 +26,13 @@ interface RequestWithdrawalDialogProps {
 }
 
 const submitWithdrawalRequest = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
+  // Defensive check: Ensure amount is a valid number. If NaN, treat as 0 to avoid NULL constraint violation.
+  // The backend function will then reject 0 with a more specific error.
+  const safeAmount = isNaN(amount) ? 0 : amount;
+
   const { error } = await supabase.rpc("request_investment_withdrawal", {
     p_investment_id: investmentId,
-    p_amount: amount,
+    p_amount: safeAmount,
     p_reason: reason,
   });
 
