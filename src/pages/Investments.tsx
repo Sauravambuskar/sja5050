@@ -26,7 +26,7 @@ const fetchAgreement = async (userId: string) => {
 const Investments = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'portfolio';
+  const defaultTab = searchParams.get('tab') || 'plans';
 
   const { data: signedAgreement, isLoading } = useQuery({
     queryKey: ['investmentAgreementCheck', user?.id],
@@ -37,8 +37,8 @@ const Investments = () => {
   return (
     <div className="space-y-8">
       <InvestmentSummary />
-      <Tabs defaultValue="plans" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
           <TabsTrigger value="plans">Investment Plans</TabsTrigger>
           <TabsTrigger value="history">My Investments</TabsTrigger>
           <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
