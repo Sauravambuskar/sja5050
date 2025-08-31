@@ -3,8 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InvestmentPlans from "@/components/investments/InvestmentPlans";
 import InvestmentHistory from "@/components/investments/InvestmentHistory";
 import InvestmentSummary from "@/components/investments/InvestmentSummary";
-import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
-import { RequestWithdrawalForm } from "@/components/investments/RequestWithdrawalForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";

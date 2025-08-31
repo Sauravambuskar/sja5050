@@ -219,7 +219,7 @@ export type Notification = {
   id: string;
   title: string;
   description: string | null;
-  type: 'info' | 'success' | 'error';
+  type: 'info' | 'success' | 'error' | 'warning';
   link_to: string | null;
   is_read: boolean;
   created_at: string;
