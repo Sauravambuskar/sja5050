@@ -19,6 +19,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 
+type SupportMessageWithProfile = SupportMessage & {
+  profiles?: { full_name: string | null; role: string; };
+};
+
 const replySchema = z.object({
   message: z.string().min(1, "Message cannot be empty."),
 });
@@ -32,7 +36,7 @@ const fetchTicketDetails = async (ticketId: string) => {
 const fetchTicketMessages = async (ticketId: string) => {
   const { data, error } = await supabase.from('support_messages').select('*, profiles(full_name, role)').eq('ticket_id', ticketId).order('created_at', { ascending: true });
   if (error) throw error;
-  return data as SupportMessage[];
+  return data as SupportMessageWithProfile[];
 };
 
 const addReply = async ({ ticketId, message }: { ticketId: string; message: string }) => {

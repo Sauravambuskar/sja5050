@@ -26,12 +26,6 @@ export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps
       link: "/profile?tab=kyc",
     },
     {
-      title: "Add Funds to Your Wallet",
-      description: "Make your first deposit to start investing.",
-      isComplete: stats.walletBalance > 0,
-      link: "/wallet?tab=deposit",
-    },
-    {
       title: "Make Your First Investment",
       description: "Choose a plan and put your funds to work.",
       isComplete: stats.totalInvested > 0,

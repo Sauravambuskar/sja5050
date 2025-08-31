@@ -18,28 +18,16 @@ import LoginMfa from "./pages/LoginMfa";
 // Client Pages
 import DashboardLoader from "./pages/DashboardLoader";
 import Investments from "./pages/Investments";
-import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
-import Agreement from "./pages/Agreement";
-import Faq from "./pages/Faq";
-import Support from "./pages/Support";
-import TicketDetails from "./pages/TicketDetails";
-import PaymentDetails from "./pages/PaymentDetails";
-import Reports from "./pages/Reports";
-import Withdrawals from "./pages/Withdrawals";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import InvestmentManagement from "./pages/admin/InvestmentManagement";
 import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
-import InvestmentWithdrawalManagement from "./pages/admin/InvestmentWithdrawalManagement";
-import DepositManagement from "./pages/admin/DepositManagement";
-import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
-import KycManagement from "./pages/admin/KycManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -64,17 +52,11 @@ const App = () => (
         <Route element={<PageLayout />}>
           <Route path="/" element={<DashboardLoader />} />
           <Route path="/investments" element={<Investments />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/withdrawals" element={<Withdrawals />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/referrals" element={<Referrals />} />
-          <Route path="/payment-details" element={<PaymentDetails />} />
-          <Route path="/reports" element={<Reports />} />
           <Route path="/notifications" element={<Notifications />} />
-          <Route path="/agreement" element={<Agreement />} />
-          <Route path="/faq" element={<Faq />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
+          <Route path="/support" element={<SupportDesk />} />
+          <Route path="/support/ticket/:ticketId" element={<AdminTicketDetails />} />
           
           {/* Admin Portal Routes */}
           <Route path="/admin" element={<AdminRoute />}>

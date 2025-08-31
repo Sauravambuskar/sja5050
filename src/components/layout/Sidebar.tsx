@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, BarChart3, ShieldCheck, Landmark, GitBranch, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -12,8 +12,6 @@ import { Separator } from "@/components/ui/separator";
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/investments", label: "Investments", icon: TrendingUp },
-  { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
-  { to: "/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/referrals", label: "Referrals", icon: Users },
   { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
@@ -26,7 +24,6 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/withdrawals", label: "Withdrawal Requests", icon: Banknote, badgeKey: "pendingWithdrawalsCount" },
   { to: "/admin/investment-requests", label: "Investment Approvals", icon: TrendingUp, badgeKey: "pendingInvestmentsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
@@ -48,16 +45,14 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { 
-    pendingWithdrawalsCount,
-    openTicketsCount,
     pendingInvestmentsCount,
+    openTicketsCount,
   } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   const adminBadges: { [key: string]: number } = {
-    pendingWithdrawalsCount,
-    openTicketsCount,
     pendingInvestmentsCount,
+    openTicketsCount,
   };
 
   return (

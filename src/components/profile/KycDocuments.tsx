@@ -25,7 +25,7 @@ const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const fetchKycDocuments = async (userId: string): Promise<KycDocument[]> => {
   const { data, error } = await supabase
     .from("kyc_documents")
-    .select("id, document_type, file_path, status, submitted_at, admin_notes")
+    .select("id, document_type, file_path, status, submitted_at, admin_notes, reviewed_at")
     .eq("user_id", userId)
     .order("submitted_at", { ascending: false });
   if (error) throw new Error(error.message);

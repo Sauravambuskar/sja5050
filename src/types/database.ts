@@ -1,7 +1,7 @@
 export type InvestmentPlan = {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   annual_rate: number;
   duration_months: number;
   min_investment: number;
@@ -27,7 +27,6 @@ export type AdminUserView = {
   email: string | undefined;
   join_date: string;
   kyc_status: string | null;
-  wallet_balance: number;
   role: 'user' | 'admin';
   banned_until: string | null;
   last_sign_in_at: string | null;
@@ -57,8 +56,6 @@ export type AdminKycRequest = {
 export type AdminDashboardStats = {
   total_users: number;
   aum: number;
-  pending_withdrawals_count: number;
-  pending_withdrawals_value: number;
   pending_investments_count: number;
   pending_investments_value: number;
   monthly_payout_projection: number;
@@ -129,16 +126,23 @@ export type CommissionHistoryItem = {
   level: number;
 };
 
+export type CommissionPayout = {
+  id: string;
+  from_user_name: string;
+  amount: number;
+  payout_date: string;
+  level: number;
+};
+
 export type UserInvestment = {
   id: string;
+  user_id: string;
+  plan_id: string;
   investment_amount: number;
   start_date: string;
   maturity_date: string;
   status: string;
-  investment_plans: {
-    name: string;
-    annual_rate: number;
-  }[] | null;
+  created_at: string;
 };
 
 export type Transaction = {
@@ -154,7 +158,6 @@ export type DashboardStats = {
   fullName: string | null;
   activeInvestmentsCount: number;
   totalInvested: number;
-  walletBalance: number;
   kycStatus: string | null;
   referralCount: number;
 };
@@ -182,6 +185,7 @@ export type KycDocument = {
   file_path: string;
   status: string;
   submitted_at: string;
+  reviewed_at: string | null; // Keep this as it's fetched now
   admin_notes: string | null;
 };
 
@@ -196,11 +200,12 @@ export type Referral = {
 export type ReferralTreeUser = {
   id: string;
   full_name: string;
+  avatar_url: string | null;
   join_date: string;
   kyc_status: string;
   has_invested: boolean;
   level: number;
-  parent_id: string;
+  parent_id: string | null;
   children: ReferralTreeUser[];
 };
 
@@ -213,11 +218,11 @@ export type UserGrowthReportData = {
 export type Notification = {
   id: string;
   title: string;
-  description: string;
-  type: 'success' | 'error' | 'info' | 'warning';
+  description: string | null;
+  type: 'info' | 'success' | 'error';
+  link_to: string | null;
   is_read: boolean;
   created_at: string;
-  link_to: string | null;
 };
 
 export type AdminUserInvestmentHistoryItem = {
@@ -292,11 +297,11 @@ export type Profile = {
   city: string | null;
   state: string | null;
   pincode: string | null;
-  updated_at: string | null; // Added this line
-  kyc_status: string | null;
+  updated_at: string | null;
+  kyc_status: 'Not Submitted' | 'Pending Review' | 'Approved' | 'Rejected';
   referral_code: string | null;
   referrer_id: string | null;
-  role: string;
+  role: 'user' | 'admin';
   bank_name: string | null;
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
@@ -323,26 +328,16 @@ export type BroadcastMessage = {
 };
 
 export type IdCardSettings = {
-  id: number;
   company_name: string;
   logo_url: string | null;
   accent_color: string;
   background_image_url: string | null;
-  updated_at: string;
 };
 
 export type SystemSettings = {
-  id: number;
   maintenance_mode_enabled: boolean;
   maintenance_message: string | null;
-  updated_at: string;
-  company_bank_details: {
-    bank_name: string;
-    account_holder_name: string;
-    account_number: string;
-    ifsc_code: string;
-    upi_id: string;
-  } | null;
+  company_bank_details: any | null;
   auth_layout_image_url_1: string | null;
   auth_layout_image_url_2: string | null;
   splash_screen_url: string | null;
@@ -360,8 +355,11 @@ export type Faq = {
 
 export type SupportTicket = {
   id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
   subject: string;
-  status: string;
+  status: 'Open' | 'In Progress' | 'Closed';
   created_at: string;
   updated_at: string;
 };
@@ -374,13 +372,10 @@ export type AdminSupportTicket = SupportTicket & {
 
 export type SupportMessage = {
   id: string;
+  ticket_id: string;
   sender_id: string;
   message: string;
   created_at: string;
-  profiles: {
-    full_name: string | null;
-    role: string;
-  } | null;
 };
 
 export type AdditionalDocument = {
@@ -460,4 +455,13 @@ export type ActiveInvestment = {
   start_date: string;
   maturity_date: string;
   status: string;
+};
+
+export type AdminAuditLogEntry = {
+  id: string;
+  created_at: string;
+  admin_email: string;
+  action: string;
+  target_user_id: string | null;
+  details: any;
 };

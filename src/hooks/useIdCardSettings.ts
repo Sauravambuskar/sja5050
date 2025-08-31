@@ -8,7 +8,6 @@ const fetchSettings = async (): Promise<IdCardSettings> => {
     console.error("Failed to fetch ID card settings:", error);
     // Return a default state if settings can't be fetched
     return { 
-      id: 1, 
       company_name: 'SJA Foundation', 
       logo_url: null, 
       accent_color: '#2563eb', 

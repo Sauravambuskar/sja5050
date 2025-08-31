@@ -15,7 +15,16 @@ import { useState } from "react";
 import { exportToCsv, exportToPdf } from "@/lib/utils";
 import { toast } from "sonner";
 
-const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> => {
+type UserInvestmentWithPlan = {
+  id: string;
+  investment_amount: number;
+  start_date: string;
+  maturity_date: string;
+  status: string;
+  investment_plans: { name: string; annual_rate: number; }[];
+};
+
+const fetchUserInvestments = async (userId: string): Promise<UserInvestmentWithPlan[]> => {
   const { data, error } = await supabase
     .from('user_investments')
     .select(`
@@ -32,14 +41,14 @@ const fetchUserInvestments = async (userId: string): Promise<UserInvestment[]> =
   if (error) {
     throw new Error(error.message);
   }
-  return data as UserInvestment[];
+  return data as UserInvestmentWithPlan[];
 };
 
 const InvestmentHistory = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isExporting, setIsExporting] = useState(false);
-  const { data: investments, isLoading, isError, error } = useQuery<UserInvestment[]>({
+  const { data: investments, isLoading, isError, error } = useQuery<UserInvestmentWithPlan[]>({
     queryKey: ['userInvestments', user?.id],
     queryFn: () => fetchUserInvestments(user!.id),
     enabled: !!user,

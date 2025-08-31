@@ -133,7 +133,6 @@ const UserManagement = () => {
         JoinDate: format(new Date(user.join_date), 'yyyy-MM-dd'),
         LastLogin: user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'yyyy-MM-dd HH:mm') : 'Never',
         KYCStatus: user.kyc_status,
-        WalletBalance: user.wallet_balance || 0,
         Role: user.role,
         IsSuspended: isUserSuspended(user) ? 'Yes' : 'No',
       }));
@@ -241,8 +240,8 @@ const UserManagement = () => {
               <TableCell className="text-sm text-muted-foreground">
                 {user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}
               </TableCell>
-              <TableCell className="text-right font-mono">
-                ₹{(user.wallet_balance || 0).toLocaleString('en-IN')}
+              <TableCell className="text-right">
+                {/* Removed wallet_balance display */}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -356,10 +355,7 @@ const UserManagement = () => {
                   <span className="text-muted-foreground">Last Login</span>
                   <span>{user.last_sign_in_at ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true }) : 'Never'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Wallet</span>
-                  <span className="font-mono">₹{(user.wallet_balance || 0).toLocaleString('en-IN')}</span>
-                </div>
+                {/* Removed wallet_balance display */}
               </CardContent>
             </Card>
           ))}

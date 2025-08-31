@@ -29,7 +29,6 @@ const AdminDashboard = () => {
     { title: "Total Users", value: stats.total_users.toLocaleString(), icon: Users, to: "/admin/users" },
     { title: "Assets Under Management", value: `₹${stats.aum.toLocaleString('en-IN')}`, icon: DollarSign, to: "/admin/investments" },
     { title: "This Month's Payout Projection", value: `₹${stats.monthly_payout_projection.toLocaleString('en-IN')}`, icon: CalendarClock, to: "/admin/payout-reports" },
-    { title: "Pending Withdrawal Requests", value: `${stats.pending_withdrawals_count} (₹${stats.pending_withdrawals_value.toLocaleString('en-IN')})`, icon: Hourglass, to: "/admin/withdrawals" },
     { title: "Pending Investments", value: `${stats.pending_investments_count} (₹${stats.pending_investments_value.toLocaleString('en-IN')})`, icon: TrendingUp, to: "/admin/investment-requests" },
   ] : [];
 
@@ -42,9 +41,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {statsLoading ? (
-          [...Array(5)].map((_, i) => (
+          [...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
               <CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent>
