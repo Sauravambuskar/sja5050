@@ -2,12 +2,12 @@ import { NavLink } from "react-router-dom";
 import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const userNavItems = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -26,7 +26,9 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote, badgeKey: "pendingInvestmentsCount" },
+  { to: "/admin/deposits", label: "Deposit Requests", icon: ArrowDownToDot, badgeKey: "pendingDepositsCount" },
+  { to: "/admin/withdrawals", label: "Withdrawal Requests", icon: Banknote, badgeKey: "pendingWithdrawalsCount" },
+  { to: "/admin/investment-requests", label: "Investment Approvals", icon: TrendingUp, badgeKey: "pendingInvestmentsCount" },
   { to: "/admin/investment-withdrawals", label: "Investment Withdrawals", icon: TrendingDown, badgeKey: "pendingInvestmentWithdrawalsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
@@ -50,7 +52,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { 
     pendingKycCount, 
-    pendingRequestsCount,
+    pendingDepositsCount,
+    pendingWithdrawalsCount,
     openTicketsCount,
     pendingInvestmentsCount,
     pendingInvestmentWithdrawalsCount,
@@ -59,7 +62,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
 
   const adminBadges: { [key: string]: number } = {
     pendingKycCount,
-    pendingRequestsCount,
+    pendingDepositsCount,
+    pendingWithdrawalsCount,
     openTicketsCount,
     pendingInvestmentsCount,
     pendingInvestmentWithdrawalsCount,

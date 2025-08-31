@@ -19,7 +19,6 @@ const fetchCounts = async () => {
   const pendingKycCount = kycData?.length || 0;
   const pendingDepositsCount = depositData || 0;
   const pendingWithdrawalsCount = withdrawalData || 0;
-  const pendingRequestsCount = pendingDepositsCount + pendingWithdrawalsCount;
   const openTicketsCount = ticketsData || 0;
   const pendingInvestmentsCount = investmentRequestsData || 0;
   const pendingInvestmentWithdrawalsCount = investmentWithdrawalsData || 0;
@@ -28,7 +27,6 @@ const fetchCounts = async () => {
     pendingKycCount, 
     pendingDepositsCount, 
     pendingWithdrawalsCount, 
-    pendingRequestsCount, 
     openTicketsCount,
     pendingInvestmentsCount,
     pendingInvestmentWithdrawalsCount,
@@ -46,7 +44,6 @@ export const useAdminActionCounts = () => {
     pendingKycCount: data?.pendingKycCount ?? 0,
     pendingDepositsCount: data?.pendingDepositsCount ?? 0,
     pendingWithdrawalsCount: data?.pendingWithdrawalsCount ?? 0,
-    pendingRequestsCount: data?.pendingRequestsCount ?? 0,
     openTicketsCount: data?.openTicketsCount ?? 0,
     pendingInvestmentsCount: data?.pendingInvestmentsCount ?? 0,
     pendingInvestmentWithdrawalsCount: data?.pendingInvestmentWithdrawalsCount ?? 0,
