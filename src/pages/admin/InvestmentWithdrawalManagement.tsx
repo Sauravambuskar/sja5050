@@ -151,7 +151,7 @@ const InvestmentWithdrawalManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
-                  <TableHead>Plan & Amount</TableHead>
+                  <TableHead>Plan & Amounts</TableHead>
                   <TableHead>Requested</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -173,7 +173,12 @@ const InvestmentWithdrawalManagement = () => {
                       </TableCell>
                       <TableCell>
                         {request.plan_name}
-                        <p className="text-xs text-muted-foreground">₹{request.investment_amount.toLocaleString('en-IN')}</p>
+                        <p className="text-sm font-semibold text-primary">
+                          Request: ₹{request.requested_amount.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Total Principal: ₹{request.investment_amount.toLocaleString('en-IN')}
+                        </p>
                       </TableCell>
                       <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
                       <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>

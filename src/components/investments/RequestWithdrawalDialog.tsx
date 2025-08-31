@@ -17,6 +17,7 @@ import { useState } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
 import { Alert, AlertDescription } from "../ui/alert";
+import { Input } from "../ui/input";
 
 interface RequestWithdrawalDialogProps {
   investment: ActiveInvestment;
@@ -24,9 +25,10 @@ interface RequestWithdrawalDialogProps {
   onClose: () => void;
 }
 
-const submitWithdrawalRequest = async ({ investmentId, reason }: { investmentId: string; reason: string }) => {
+const submitWithdrawalRequest = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
   const { error } = await supabase.rpc("request_investment_withdrawal", {
     p_investment_id: investmentId,
+    p_amount: amount,
     p_reason: reason,
   });
 
@@ -37,6 +39,7 @@ const submitWithdrawalRequest = async ({ investmentId, reason }: { investmentId:
 
 export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: RequestWithdrawalDialogProps) => {
   const [reason, setReason] = useState("");
+  const [amount, setAmount] = useState("");
   const [consent, setConsent] = useState(false);
   const queryClient = useQueryClient();
 
@@ -56,6 +59,15 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
   });
 
   const handleSubmit = () => {
+    const withdrawalAmount = parseFloat(amount);
+    if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+      toast.error("Please enter a valid, positive withdrawal amount.");
+      return;
+    }
+    if (withdrawalAmount > investment.investment_amount) {
+      toast.error(`Amount cannot exceed the investment principal of ₹${investment.investment_amount.toLocaleString('en-IN')}.`);
+      return;
+    }
     if (reason.trim().length < 10) {
       toast.error("Please provide a valid reason (at least 10 characters).");
       return;
@@ -64,7 +76,7 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
       toast.error("You must consent to the terms of early withdrawal.");
       return;
     }
-    mutation.mutate({ investmentId: investment.id, reason });
+    mutation.mutate({ investmentId: investment.id, amount: withdrawalAmount, reason });
   };
 
   return (
@@ -73,7 +85,7 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
         <DialogHeader>
           <DialogTitle>Request Withdrawal for {investment.plan_name}</DialogTitle>
           <DialogDescription>
-            You are requesting to withdraw ₹{investment.investment_amount.toLocaleString('en-IN')}.
+            Your current principal in this investment is ₹{investment.investment_amount.toLocaleString('en-IN')}.
           </DialogDescription>
         </DialogHeader>
         
@@ -84,6 +96,17 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
               Early withdrawal may result in the forfeiture of any profits earned. Only the principal amount will be returned to your wallet upon approval.
             </AlertDescription>
           </Alert>
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount to Withdraw (Required)</Label>
+            <Input
+              id="amount"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={`e.g., 5000`}
+              max={investment.investment_amount}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="reason">Reason for Withdrawal (Required)</Label>
             <Textarea
@@ -103,7 +126,7 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={mutation.isPending || !consent || reason.trim().length < 10}>
+          <Button onClick={handleSubmit} disabled={mutation.isPending || !consent || reason.trim().length < 10 || !amount}>
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mutation.isPending ? "Submitting..." : "Submit Request"}
           </Button>

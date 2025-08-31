@@ -38,7 +38,7 @@ export const WithdrawalRequestHistory = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Plan</TableHead>
-            <TableHead>Amount</TableHead>
+            <TableHead>Requested Amount</TableHead>
             <TableHead>Requested At</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -47,7 +47,7 @@ export const WithdrawalRequestHistory = () => {
           {requests.map((request) => (
             <TableRow key={request.request_id}>
               <TableCell>{request.plan_name}</TableCell>
-              <TableCell>₹{request.investment_amount.toLocaleString('en-IN')}</TableCell>
+              <TableCell>₹{request.requested_amount.toLocaleString('en-IN')}</TableCell>
               <TableCell>{format(new Date(request.requested_at), 'PPP p')}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
