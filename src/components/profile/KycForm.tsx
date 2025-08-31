@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Profile } from "@/types/database";
 import { useEffect } from "react";
+import { format } from "date-fns";
 
 const kycSchema = z.object({
   pan_number: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN number format.").nullable(),
@@ -63,6 +64,11 @@ export const KycForm = ({ profile }: { profile: Profile }) => {
         <CardDescription>
           Please provide your official identification numbers. This information is stored securely.
         </CardDescription>
+        {profile.updated_at && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated: {format(new Date(profile.updated_at), 'PPP p')}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <Form {...form}>

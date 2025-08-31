@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Profile } from "@/types/database";
 import { useEffect } from "react";
+import { format } from "date-fns";
 
 const bankDetailsSchema = z.object({
   bank_name: z.string().min(2, "Bank name is too short").max(100).nullable(),
@@ -71,6 +72,11 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
         <CardDescription>
           Manage your bank account details for withdrawals. This information is kept secure.
         </CardDescription>
+        {profile.updated_at && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated: {format(new Date(profile.updated_at), 'PPP p')}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <Form {...form}>

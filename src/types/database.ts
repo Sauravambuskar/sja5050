@@ -297,6 +297,7 @@ export type Profile = {
   city: string | null;
   state: string | null;
   pincode: string | null;
+  updated_at: string | null; // Added this line
   kyc_status: string | null;
   referral_code: string | null;
   referrer_id: string | null;

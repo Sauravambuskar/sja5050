@@ -153,6 +153,11 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
       <CardHeader>
         <CardTitle>Personal Details</CardTitle>
         <CardDescription>Update your personal and profile information here.</CardDescription>
+        {profile.updated_at && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated: {format(new Date(profile.updated_at), 'PPP p')}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {profile.referrer_full_name && (
