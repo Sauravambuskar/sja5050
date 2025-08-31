@@ -26,9 +26,8 @@ interface RequestWithdrawalDialogProps {
 }
 
 const submitWithdrawalRequest = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
-  // Defensive check: Ensure amount is a valid number. If NaN, treat as 0 to avoid NULL constraint violation.
-  // The backend function will then reject 0 with a more specific error.
-  const safeAmount = isNaN(amount) ? 0 : amount;
+  // More robust defensive check: Ensure amount is a finite number. If not, default to 0.
+  const safeAmount = typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
 
   const { error } = await supabase.rpc("request_investment_withdrawal", {
     p_investment_id: investmentId,
@@ -64,7 +63,8 @@ export const RequestWithdrawalDialog = ({ investment, isOpen, onClose }: Request
 
   const handleSubmit = () => {
     const withdrawalAmount = parseFloat(amount);
-    if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+    // Use Number.isFinite for a more comprehensive check for valid numbers
+    if (!Number.isFinite(withdrawalAmount) || withdrawalAmount <= 0) {
       toast.error("Please enter a valid, positive withdrawal amount.");
       return;
     }
