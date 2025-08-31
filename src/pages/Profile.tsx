@@ -10,12 +10,9 @@ import { AdditionalDocuments } from "@/components/profile/AdditionalDocuments";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const isMobile = useIsMobile();
   const { data: profile, isLoading, error } = useProfile();
 
   if (isLoading) {
@@ -52,25 +49,23 @@ const ProfilePage = () => {
         <Tabs
           defaultValue={searchParams.get("tab") || "personal"}
           onValueChange={(value) => setSearchParams({ tab: value })}
-          orientation={isMobile ? "horizontal" : "vertical"}
-          className={cn(!isMobile && "grid grid-cols-5 gap-6")}
+          className="w-full"
         >
-          <TabsList
-            className={cn(
-              !isMobile && "flex-col h-auto items-stretch justify-start col-span-1"
-            )}
-          >
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
-            ))}
-          </TabsList>
-
-          <div className={cn(!isMobile && "col-span-4")}>
-            {tabs.map(tab => (
-              <TabsContent key={tab.value} value={tab.value} className={cn(!isMobile && "mt-0")}>
-                {tab.component}
-              </TabsContent>
-            ))}
+          <div className="md:grid md:grid-cols-[200px_1fr] md:gap-8">
+            <TabsList className="flex-nowrap overflow-x-auto whitespace-nowrap border-b pb-px md:flex-col md:h-auto md:items-stretch md:justify-start md:whitespace-normal md:border-b-0 md:border-r md:pb-0 md:pr-6">
+              {tabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="flex-shrink-0 justify-start px-3 py-2.5">
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <div className="mt-6 md:mt-0">
+              {tabs.map(tab => (
+                <TabsContent key={tab.value} value={tab.value} className="mt-0">
+                  {tab.component}
+                </TabsContent>
+              ))}
+            </div>
           </div>
         </Tabs>
       </CardContent>
