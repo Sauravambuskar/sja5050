@@ -108,14 +108,14 @@ const MasterReports = () => {
         <>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Master Reports</h1>
+                    <h1 className="text-2xl font-bold sm:text-3xl">Master Reports</h1>
                     <p className="text-muted-foreground">
                         Download comprehensive master data files for the entire organization.
                     </p>
                 </div>
             </div>
 
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
