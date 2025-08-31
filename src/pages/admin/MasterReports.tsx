@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Download, Loader2, Users, Landmark, Banknote } from 'lucide-react';
 import { exportToCsv } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { MasterUserReportItem, MasterInvestmentReportItem, MasterTransactionReportItem } from '@/types/database';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { MasterUserReportItem, MasterInvestmentReportItem, MasterTransactionReportItem, PayoutReportItem } from '@/types/database';
 
 const fetchAllUsersData = async (): Promise<MasterUserReportItem[]> => {
     const { data, error } = await supabase.rpc('export_all_users_details');
@@ -22,6 +22,19 @@ const fetchAllInvestmentsData = async (): Promise<MasterInvestmentReportItem[]> 
 
 const fetchAllTransactionsData = async (): Promise<MasterTransactionReportItem[]> => {
     const { data, error } = await supabase.rpc('export_all_transactions_details');
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+const fetchMonthlyPayoutData = async (): Promise<PayoutReportItem[]> => {
+    const now = new Date();
+    const startDate = startOfMonth(now);
+    const endDate = endOfMonth(now);
+
+    const { data, error } = await supabase.rpc('get_payout_report', {
+        start_date_filter: format(startDate, 'yyyy-MM-dd'),
+        end_date_filter: format(endDate, 'yyyy-MM-dd'),
+    });
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -68,6 +81,22 @@ const MasterReports = () => {
                 toast.success(`Successfully exported ${data.length} transaction records.`);
             } else {
                 toast.info('No transaction data found to export.');
+            }
+        },
+        onError: (error: Error) => {
+            toast.error(`Export failed: ${error.message}`);
+        },
+    });
+
+    const exportMonthlyPayoutMutation = useMutation({
+        mutationFn: fetchMonthlyPayoutData,
+        onSuccess: (data) => {
+            if (data && data.length > 0) {
+                const filename = `Monthly_Payout_Report_${format(new Date(), 'yyyy-MM')}.csv`;
+                exportToCsv(filename, data as object[]);
+                toast.success(`Successfully exported ${data.length} payout records for this month.`);
+            } else {
+                toast.info('No payout data found for the current month.');
             }
         },
         onError: (error: Error) => {
@@ -161,6 +190,32 @@ const MasterReports = () => {
                                 <Download className="mr-2 h-4 w-4" />
                             )}
                             Download Transactions CSV
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Banknote className="h-5 w-5" />
+                            This Month's Payout Report
+                        </CardTitle>
+                        <CardDescription>
+                            Export a detailed CSV of this month's projected profit payouts to all investors.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            onClick={() => exportMonthlyPayoutMutation.mutate()}
+                            disabled={exportMonthlyPayoutMutation.isPending}
+                            className="w-full"
+                        >
+                            {exportMonthlyPayoutMutation.isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download Payout CSV
                         </Button>
                     </CardContent>
                 </Card>
