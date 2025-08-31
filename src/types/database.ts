@@ -91,6 +91,7 @@ export type AdminInvestmentWithdrawalRequest = {
   investment_start_date: string;
   requested_at: string;
   status: 'Pending' | 'Approved' | 'Rejected';
+  reason: string | null;
 };
 
 export type AdminDepositRequest = {
@@ -446,6 +447,7 @@ export type UserInvestmentWithdrawalRequest = {
   requested_at: string;
   status: string;
   admin_notes: string | null;
+  reason: string | null;
 };
 
 export type ActiveInvestment = {

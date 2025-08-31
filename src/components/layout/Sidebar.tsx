@@ -25,6 +25,7 @@ const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/investment-requests", label: "Investment Approvals", icon: TrendingUp, badgeKey: "pendingInvestmentsCount" },
+  { to: "/admin/investment-withdrawals", label: "Withdrawal Requests", icon: TrendingDown, badgeKey: "pendingInvestmentWithdrawalsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
@@ -47,12 +48,14 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { 
     pendingInvestmentsCount,
     openTicketsCount,
+    pendingInvestmentWithdrawalsCount,
   } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   const adminBadges: { [key: string]: number } = {
     pendingInvestmentsCount,
     openTicketsCount,
+    pendingInvestmentWithdrawalsCount,
   };
 
   return (

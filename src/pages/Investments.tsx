@@ -8,8 +8,9 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
-import { History, DollarSign } from "lucide-react";
+import { History, DollarSign, TrendingDown } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import InvestmentWithdrawals from "@/components/investments/InvestmentWithdrawals";
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -36,9 +37,10 @@ const Investments = () => {
     <div className="space-y-8">
       <InvestmentSummary />
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="plans">Investment Plans</TabsTrigger>
-          <TabsTrigger value="history">My Investments</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="plans"><DollarSign className="mr-2 h-4 w-4" />Investment Plans</TabsTrigger>
+          <TabsTrigger value="history"><History className="mr-2 h-4 w-4" />My Investments</TabsTrigger>
+          <TabsTrigger value="withdrawals"><TrendingDown className="mr-2 h-4 w-4" />Withdrawals</TabsTrigger>
         </TabsList>
         <TabsContent value="plans">
           <Card>
@@ -61,6 +63,9 @@ const Investments = () => {
               <InvestmentHistory />
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="withdrawals">
+          <InvestmentWithdrawals />
         </TabsContent>
       </Tabs>
     </div>
