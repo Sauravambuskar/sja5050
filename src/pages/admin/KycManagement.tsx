@@ -210,12 +210,12 @@ const KycManagement = () => {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>KYC Toolkit</CardTitle>
               <CardDescription>Review and process client KYC submissions.</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="gap-1" onClick={handleExport}>
+            <Button size="sm" variant="outline" className="gap-1 mt-4 sm:mt-0" onClick={handleExport}>
               <Download className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
             </Button>
