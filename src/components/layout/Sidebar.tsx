@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, BarChart3, ShieldCheck, Landmark, GitBranch, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, BarChart3, ShieldCheck, Landmark, GitBranch, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -10,15 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 const userNavItems = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/investments", label: "Investments", icon: TrendingUp },
-  { to: "/profile", label: "Profile", icon: User },
-  { to: "/referrals", label: "Referrals", icon: Users },
-  { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/support", label: "Support", icon: MessageSquare },
-  { to: "/faq", label: "FAQ", icon: HelpCircle },
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/investments', label: 'Investments', icon: TrendingUp },
+  { href: '/referrals', label: 'Referrals', icon: Users },
+  { href: '/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/payment-details', label: 'Payment Details', icon: FileSpreadsheet },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/support', label: 'Support', icon: MessageSquare },
+  { href: '/faq', label: 'FAQ', icon: HelpCircle },
 ];
 
 const adminNavItems = [
@@ -71,9 +71,9 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
       <nav className="flex flex-col space-y-1">
         {userNavItems.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
+            key={item.href}
+            to={item.href}
+            end={item.href === "/"}
             onClick={onLinkClick}
             className={({ isActive }) =>
               cn(
