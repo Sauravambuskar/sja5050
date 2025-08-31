@@ -78,8 +78,8 @@ function Calendar({
             return { value: i.toString(), label: format(monthDate, "MMM") };
           });
 
-          const years = Array.from({ length: 20 }, (_, i) => {
-            const year = new Date().getFullYear() - 10 + i; // Adjust range as needed
+          const years = Array.from({ length: new Date().getFullYear() - 1940 + 1 }, (_, i) => {
+            const year = 1940 + i;
             return { value: year.toString(), label: year.toString() };
           });
 
