@@ -11,7 +11,7 @@ const fetchSettings = async (): Promise<IdCardSettings> => {
       company_name: 'SJA Foundation', 
       logo_url: null, 
       accent_color: '#2563eb', 
-      background_image_url: null
+      background_image_url: null,
     };
   }
   return data;
