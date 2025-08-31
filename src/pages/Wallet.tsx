@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet as WalletIcon, Loader2, Landmark, History } from "lucide-react";
-import ManualDeposit from "@/components/wallet/ManualDeposit";
+import { Wallet as WalletIcon, Loader2 } from "lucide-react";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
-import DepositHistory from "@/components/wallet/DepositHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const fetchWalletBalance = async () => {

@@ -38,10 +38,9 @@ const Investments = () => {
     <div className="space-y-8">
       <InvestmentSummary />
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="plans">Investment Plans</TabsTrigger>
           <TabsTrigger value="history">My Investments</TabsTrigger>
-          <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
         </TabsList>
         <TabsContent value="plans">
           <Card>
@@ -64,12 +63,6 @@ const Investments = () => {
               <InvestmentHistory />
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="withdrawals">
-          <div className="space-y-6">
-            <RequestWithdrawalForm />
-            <InvestmentWithdrawalRequests />
-          </div>
         </TabsContent>
       </Tabs>
     </div>

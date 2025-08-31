@@ -81,12 +81,8 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
-            <Route path="deposits" element={<DepositManagement />} />
-            <Route path="withdrawals" element={<WithdrawalManagement />} />
-            <Route path="investment-withdrawals" element={<InvestmentWithdrawalManagement />} />
             <Route path="investment-requests" element={<InvestmentRequestManagement />} />
             <Route path="investments" element={<InvestmentManagement />} />
-            <Route path="kyc" element={<KycManagement />} />
             <Route path="support" element={<SupportDesk />} />
             <Route path="support/ticket/:ticketId" element={<AdminTicketDetails />} />
             <Route path="commissions" element={<CommissionRules />} />
