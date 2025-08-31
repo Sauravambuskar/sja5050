@@ -25,7 +25,7 @@ interface UserDetailsSheetProps {
   userId: string | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onViewUser: (userId: string) => void;
+  onViewUser: (userId: string) => void; // Corrected type here
 }
 
 const fetchUserDetails = async (userId: string): Promise<AdminUserView> => {
