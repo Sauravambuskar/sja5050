@@ -52,7 +52,7 @@ const ProfilePage = () => {
           className="w-full"
         >
           <div className="md:grid md:grid-cols-[200px_1fr] md:gap-8">
-            <TabsList className="flex-nowrap overflow-x-auto whitespace-nowrap border-b pb-px md:flex-col md:h-auto md:items-stretch md:justify-start md:whitespace-normal md:border-b-0 md:border-r md:pb-0 md:pr-6">
+            <TabsList className="flex w-full flex-nowrap overflow-x-auto whitespace-nowrap border-b pb-px md:flex-col md:h-auto md:items-stretch md:justify-start md:whitespace-normal md:border-b-0 md:border-r md:pb-0 md:pr-6">
               {tabs.map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="flex-shrink-0 justify-start px-3 py-2.5">
                   {tab.label}
