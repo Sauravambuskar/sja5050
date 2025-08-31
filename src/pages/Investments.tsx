@@ -1,16 +1,17 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InvestmentPlans from "@/components/investments/InvestmentPlans";
 import InvestmentHistory from "@/components/investments/InvestmentHistory";
 import InvestmentSummary from "@/components/investments/InvestmentSummary";
+import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
+import { RequestWithdrawalForm } from "@/components/investments/RequestWithdrawalForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { History, DollarSign } from "lucide-react";
-import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
+import { useSearchParams } from "react-router-dom";
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -34,53 +35,44 @@ const Investments = () => {
   });
 
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Investments</h1>
-      </div>
-      <p className="text-muted-foreground">
-        Deposit into our exclusive plan and manage your investment portfolio.
-      </p>
-
-      <div className="mt-6 space-y-8">
-        <InvestmentSummary />
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : signedAgreement ? (
-          <Tabs defaultValue="plans" className="w-full mt-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="plans">Investment Plans</TabsTrigger>
-              <TabsTrigger value="history">My Investments</TabsTrigger>
-              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-            </TabsList>
-            <TabsContent value="plans">
+    <div className="space-y-8">
+      <InvestmentSummary />
+      <Tabs defaultValue="plans" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="plans">Investment Plans</TabsTrigger>
+          <TabsTrigger value="history">My Investments</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+        </TabsList>
+        <TabsContent value="plans">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Investment Plans</CardTitle>
+              <CardDescription>Choose a plan that suits your financial goals.</CardDescription>
+            </CardHeader>
+            <CardContent>
               <InvestmentPlans />
-            </TabsContent>
-            <TabsContent value="history">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <History />
-                    <CardTitle>My Investment History</CardTitle>
-                  </div>
-                  <CardDescription>Track your active, matured, and withdrawn investments.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <InvestmentHistory />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="withdrawals">
-              <InvestmentWithdrawalRequests />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <SignAgreementPrompt />
-        )}
-      </div>
-    </>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Investment History</CardTitle>
+              <CardDescription>A complete record of all your past and present investments.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InvestmentHistory />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="withdrawals">
+          <div className="space-y-6">
+            <RequestWithdrawalForm />
+            <InvestmentWithdrawalRequests />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

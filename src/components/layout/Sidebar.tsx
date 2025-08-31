@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,8 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/requests", label: "Requests", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
-  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
+  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote, badgeKey: "pendingInvestmentsCount" },
+  { to: "/admin/investment-withdrawals", label: "Investment Withdrawals", icon: TrendingDown, badgeKey: "pendingInvestmentWithdrawalsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
@@ -52,6 +52,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     pendingKycCount, 
     pendingRequestsCount,
     openTicketsCount,
+    pendingInvestmentsCount,
+    pendingInvestmentWithdrawalsCount,
   } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
@@ -59,6 +61,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     pendingKycCount,
     pendingRequestsCount,
     openTicketsCount,
+    pendingInvestmentsCount,
+    pendingInvestmentWithdrawalsCount,
   };
 
   return (

@@ -98,7 +98,7 @@ export type AdminInvestmentWithdrawalRequest = {
   investment_amount: number;
   investment_start_date: string;
   requested_at: string;
-  status: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
 };
 
 export type AdminDepositRequest = {
@@ -456,4 +456,13 @@ export type UserInvestmentWithdrawalRequest = {
   requested_at: string;
   status: string;
   admin_notes: string | null;
+};
+
+export type ActiveInvestment = {
+  id: string;
+  plan_name: string;
+  investment_amount: number;
+  start_date: string;
+  maturity_date: string;
+  status: string;
 };
