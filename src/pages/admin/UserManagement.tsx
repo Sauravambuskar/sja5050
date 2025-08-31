@@ -165,7 +165,7 @@ const UserManagement = () => {
           <PaginationItem>
             <PaginationPrevious
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              className={cn(currentPage === 1 && "pointer-events-none opacity-50")}
             />
           </PaginationItem>
           {paginationRange.map((pageNumber, index) => {
@@ -191,7 +191,7 @@ const UserManagement = () => {
           <PaginationItem>
             <PaginationNext
               onClick={() => setCurrentPage(prev => Math.min(pageCount, prev + 1))}
-              disabled={currentPage === lastPage}
+              className={cn(currentPage === lastPage && "pointer-events-none opacity-50")}
             />
           </PaginationItem>
         </PaginationContent>

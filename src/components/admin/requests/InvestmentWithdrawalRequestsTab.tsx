@@ -56,7 +56,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
 export const InvestmentWithdrawalRequestsTab = () => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
-  const [rejectionRequest, setRejectionRequest] = useState<AdminInvestmentWithdrawalRequest | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminInvestmentWithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -95,28 +95,20 @@ export const InvestmentWithdrawalRequestsTab = () => {
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
     onSettled: () => {
-      setRejectionRequest(null);
+      setActionToConfirm(null);
       setRejectionNotes("");
     }
   });
 
-  const handleProcessRequest = (request: AdminInvestmentWithdrawalRequest, status: 'Approved' | 'Rejected') => {
-    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
-    mutation.mutate({ requestId: request.request_id, status, notes });
-  };
-
-  const handleRejectClick = (request: AdminInvestmentWithdrawalRequest) => {
-    setRejectionNotes("");
-    setRejectionRequest(request);
-  };
-
-  const handleConfirmRejection = () => {
-    if (!rejectionRequest) return;
-    if (rejectionNotes.trim().length < 5) {
+  const handleProcessRequest = () => {
+    if (!actionToConfirm) return;
+    const { request, status } = actionToConfirm;
+    if (status === 'Rejected' && rejectionNotes.trim().length < 5) {
       toast.error("Please provide a clear reason for rejection.");
       return;
     }
-    handleProcessRequest(rejectionRequest, 'Rejected');
+    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
+    mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
   const renderDesktopView = () => (
@@ -148,8 +140,8 @@ export const InvestmentWithdrawalRequestsTab = () => {
                 <TableCell className="text-right">
                   {request.status === 'Pending' && (
                     <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                     </div>
                   )}
                 </TableCell>
@@ -190,8 +182,8 @@ export const InvestmentWithdrawalRequestsTab = () => {
             </CardContent>
             {request.status === 'Pending' && (
               <CardFooter className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
               </CardFooter>
             )}
           </Card>
@@ -229,19 +221,24 @@ export const InvestmentWithdrawalRequestsTab = () => {
           </PaginationContent>
         </Pagination>
       )}
-      <AlertDialog open={!!rejectionRequest} onOpenChange={() => setRejectionRequest(null)}>
+      <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject Investment Withdrawal?</AlertDialogTitle>
-            <AlertDialogDescription>Please provide a reason for rejecting this request. This note will be visible to the user.</AlertDialogDescription>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {actionToConfirm?.status.toLowerCase()} this request of ₹{actionToConfirm?.request.investment_amount.toLocaleString('en-IN')}?
+              {actionToConfirm?.status === 'Approved' && <p className="mt-2 text-sm text-destructive">This will mark the investment as 'Withdrawn' and credit the principal amount to the user's wallet.</p>}
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
-            <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
-            <Textarea id="rejection-notes" placeholder="e.g., Investment not eligible for early withdrawal..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
-          </div>
+          {actionToConfirm?.status === 'Rejected' && (
+            <div className="py-2">
+              <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
+              <Textarea id="rejection-notes" placeholder="e.g., Investment not eligible for early withdrawal..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>{mutation.isPending ? "Processing..." : "Confirm Rejection"}</AlertDialogAction>
+            <AlertDialogAction onClick={handleProcessRequest} disabled={mutation.isPending}>{mutation.isPending ? "Processing..." : "Confirm"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

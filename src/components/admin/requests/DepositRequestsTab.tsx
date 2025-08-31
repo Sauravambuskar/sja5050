@@ -57,7 +57,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
 export const DepositRequestsTab = () => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
-  const [rejectionRequest, setRejectionRequest] = useState<AdminDepositRequest | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminDepositRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [viewingRequest, setViewingRequest] = useState<AdminDepositRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,28 +97,34 @@ export const DepositRequestsTab = () => {
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
     onSettled: () => {
-      setRejectionRequest(null);
+      setActionToConfirm(null);
       setRejectionNotes("");
     }
   });
 
-  const handleProcessRequest = (request: AdminDepositRequest, status: 'Approved' | 'Rejected') => {
+  const handleProcessRequest = () => {
+    if (!actionToConfirm) return;
+    const { request, status } = actionToConfirm;
+    if (status === 'Rejected' && rejectionNotes.trim().length < 5) {
+      toast.error("Please provide a clear reason for rejection.");
+      return;
+    }
     const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
     mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
   const handleRejectClick = (request: AdminDepositRequest) => {
     setRejectionNotes("");
-    setRejectionRequest(request);
+    setActionToConfirm({ request, status: 'Rejected' });
   };
 
   const handleConfirmRejection = () => {
-    if (!rejectionRequest) return;
-    if (rejectionNotes.trim().length < 5) {
+    if (!actionToConfirm) return;
+    if (actionToConfirm.status === 'Rejected' && rejectionNotes.trim().length < 5) {
       toast.error("Please provide a clear reason for rejection.");
       return;
     }
-    handleProcessRequest(rejectionRequest, 'Rejected');
+    handleProcessRequest();
   };
 
   const handleCopy = (text: string) => {
@@ -161,8 +167,8 @@ export const DepositRequestsTab = () => {
                   {request.status === 'Pending' && (
                     <div className="flex justify-end gap-2">
                       {request.screenshot_path && <Button size="icon" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="h-4 w-4" /></Button>}
-                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                     </div>
                   )}
                 </TableCell>
@@ -208,8 +214,8 @@ export const DepositRequestsTab = () => {
             {request.status === 'Pending' && (
               <CardFooter className="flex justify-end gap-2">
                 {request.screenshot_path && <Button size="icon" variant="outline" onClick={() => setViewingRequest(request)}><Eye className="h-4 w-4" /></Button>}
-                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleRejectClick(request)} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleProcessRequest(request, 'Approved')} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
               </CardFooter>
             )}
           </Card>
@@ -247,19 +253,23 @@ export const DepositRequestsTab = () => {
           </PaginationContent>
         </Pagination>
       )}
-      <AlertDialog open={!!rejectionRequest} onOpenChange={() => setRejectionRequest(null)}>
+      <AlertDialog open={!!actionToConfirm} onOpenChange={() => setActionToConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject Deposit Request?</AlertDialogTitle>
-            <AlertDialogDescription>Please provide a reason for rejecting this deposit. This note will be visible to the user.</AlertDialogDescription>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {actionToConfirm?.status.toLowerCase()} this request of ₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}?
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2">
-            <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
-            <Textarea id="rejection-notes" placeholder="e.g., Transaction not found, amount mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
-          </div>
+          {actionToConfirm?.status === 'Rejected' && (
+            <div className="py-2">
+              <Label htmlFor="rejection-notes">Rejection Notes (Required)</Label>
+              <Textarea id="rejection-notes" placeholder="e.g., Transaction not found, amount mismatch..." value={rejectionNotes} onChange={(e) => setRejectionNotes(e.target.value)} className="mt-2" />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRejection} disabled={mutation.isPending}>{mutation.isPending ? "Processing..." : "Confirm Rejection"}</AlertDialogAction>
+            <AlertDialogAction onClick={handleProcessRequest} disabled={mutation.isPending}>{mutation.isPending ? "Processing..." : "Confirm"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
