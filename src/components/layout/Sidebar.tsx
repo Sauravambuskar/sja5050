@@ -1,32 +1,35 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, BarChart3, ShieldCheck, Landmark, GitBranch, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, TrendingDown, Wallet } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 const userNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/investments', label: 'Investments', icon: TrendingUp },
-  { href: '/referrals', label: 'Referrals', icon: Users },
-  { href: '/wallet', label: 'Wallet', icon: Wallet },
-  { href: '/payment-details', label: 'Payment Details', icon: FileSpreadsheet },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/support', label: 'Support', icon: MessageSquare },
-  { href: '/faq', label: 'FAQ', icon: HelpCircle },
+  { to: "/", label: "Dashboard", icon: Home },
+  { to: "/investments", label: "Investments", icon: TrendingUp },
+  { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
+  { to: "/wallet", label: "Wallet", icon: WalletIcon },
+  { to: "/profile", label: "Profile", icon: User },
+  { to: "/referrals", label: "Referrals", icon: Users },
+  { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/support", label: "Support", icon: MessageSquare },
+  { to: "/faq", label: "FAQ", icon: HelpCircle },
 ];
 
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/investment-requests", label: "Investment Approvals", icon: TrendingUp, badgeKey: "pendingInvestmentsCount" },
-  { to: "/admin/investment-withdrawals", label: "Withdrawal Requests", icon: TrendingDown, badgeKey: "pendingInvestmentWithdrawalsCount" },
+  { to: "/admin/requests", label: "Requests", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
+  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
+  { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
   { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
@@ -46,16 +49,16 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   const { count: unreadCount } = useUnreadNotifications();
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { 
-    pendingInvestmentsCount,
+    pendingKycCount, 
+    pendingRequestsCount,
     openTicketsCount,
-    pendingInvestmentWithdrawalsCount,
   } = useAdminActionCounts();
   const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
 
   const adminBadges: { [key: string]: number } = {
-    pendingInvestmentsCount,
+    pendingKycCount,
+    pendingRequestsCount,
     openTicketsCount,
-    pendingInvestmentWithdrawalsCount,
   };
 
   return (
@@ -74,9 +77,9 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
       <nav className="flex flex-col space-y-1">
         {userNavItems.map((item) => (
           <NavLink
-            key={item.href}
-            to={item.href}
-            end={item.href === "/"}
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
             onClick={onLinkClick}
             className={({ isActive }) =>
               cn(
