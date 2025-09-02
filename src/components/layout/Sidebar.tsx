@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, LayoutDashboard, History, Wallet } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
