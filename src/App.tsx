@@ -60,6 +60,7 @@ const App = () => (
       <Route element={<ProtectedRoute />}>
         <Route element={<PageLayout />}>
           <Route path="/dashboard" element={<DashboardLoader />} />
+          <Route path="/" element={<DashboardLoader />} /> {/* Added this line */}
           <Route path="/investments" element={<Investments />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/profile" element={<Profile />} />
