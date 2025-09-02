@@ -127,6 +127,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
             <TableHead>User</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead>Amount</TableHead>
+            <TableHead>Reason</TableHead>
             <TableHead>Requested</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -134,7 +135,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
+            [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
           ) : requests && requests.length > 0 ? (
             requests.map((request) => (
               <TableRow key={request.request_id}>
@@ -142,7 +143,8 @@ export const InvestmentWithdrawalRequestsTab = () => {
                   <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
                 </TableCell>
                 <TableCell>{request.plan_name}</TableCell>
-                <TableCell>₹{request.investment_amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell>₹{request.requested_amount.toLocaleString('en-IN')}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{request.reason || 'N/A'}</TableCell>
                 <TableCell>{format(new Date(request.requested_at), "PPP p")}</TableCell>
                 <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                 <TableCell className="text-right">
@@ -156,7 +158,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
               </TableRow>
             ))
           ) : (
-            <TableRow><TableCell colSpan={6} className="h-24 text-center">No investment withdrawal requests found.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="h-24 text-center">No investment withdrawal requests found.</TableCell></TableRow>
           )}
         </TableBody>
       </Table>
@@ -177,7 +179,7 @@ export const InvestmentWithdrawalRequestsTab = () => {
                     <Button variant="link" className="p-0 h-auto text-base" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">{request.plan_name}</div>
-                  <div className="text-lg font-bold text-primary">₹{request.investment_amount.toLocaleString('en-IN')}</div>
+                  <div className="text-lg font-bold text-primary">₹{request.requested_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
@@ -186,6 +188,10 @@ export const InvestmentWithdrawalRequestsTab = () => {
               <div className="flex items-center">
                 <span className="text-muted-foreground w-24">Requested:</span>
                 <span>{format(new Date(request.requested_at), "PP p")}</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-muted-foreground w-24 flex-shrink-0">Reason:</span>
+                <span className="break-words">{request.reason || 'N/A'}</span>
               </div>
             </CardContent>
             {request.status === 'Pending' && (

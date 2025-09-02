@@ -147,7 +147,7 @@ export const InvestmentWithdrawalRequests = () => {
                   <React.Fragment key={req.request_id}>
                     <TableRow>
                       <TableCell className="font-medium">{req.plan_name}</TableCell>
-                      <TableCell>₹{req.investment_amount.toLocaleString('en-IN')}</TableCell>
+                      <TableCell>₹{req.requested_amount.toLocaleString('en-IN')}</TableCell>
                       <TableCell>{format(new Date(req.requested_at), "PPP")}</TableCell>
                       <TableCell className="text-right">
                         <Badge
@@ -163,6 +163,18 @@ export const InvestmentWithdrawalRequests = () => {
                         </Badge>
                       </TableCell>
                     </TableRow>
+                    {req.reason && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Alert variant="info" className="p-3">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription className="text-xs">
+                              Reason: {req.reason}
+                            </AlertDescription>
+                          </Alert>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {req.admin_notes && (
                       <TableRow>
                         <TableCell colSpan={4}>

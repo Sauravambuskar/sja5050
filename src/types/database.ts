@@ -96,6 +96,8 @@ export type AdminInvestmentWithdrawalRequest = {
   user_email: string;
   plan_name: string;
   investment_amount: number;
+  requested_amount: number;
+  reason: string | null;
   investment_start_date: string;
   requested_at: string;
   status: string;
@@ -453,7 +455,9 @@ export type UserInvestmentWithdrawalRequest = {
   request_id: string;
   plan_name: string;
   investment_amount: number;
+  requested_amount: number;
   requested_at: string;
   status: string;
   admin_notes: string | null;
+  reason: string | null;
 };
