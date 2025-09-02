@@ -32,6 +32,16 @@ const requestWithdrawal = async (amount: number) => {
   if (error) throw new Error(error.message);
 };
 
+const fetchWalletBalance = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_my_wallet_balance');
+  if (error) {
+    console.error("Error fetching wallet balance:", error);
+    toast.error("Could not fetch wallet balance.");
+    return 0;
+  }
+  return data ?? 0;
+};
+
 const fetchWithdrawalHistory = async (page: number): Promise<WithdrawalRequest[]> => {
   const { data, error } = await supabase.rpc('get_my_withdrawal_requests', {
     p_limit: PAGE_SIZE,
@@ -53,6 +63,11 @@ const WithdrawalRequests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const form = useForm<z.infer<typeof withdrawalSchema>>({
     resolver: zodResolver(withdrawalSchema),
+  });
+
+  const { data: walletBalance, isLoading: isLoadingBalance } = useQuery<number>({
+    queryKey: ['walletBalance'],
+    queryFn: fetchWalletBalance,
   });
 
   const { data: history, isLoading } = useQuery<WithdrawalRequest[]>({
@@ -236,6 +251,18 @@ const WithdrawalRequests = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
+              <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Available Balance</span>
+                  {isLoadingBalance ? (
+                    <Skeleton className="h-6 w-24" />
+                  ) : (
+                    <span className="text-xl font-bold">
+                      ₹{walletBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+                    </span>
+                  )}
+                </div>
+              </div>
               <FormField
                 control={form.control}
                 name="amount"
@@ -243,7 +270,19 @@ const WithdrawalRequests = () => {
                   <FormItem>
                     <FormLabel>Amount (₹)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 5000" {...field} />
+                      <div className="relative">
+                        <Input type="number" placeholder="e.g., 5000" {...field} className="pr-16" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
+                          onClick={() => form.setValue('amount', walletBalance ?? 0)}
+                          disabled={isLoadingBalance || !walletBalance}
+                        >
+                          Max
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
