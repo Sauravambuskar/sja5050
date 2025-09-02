@@ -9,18 +9,30 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HandCoins, History, Info, Lightbulb, Loader2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type InvestmentWithdrawalRequest = {
   request_id: string;
   plan_name: string;
-  investment_amount: number;
+  requested_amount: number;
   requested_at: string;
   status: string;
   admin_notes: string | null;
+  reason: string | null;
 };
+
+const withdrawalSchema = z.object({
+  amount: z.coerce.number().positive({ message: "Amount must be a positive number." }),
+  reason: z.string().min(10, "Please provide a brief reason (min. 10 characters).").max(200, "Reason cannot exceed 200 characters."),
+});
 
 const fetchActiveInvestments = async (userId: string): Promise<UserInvestment[]> => {
   const { data, error } = await supabase
@@ -38,8 +50,12 @@ const fetchWithdrawalRequests = async (): Promise<InvestmentWithdrawalRequest[]>
   return data;
 };
 
-const requestWithdrawal = async (investmentId: string) => {
-  const { error } = await supabase.rpc('request_investment_withdrawal', { p_investment_id: investmentId });
+const requestWithdrawal = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
+  const { error } = await supabase.rpc('request_investment_withdrawal', {
+    p_investment_id: investmentId,
+    p_amount: amount,
+    p_reason: reason,
+  });
   if (error) throw new Error(error.message);
 };
 
@@ -47,6 +63,15 @@ const Withdrawals = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedInvestment, setSelectedInvestment] = useState<UserInvestment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const form = useForm<z.infer<typeof withdrawalSchema>>({
+    resolver: zodResolver(withdrawalSchema),
+    defaultValues: {
+      amount: 0,
+      reason: "",
+    },
+  });
 
   const { data: activeInvestments, isLoading: isLoadingInvestments } = useQuery({
     queryKey: ['activeInvestmentsForWithdrawal', user?.id],
@@ -67,6 +92,8 @@ const Withdrawals = () => {
       queryClient.invalidateQueries({ queryKey: ['activeInvestmentsForWithdrawal'] });
       queryClient.invalidateQueries({ queryKey: ['myInvestmentWithdrawalRequests'] });
       setSelectedInvestment(null);
+      setIsDialogOpen(false);
+      form.reset();
     },
     onError: (error) => {
       toast.error(`Request failed: ${error.message}`);
@@ -75,11 +102,21 @@ const Withdrawals = () => {
 
   const handleRequestClick = (investment: UserInvestment) => {
     setSelectedInvestment(investment);
+    form.reset({ amount: 0, reason: "" });
+    setIsDialogOpen(true);
   };
 
-  const handleConfirmRequest = () => {
+  const onSubmit = (values: z.infer<typeof withdrawalSchema>) => {
     if (selectedInvestment) {
-      mutation.mutate(selectedInvestment.id);
+      if (values.amount > selectedInvestment.investment_amount) {
+        form.setError("amount", { type: "manual", message: "Withdrawal amount cannot exceed the investment principal." });
+        return;
+      }
+      mutation.mutate({
+        investmentId: selectedInvestment.id,
+        amount: values.amount,
+        reason: values.reason,
+      });
     }
   };
 
@@ -98,7 +135,7 @@ const Withdrawals = () => {
         <AlertDescription>
           <ul className="list-disc pl-5 space-y-1">
             <li>All withdrawal requests are subject to admin approval and may take 2-3 business days to process.</li>
-            <li>Emergency withdrawals of 10% of the principal are permitted. Please use this option wisely.</li>
+            <li>You can request to withdraw any portion of your principal investment before the maturity date.</li>
           </ul>
         </AlertDescription>
       </Alert>
@@ -133,25 +170,7 @@ const Withdrawals = () => {
                         <div className="text-sm text-muted-foreground">₹{inv.investment_amount.toLocaleString('en-IN')}</div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => handleRequestClick(inv)}>Request</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirm Withdrawal Request</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to request to withdraw your investment of ₹{selectedInvestment?.investment_amount.toLocaleString('en-IN')} in the {selectedInvestment?.investment_plans?.[0]?.name} plan? The principal amount will be returned to your wallet if approved.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleConfirmRequest} disabled={mutation.isPending}>
-                                {mutation.isPending ? <Loader2 className="animate-spin" /> : "Confirm Request"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button size="sm" variant="outline" onClick={() => handleRequestClick(inv)}>Request</Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -183,13 +202,21 @@ const Withdrawals = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-semibold">{req.plan_name}</p>
-                        <p className="text-sm text-muted-foreground">₹{req.investment_amount.toLocaleString('en-IN')}</p>
+                        <p className="text-sm text-muted-foreground">Requested: ₹{req.requested_amount.toLocaleString('en-IN')}</p>
                         <p className="text-xs text-muted-foreground">{format(new Date(req.requested_at), "PPP p")}</p>
                       </div>
                       <Badge variant={req.status === "Approved" ? "success" : req.status === "Pending" ? "outline" : "destructive"}>
                         {req.status}
                       </Badge>
                     </div>
+                    {req.reason && (
+                      <Alert variant="info" className="mt-3 p-3">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          Reason: {req.reason}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     {req.status === 'Rejected' && req.admin_notes && (
                       <Alert variant="destructive" className="mt-3 p-3">
                         <Info className="h-4 w-4" />
@@ -207,6 +234,53 @@ const Withdrawals = () => {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Withdrawal from {selectedInvestment?.investment_plans?.[0]?.name}</DialogTitle>
+            <DialogDescription>
+              Principal Amount: ₹{selectedInvestment?.investment_amount.toLocaleString('en-IN')}. Enter the amount you wish to withdraw.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount to Withdraw</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 10000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason for Withdrawal</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g., Personal emergency..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={mutation.isPending}>
+                  {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Submit Request
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
