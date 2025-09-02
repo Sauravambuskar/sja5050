@@ -40,6 +40,8 @@ export const useAdminActionCounts = () => {
                                (data?.pending_withdrawals_count ?? 0) + 
                                (data?.pending_investment_withdrawals_count ?? 0);
 
+  const pendingWithdrawalsTotal = (data?.pending_withdrawals_count ?? 0) + (data?.pending_investment_withdrawals_count ?? 0);
+
   return {
     pendingKycCount: data?.pending_kyc ?? 0,
     pendingDepositsCount: data?.pending_deposits_count ?? 0,
@@ -47,5 +49,6 @@ export const useAdminActionCounts = () => {
     pendingInvestmentWithdrawalsCount: data?.pending_investment_withdrawals_count ?? 0,
     pendingRequestsCount: pendingRequestsCount,
     openTicketsCount: openTicketsCount ?? 0,
+    pendingWithdrawalsTotal,
   };
 };

@@ -53,13 +53,13 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   if (error) throw new Error(error.message);
 };
 
-export const InvestmentWithdrawalRequestsTab = () => {
+export const InvestmentWithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: string | null }) => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
   const [rejectionRequest, setRejectionRequest] = useState<AdminInvestmentWithdrawalRequest | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus || "all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const isMobile = useIsMobile();

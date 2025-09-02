@@ -50,6 +50,7 @@ import SupportDesk from "./pages/admin/SupportDesk";
 import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
 import ClientPaymentDetails from "./pages/admin/ClientPaymentDetails";
 import MasterReports from "./pages/admin/MasterReports";
+import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="users" element={<UserManagement />} />
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
             <Route path="requests" element={<RequestManagement />} />
+            <Route path="withdrawals" element={<WithdrawalManagement />} />
             <Route path="investment-requests" element={<InvestmentRequestManagement />} />
             <Route path="investments" element={<InvestmentManagement />} />
             <Route path="kyc" element={<KycManagement />} />

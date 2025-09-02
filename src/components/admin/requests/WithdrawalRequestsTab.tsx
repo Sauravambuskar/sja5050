@@ -45,7 +45,7 @@ const fetchTotalCount = async (status: string | null, search: string | null): Pr
   return data;
 };
 
-const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Completed' | 'Rejected'; notes: string }) => {
+const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string }) => {
   const { error } = await supabase.rpc('process_withdrawal_request', {
     request_id_to_process: requestId,
     new_status: status,
@@ -54,14 +54,14 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   if (error) throw new Error(error.message);
 };
 
-export const WithdrawalRequestsTab = () => {
+export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: string | null }) => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
   const [detailsRequest, setDetailsRequest] = useState<AdminWithdrawalRequest | null>(null);
-  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminWithdrawalRequest; status: 'Completed' | 'Rejected' } | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminWithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus || "all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const isMobile = useIsMobile();
@@ -109,7 +109,7 @@ export const WithdrawalRequestsTab = () => {
       toast.error("Please provide a clear reason for rejection.");
       return;
     }
-    const notes = status === 'Completed' ? 'Approved by admin.' : rejectionNotes;
+    const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
     mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
@@ -143,12 +143,12 @@ export const WithdrawalRequestsTab = () => {
                   )}
                 </TableCell>
                 <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
-                <TableCell><Badge variant={request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+                <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                 <TableCell className="text-right">
                   {request.status === 'Pending' && (
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
-                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
                       <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
                     </div>
                   )}
@@ -178,7 +178,7 @@ export const WithdrawalRequestsTab = () => {
                   </CardTitle>
                   <div className="text-lg font-bold text-primary">₹{request.amount.toLocaleString('en-IN')}</div>
                 </div>
-                <Badge variant={request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
+                <Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
@@ -200,7 +200,7 @@ export const WithdrawalRequestsTab = () => {
               <CardFooter className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDetailsRequest(request)}><Eye className="mr-2 h-4 w-4" /> Details</Button>
                 <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setRejectionNotes(""); setActionToConfirm({ request, status: 'Rejected' }); }} disabled={mutation.isPending}><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Completed' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
+                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => setActionToConfirm({ request, status: 'Approved' })} disabled={mutation.isPending}><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
               </CardFooter>
             )}
           </Card>
@@ -223,7 +223,7 @@ export const WithdrawalRequestsTab = () => {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
+            <SelectItem value="Approved">Approved</SelectItem>
             <SelectItem value="Rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
@@ -258,7 +258,7 @@ export const WithdrawalRequestsTab = () => {
             <AlertDialogTitle>Confirm Action</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {actionToConfirm?.status.toLowerCase()} this request of ₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}?
-              {actionToConfirm?.status === 'Completed' && <p className="mt-2 text-sm text-destructive">Ensure you have completed the bank transfer before proceeding.</p>}
+              {actionToConfirm?.status === 'Approved' && <p className="mt-2 text-sm text-destructive">Ensure you have completed the bank transfer before proceeding.</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionToConfirm?.status === 'Rejected' && (
