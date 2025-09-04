@@ -8,6 +8,7 @@ import { ThemeProvider } from './components/theme/ThemeProvider';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './components/auth/AuthProvider';
 import { TooltipProvider } from './components/ui/tooltip';
+import { SpeedInsights } from "@vercel/speed-insights/react"; // Import SpeedInsights for React
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <TooltipProvider>
               <App />
               <Toaster richColors />
+              <SpeedInsights /> {/* Add the SpeedInsights component here */}
             </TooltipProvider>
           </AuthProvider>
         </QueryClientProvider>
