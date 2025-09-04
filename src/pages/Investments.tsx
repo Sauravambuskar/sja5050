@@ -9,7 +9,7 @@ import { SignAgreementPrompt } from "@/components/investments/SignAgreementPromp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { History, DollarSign } from "lucide-react";
+import { History } from "lucide-react";
 import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
 
 const fetchAgreement = async (userId: string) => {

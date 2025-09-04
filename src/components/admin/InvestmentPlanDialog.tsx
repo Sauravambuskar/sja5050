@@ -62,7 +62,12 @@ export const InvestmentPlanDialog = ({ plan, isOpen, onClose }: InvestmentPlanDi
 
   useEffect(() => {
     if (plan) {
-      form.reset(plan);
+      form.reset({
+        ...plan,
+        description: plan.description ?? '',
+        max_investment: plan.max_investment ?? undefined,
+        image_url: plan.image_url ?? '',
+      });
     } else {
       form.reset({
         name: "",

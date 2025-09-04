@@ -57,9 +57,8 @@ function Calendar({
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
-        Caption: (props) => {
-          const { goToMonth, nextMonth, previousMonth } = useNavigation();
-          const { displayMonth } = props; // Correctly get displayMonth from props
+        Caption: ({ displayMonth }) => {
+          const { goToMonth } = useNavigation();
           const currentMonth = displayMonth.getMonth();
           const currentYear = displayMonth.getFullYear();
 

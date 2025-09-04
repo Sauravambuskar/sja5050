@@ -120,7 +120,7 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
   };
 
   const kycStatus = profile?.kyc_status;
-  const bannerInfo = getStatusBanner(kycStatus);
+  const bannerInfo = getStatusBanner(kycStatus) as { icon: React.ElementType; color: 'green' | 'red' | 'yellow' | 'blue'; text: string; };
   const colorVariants = {
     green: "border-green-200 bg-green-50 text-green-900 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-200",
     red: "border-red-200 bg-red-50 text-red-900 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200",
@@ -130,8 +130,8 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
 
   const steps = [
     { title: "Provide Your Details", description: "Enter your PAN and Aadhaar numbers.", isComplete: !!(profile.pan_number && profile.aadhaar_number), component: <KycForm profile={profile} /> },
-    { title: "Upload Documents", description: "Upload clear images of your PAN and Aadhaar cards.", isComplete: documents?.some(d => d.document_type === 'PAN Card' && d.status !== 'Rejected') && documents?.some(d => d.document_type === 'Aadhaar Card' && d.status !== 'Rejected'), component: <DocumentUploadSection /> },
-    { title: "Video Verification", description: "Record a short video holding your ID for live verification.", isComplete: documents?.some(d => d.document_type === 'Video KYC' && d.status !== 'Rejected'), component: <VideoKyc /> }
+    { title: "Upload Documents", description: "Upload clear images of your PAN and Aadhaar cards.", isComplete: !!(documents?.some(d => d.document_type === 'PAN Card' && d.status !== 'Rejected') && documents?.some(d => d.document_type === 'Aadhaar Card' && d.status !== 'Rejected')), component: <DocumentUploadSection /> },
+    { title: "Video Verification", description: "Record a short video holding your ID for live verification.", isComplete: !!documents?.some(d => d.document_type === 'Video KYC' && d.status !== 'Rejected'), component: <VideoKyc /> }
   ];
 
   return (
@@ -139,7 +139,7 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
       <div className={cn("flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
       <div className="space-y-8">
         {steps.map(step => (
-          <KycStep key={step.title} {...step}>{step.component}</KycStep>
+          <KycStep key={step.title} title={step.title} description={step.description} isComplete={step.isComplete}>{step.component}</KycStep>
         ))}
       </div>
       <Card>

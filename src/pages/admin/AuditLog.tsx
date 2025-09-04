@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -119,8 +119,8 @@ const AuditLog = () => {
           <CardTitle>Filter & Search Logs</CardTitle>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Input placeholder="Search by Target User ID..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
-            <Select value={selectedAdmin} onValueChange={setSelectedAdmin}><SelectTrigger><SelectValue placeholder="Filter by Admin" /></SelectTrigger><SelectContent>{distinctAdmins?.map(email => <SelectItem key={email} value={email}>{email}</SelectItem>)}</SelectContent></Select>
-            <Select value={selectedAction} onValueChange={setSelectedAction}><SelectTrigger><SelectValue placeholder="Filter by Action" /></SelectTrigger><SelectContent>{distinctActions?.map(action => <SelectItem key={action} value={action}>{formatAction(action)}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedAdmin} onValueChange={setSelectedAdmin}><SelectTrigger><SelectValue placeholder="Filter by Admin" /></SelectTrigger><SelectContent>{distinctAdmins?.map((email: string) => <SelectItem key={email} value={email}>{email}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedAction} onValueChange={setSelectedAction}><SelectTrigger><SelectValue placeholder="Filter by Action" /></SelectTrigger><SelectContent>{distinctActions?.map((action: string) => <SelectItem key={action} value={action}>{formatAction(action)}</SelectItem>)}</SelectContent></Select>
             <DateRangePicker date={date} onDateChange={setDate} />
           </div>
           {areFiltersActive && <Button variant="ghost" size="sm" onClick={handleClearFilters} className="mt-2"><XCircle className="mr-2 h-4 w-4" />Clear Filters</Button>}

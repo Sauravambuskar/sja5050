@@ -40,9 +40,9 @@ const chartConfig = {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const totalIncomeData = payload.find(p => p.dataKey === 'total_income');
-    const investmentIncomeData = payload.find(p => p.dataKey === 'investment_income');
-    const commissionIncomeData = payload.find(p => p.dataKey === 'commission_income');
+    const totalIncomeData = payload.find((p: any) => p.dataKey === 'total_income');
+    const investmentIncomeData = payload.find((p: any) => p.dataKey === 'investment_income');
+    const commissionIncomeData = payload.find((p: any) => p.dataKey === 'commission_income');
 
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm">

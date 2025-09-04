@@ -86,7 +86,7 @@ export const VideoKyc = () => {
   });
 
   const startRecording = useCallback(async () => {
-    if (videoUrl) {
+    if (typeof videoUrl === 'string') {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl(null);
     }

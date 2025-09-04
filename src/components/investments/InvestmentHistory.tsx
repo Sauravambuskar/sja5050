@@ -61,27 +61,15 @@ const InvestmentHistory = () => {
       const filename = `SJA_Investment_History_${format(new Date(), 'yyyy-MM-dd')}`;
       
       if (formatType === 'csv') {
-        const formattedData = data.map(item => ({
-          "Plan Name": item.plan_name,
-          "Investment Amount": item.investment_amount,
-          "Start Date": item.start_date,
-          "Maturity Date": item.maturity_date,
-          "Status": item.status,
-          "Profit Earned": item.profit_earned,
-          "Total Payout": item.total_payout,
-        }));
-        exportToCsv(`${filename}.csv`, formattedData);
+        exportToCsv(`${filename}.csv`, data.map((item: any) => ({ ...item, event_date: format(new Date(item.event_date), 'yyyy-MM-dd') })));
       } else {
-        const title = "Investment History Statement";
-        const headers = ["Plan", "Amount", "Start", "Maturity", "Status", "Profit", "Payout"];
+        const title = `Earnings Statement`;
+        const headers = ["Date", "Type", "Description", "Amount (INR)"];
         const body = data.map((item: any) => [
-          item.plan_name,
-          item.investment_amount.toLocaleString('en-IN'),
-          format(new Date(item.start_date), 'PPP'),
-          format(new Date(item.maturity_date), 'PPP'),
-          item.status,
-          item.profit_earned.toLocaleString('en-IN'),
-          item.total_payout.toLocaleString('en-IN'),
+          format(new Date(item.event_date), 'PPP'),
+          item.event_type,
+          item.description,
+          item.amount.toLocaleString('en-IN'),
         ]);
         exportToPdf(`${filename}.pdf`, title, headers, body, user?.user_metadata?.full_name || "User");
       }

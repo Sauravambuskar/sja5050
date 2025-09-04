@@ -41,7 +41,7 @@ export const SplashScreenCustomizer = () => {
   useEffect(() => {
     if (settings) {
       form.reset({
-        splash_screen_url: settings.splash_screen_url,
+        splash_screen_url: settings.splash_screen_url ?? '',
       });
     }
   }, [settings, form]);

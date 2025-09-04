@@ -67,7 +67,7 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     openTicketsCount,
     pendingWithdrawalsTotal,
   } = useAdminActionCounts();
-  const { settings, isLoading: isSettingsLoading } = useIdCardSettings();
+  const { isLoading: isSettingsLoading } = useIdCardSettings();
   const location = useLocation();
   const [openCollapsible, setOpenCollapsible] = React.useState("");
 

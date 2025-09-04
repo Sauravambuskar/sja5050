@@ -43,7 +43,12 @@ export const IdCardCustomizer = () => {
 
   useEffect(() => {
     if (settings) {
-      form.reset(settings);
+      form.reset({
+        company_name: settings.company_name,
+        logo_url: settings.logo_url ?? '',
+        accent_color: settings.accent_color,
+        background_image_url: settings.background_image_url ?? '',
+      });
     }
   }, [settings, form]);
 

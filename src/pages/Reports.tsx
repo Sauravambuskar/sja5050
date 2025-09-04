@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Download, Loader2, BarChart3 } from "lucide-react";
-import { cn, exportToCsv, exportToPdf } from "@/lib/utils";
+import { exportToCsv, exportToPdf } from "@/lib/utils";
 import { format, startOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";

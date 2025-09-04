@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 
-const fetchIdCardData = async (userId: string) => {
+const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
   const settingsPromise = supabase.from('id_card_settings').select('*').single();
   const { data: profileData, error: profileError } = await profilePromise;
@@ -29,7 +29,7 @@ export const IdCard = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
-    queryFn: () => fetchIdCardData(user!.id),
+    queryFn: () => fetchIdCardData(),
     enabled: !!user,
   });
 

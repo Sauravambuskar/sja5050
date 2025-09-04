@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 
 const SignaturePad = forwardRef<SignatureCanvas>((props, ref) => {

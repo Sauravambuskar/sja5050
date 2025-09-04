@@ -42,8 +42,8 @@ export const AuthLayoutCustomizer = () => {
   useEffect(() => {
     if (settings) {
       form.reset({
-        auth_layout_image_url_1: settings.auth_layout_image_url_1,
-        auth_layout_image_url_2: settings.auth_layout_image_url_2,
+        auth_layout_image_url_1: settings.auth_layout_image_url_1 ?? '',
+        auth_layout_image_url_2: settings.auth_layout_image_url_2 ?? '',
       });
     }
   }, [settings, form]);

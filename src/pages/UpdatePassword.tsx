@@ -12,7 +12,7 @@ function UpdatePassword() {
   const { session } = useAuth();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         // This event is triggered after the user clicks the password recovery link.
         // The view will automatically be 'update_password'.
