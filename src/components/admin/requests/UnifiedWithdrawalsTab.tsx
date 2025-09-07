@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CheckCircle, XCircle, Eye, AlertTriangle, Search, Wallet, TrendingDown } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { UnifiedWithdrawalRequest } from "@/types/database";
+import { WithdrawalRequest } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -25,8 +25,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 
 const PAGE_SIZE = 10;
 
-const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<UnifiedWithdrawalRequest[]> => {
-  const { data, error } = await supabase.rpc('get_all_unified_withdrawal_requests', {
+const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<WithdrawalRequest[]> => {
+  const { data, error } = await supabase.rpc('get_all_withdrawal_requests', {
     p_status_filter: status,
     p_search_text: search,
     p_limit: PAGE_SIZE,
@@ -37,7 +37,7 @@ const fetchRequests = async (status: string | null, search: string | null, page:
 };
 
 const fetchTotalCount = async (status: string | null, search: string | null): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_all_unified_withdrawal_requests_count', {
+  const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count', {
     p_status_filter: status,
     p_search_text: search,
   });
@@ -45,29 +45,20 @@ const fetchTotalCount = async (status: string | null, search: string | null): Pr
   return data;
 };
 
-const processRequest = async ({ requestId, status, notes, type }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string; type: 'Wallet' | 'Investment' }) => {
-  if (type === 'Wallet') {
-    const { error } = await supabase.rpc('process_withdrawal_request', {
-      request_id_to_process: requestId,
-      new_status: status === 'Approved' ? 'Completed' : 'Rejected',
-      notes: notes,
-    });
-    if (error) throw new Error(error.message);
-  } else { // Investment
-    const { error } = await supabase.rpc('process_investment_withdrawal_request', {
-      p_request_id: requestId,
-      p_new_status: status,
-      p_notes: notes,
-    });
-    if (error) throw new Error(error.message);
-  }
+const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string; }) => {
+  const { error } = await supabase.rpc('process_withdrawal_request', {
+    p_request_id: requestId,
+    p_new_status: status,
+    p_notes: notes,
+  });
+  if (error) throw new Error(error.message);
 };
 
 export const UnifiedWithdrawalsTab = ({ initialStatus }: { initialStatus?: string | null }) => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
-  const [detailsRequest, setDetailsRequest] = useState<UnifiedWithdrawalRequest | null>(null);
-  const [actionToConfirm, setActionToConfirm] = useState<{ request: UnifiedWithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
+  const [detailsRequest, setDetailsRequest] = useState<WithdrawalRequest | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: WithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus || "all");
@@ -78,14 +69,14 @@ export const UnifiedWithdrawalsTab = ({ initialStatus }: { initialStatus?: strin
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
 
-  const { data: requests, isLoading } = useQuery<UnifiedWithdrawalRequest[]>({
-    queryKey: ['allUnifiedWithdrawalRequests', currentPage, filterValue, searchValue],
+  const { data: requests, isLoading } = useQuery<WithdrawalRequest[]>({
+    queryKey: ['allWithdrawalRequests', currentPage, filterValue, searchValue],
     queryFn: () => fetchRequests(filterValue, searchValue, currentPage),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allUnifiedWithdrawalRequestsCount', filterValue, searchValue],
+    queryKey: ['allWithdrawalRequestsCount', filterValue, searchValue],
     queryFn: () => fetchTotalCount(filterValue, searchValue),
   });
 
@@ -100,8 +91,8 @@ export const UnifiedWithdrawalsTab = ({ initialStatus }: { initialStatus?: strin
     mutationFn: processRequest,
     onSuccess: (_, variables) => {
       toast.success(`Request has been ${variables.status.toLowerCase()}.`);
-      queryClient.invalidateQueries({ queryKey: ['allUnifiedWithdrawalRequests'] });
-      queryClient.invalidateQueries({ queryKey: ['allUnifiedWithdrawalRequestsCount'] });
+      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequestsCount'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
@@ -119,7 +110,7 @@ export const UnifiedWithdrawalsTab = ({ initialStatus }: { initialStatus?: strin
       return;
     }
     const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
-    mutation.mutate({ requestId: request.request_id, status, notes, type: request.request_type });
+    mutation.mutate({ requestId: request.request_id, status, notes });
   };
 
   const renderDesktopView = () => (

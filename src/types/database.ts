@@ -99,15 +99,17 @@ export type UnifiedWithdrawalRequest = {
   requested_at: string;
   status: string;
   details: {
-    // Wallet withdrawal details
+    // Common
+    reason?: string | null;
+    // Wallet specific
     wallet_balance?: number;
     bank_account_holder_name?: string | null;
     bank_account_number?: string | null;
     bank_ifsc_code?: string | null;
-    // Investment withdrawal details
+    // Investment specific
+    investment_id?: string;
     plan_name?: string;
     investment_amount?: number;
-    reason?: string | null;
   };
 };
 
@@ -189,10 +191,27 @@ export type DashboardStats = {
 };
 
 export type WithdrawalRequest = {
-  id: string;
+  request_id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  request_type: 'Wallet' | 'Investment';
   amount: number;
-  status: string;
   requested_at: string;
+  status: string;
+  details: {
+    // Common
+    reason?: string | null;
+    // Wallet specific
+    wallet_balance?: number;
+    bank_account_holder_name?: string | null;
+    bank_account_number?: string | null;
+    bank_ifsc_code?: string | null;
+    // Investment specific
+    investment_id?: string;
+    plan_name?: string;
+    investment_amount?: number;
+  };
   admin_notes: string | null;
 };
 

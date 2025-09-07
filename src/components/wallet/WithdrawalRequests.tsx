@@ -152,7 +152,7 @@ const WithdrawalRequests = () => {
             ))
           ) : history && history.length > 0 ? (
             history.map((req) => (
-              <TableRow key={req.id}>
+              <TableRow key={req.request_id}>
                 <TableCell>
                   <div className="font-medium">₹{req.amount.toLocaleString('en-IN')}</div>
                   <div className="text-sm text-muted-foreground">{format(new Date(req.requested_at), "PPP")}</div>
@@ -202,7 +202,7 @@ const WithdrawalRequests = () => {
         ))
       ) : history && history.length > 0 ? (
         history.map((req) => (
-          <Card key={req.id}>
+          <Card key={req.request_id}>
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <CardTitle className="text-xl">₹{req.amount.toLocaleString('en-IN')}</CardTitle>

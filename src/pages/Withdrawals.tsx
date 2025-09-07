@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { UserInvestment } from "@/types/database";
+import { UserInvestment, WithdrawalRequest } from "@/types/database";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HandCoins, History, Info, Lightbulb, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useForm } from "react-hook-form";
@@ -44,10 +44,10 @@ const fetchActiveInvestments = async (userId: string): Promise<UserInvestment[]>
   return data as UserInvestment[];
 };
 
-const fetchWithdrawalRequests = async (): Promise<InvestmentWithdrawalRequest[]> => {
-  const { data, error } = await supabase.rpc('get_my_investment_withdrawal_requests');
+const fetchWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
+  const { data, error } = await supabase.rpc('get_my_withdrawal_requests');
   if (error) throw new Error(error.message);
-  return data;
+  return data.filter((req: WithdrawalRequest) => req.request_type === 'Investment');
 };
 
 const requestWithdrawal = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
@@ -80,7 +80,7 @@ const Withdrawals = () => {
   });
 
   const { data: withdrawalRequests, isLoading: isLoadingRequests } = useQuery({
-    queryKey: ['myInvestmentWithdrawalRequests'],
+    queryKey: ['myWithdrawalRequests'],
     queryFn: fetchWithdrawalRequests,
     enabled: !!user,
   });
@@ -90,7 +90,7 @@ const Withdrawals = () => {
     onSuccess: () => {
       toast.success("Withdrawal request submitted successfully.");
       queryClient.invalidateQueries({ queryKey: ['activeInvestmentsForWithdrawal'] });
-      queryClient.invalidateQueries({ queryKey: ['myInvestmentWithdrawalRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['myWithdrawalRequests'] });
       setSelectedInvestment(null);
       setIsDialogOpen(false);
       form.reset();
@@ -201,19 +201,19 @@ const Withdrawals = () => {
                   <div key={req.request_id} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-semibold">{req.plan_name}</p>
-                        <p className="text-sm text-muted-foreground">Requested: ₹{req.requested_amount.toLocaleString('en-IN')}</p>
+                        <p className="font-semibold">{req.details.plan_name}</p>
+                        <p className="text-sm text-muted-foreground">Requested: ₹{req.amount.toLocaleString('en-IN')}</p>
                         <p className="text-xs text-muted-foreground">{format(new Date(req.requested_at), "PPP p")}</p>
                       </div>
-                      <Badge variant={req.status === "Approved" ? "success" : req.status === "Pending" ? "outline" : "destructive"}>
+                      <Badge variant={req.status === "Approved" || req.status === "Completed" ? "success" : req.status === "Pending" ? "outline" : "destructive"}>
                         {req.status}
                       </Badge>
                     </div>
-                    {req.reason && (
+                    {req.details.reason && (
                       <Alert variant="info" className="mt-3 p-3">
                         <Info className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                          Reason: {req.reason}
+                          Reason: {req.details.reason}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -229,7 +229,7 @@ const Withdrawals = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">No withdrawal requests found.</p>
+              <p className="text-center text-muted-foreground py-8">No investment withdrawal requests found.</p>
             )}
           </CardContent>
         </Card>

@@ -36,17 +36,15 @@ export const useAdminActionCounts = () => {
     refetchOnWindowFocus: true,
   });
 
-  const pendingRequestsCount = (data?.pending_deposits_count ?? 0) + 
-                               (data?.pending_withdrawals_count ?? 0) + 
-                               (data?.pending_investment_withdrawals_count ?? 0);
+  const pendingRequestsCount = (data?.pending_deposits_count ?? 0);
 
-  const pendingWithdrawalsTotal = (data?.pending_withdrawals_count ?? 0) + (data?.pending_investment_withdrawals_count ?? 0);
+  const pendingWithdrawalsTotal = data?.pending_withdrawals_count ?? 0;
 
   return {
     pendingKycCount: data?.pending_kyc ?? 0,
     pendingDepositsCount: data?.pending_deposits_count ?? 0,
     pendingWithdrawalsCount: data?.pending_withdrawals_count ?? 0,
-    pendingInvestmentWithdrawalsCount: data?.pending_investment_withdrawals_count ?? 0,
+    pendingInvestmentWithdrawalsCount: 0, // This is now part of the unified count
     pendingRequestsCount: pendingRequestsCount,
     openTicketsCount: openTicketsCount ?? 0,
     pendingWithdrawalsTotal,
