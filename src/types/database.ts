@@ -89,6 +89,28 @@ export type AdminWithdrawalRequest = {
   wallet_balance: number;
 };
 
+export type UnifiedWithdrawalRequest = {
+  request_id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  request_type: 'Wallet' | 'Investment';
+  amount: number;
+  requested_at: string;
+  status: string;
+  details: {
+    // Wallet withdrawal details
+    wallet_balance?: number;
+    bank_account_holder_name?: string | null;
+    bank_account_number?: string | null;
+    bank_ifsc_code?: string | null;
+    // Investment withdrawal details
+    plan_name?: string;
+    investment_amount?: number;
+    reason?: string | null;
+  };
+};
+
 export type AdminInvestmentWithdrawalRequest = {
   request_id: string;
   user_id: string;

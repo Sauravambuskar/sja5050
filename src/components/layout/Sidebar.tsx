@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, ChevronRight, Circle } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import React from "react";
 
 const userNavItems = [
@@ -28,18 +27,8 @@ const userNavItems = [
 const adminNavItems = [
   { to: "/admin", label: "Admin Dashboard", icon: Home },
   { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/requests", label: "Requests", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
-  {
-    label: "Withdrawals",
-    icon: Landmark,
-    badgeKey: "pendingWithdrawalsTotal",
-    subItems: [
-      { to: "/admin/withdrawals?status=Pending", label: "Pending Withdrawals", badgeKey: "pendingWithdrawalsTotal" },
-      { to: "/admin/withdrawals?status=Approved", label: "Approved Withdrawals" },
-      { to: "/admin/withdrawals?status=Rejected", label: "Rejected Withdrawals" },
-      { to: "/admin/withdrawals", label: "All Withdrawals" },
-    ]
-  },
+  { to: "/admin/requests", label: "Deposits", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
+  { to: "/admin/withdrawals", label: "Withdrawals", icon: Landmark, badgeKey: "pendingWithdrawalsTotal" },
   { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
@@ -69,14 +58,6 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
   } = useAdminActionCounts();
   const { isLoading: isSettingsLoading } = useIdCardSettings();
   const location = useLocation();
-  const [openCollapsible, setOpenCollapsible] = React.useState("");
-
-  React.useEffect(() => {
-    const activeParent = adminNavItems.find(item => item.subItems?.some(sub => location.pathname + location.search === sub.to || location.pathname === sub.to.split('?')[0]));
-    if (activeParent) {
-      setOpenCollapsible(activeParent.label);
-    }
-  }, [location.pathname, location.search]);
 
   const adminBadges: { [key: string]: number } = {
     pendingKycCount,
@@ -144,79 +125,18 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
           {adminNavItems.map((item) => {
             const badgeCount = item.badgeKey ? adminBadges[item.badgeKey] : 0;
 
-            if (item.subItems) {
-              const isParentActive = item.subItems.some(sub => location.pathname + location.search === sub.to);
-              return (
-                <Collapsible
-                  key={item.label}
-                  open={openCollapsible === item.label}
-                  onOpenChange={() => setOpenCollapsible(openCollapsible === item.label ? "" : item.label)}
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <div className={cn(
-                      "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium w-full",
-                      isParentActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}>
-                      <div className="flex items-center">
-                        <item.icon className="mr-3 h-5 w-5" />
-                        <span>{item.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {badgeCount > 0 && (
-                          <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                            {badgeCount}
-                          </Badge>
-                        )}
-                        <ChevronRight className={cn("h-4 w-4 transition-transform", openCollapsible === item.label && "rotate-90")} />
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="py-1 pl-8">
-                    <div className="flex flex-col space-y-1">
-                      {item.subItems.map(subItem => {
-                        const subBadgeCount = subItem.badgeKey ? adminBadges[subItem.badgeKey] : 0;
-                        const isActive = location.pathname + location.search === subItem.to;
-                        return (
-                          <NavLink
-                            key={subItem.to}
-                            to={subItem.to}
-                            onClick={onLinkClick}
-                            className={cn(
-                              "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
-                              isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            )}
-                          >
-                            <div className="flex items-center">
-                              <Circle className="mr-3 h-2 w-2 fill-current" />
-                              <span>{subItem.label}</span>
-                            </div>
-                            {subBadgeCount > 0 && (
-                              <Badge variant="secondary" className="h-5 px-1.5">{subBadgeCount}</Badge>
-                            )}
-                          </NavLink>
-                        )
-                      })}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )
-            }
-
             // This part is for non-collapsible items
             if (!item.to) return null;
-            const isActive = location.pathname === item.to;
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === "/admin"}
                 onClick={onLinkClick}
-                className={({ isActive }) =>
+                className={({ isActive: navIsActive }) =>
                   cn(
                     "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
-                    isActive
+                    navIsActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )

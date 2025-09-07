@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CheckCircle, XCircle, Eye, AlertTriangle, Search } from "lucide-react";
+import { CheckCircle, XCircle, Eye, AlertTriangle, Search, Wallet, TrendingDown } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { AdminWithdrawalRequest } from "@/types/database";
+import { UnifiedWithdrawalRequest } from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -25,8 +25,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 
 const PAGE_SIZE = 10;
 
-const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<AdminWithdrawalRequest[]> => {
-  const { data, error } = await supabase.rpc('get_all_withdrawal_requests', {
+const fetchRequests = async (status: string | null, search: string | null, page: number): Promise<UnifiedWithdrawalRequest[]> => {
+  const { data, error } = await supabase.rpc('get_all_unified_withdrawal_requests', {
     p_status_filter: status,
     p_search_text: search,
     p_limit: PAGE_SIZE,
@@ -37,7 +37,7 @@ const fetchRequests = async (status: string | null, search: string | null, page:
 };
 
 const fetchTotalCount = async (status: string | null, search: string | null): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count', {
+  const { data, error } = await supabase.rpc('get_all_unified_withdrawal_requests_count', {
     p_status_filter: status,
     p_search_text: search,
   });
@@ -45,20 +45,29 @@ const fetchTotalCount = async (status: string | null, search: string | null): Pr
   return data;
 };
 
-const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string }) => {
-  const { error } = await supabase.rpc('process_withdrawal_request', {
-    request_id_to_process: requestId,
-    new_status: status,
-    notes: notes,
-  });
-  if (error) throw new Error(error.message);
+const processRequest = async ({ requestId, status, notes, type }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string; type: 'Wallet' | 'Investment' }) => {
+  if (type === 'Wallet') {
+    const { error } = await supabase.rpc('process_withdrawal_request', {
+      request_id_to_process: requestId,
+      new_status: status === 'Approved' ? 'Completed' : 'Rejected',
+      notes: notes,
+    });
+    if (error) throw new Error(error.message);
+  } else { // Investment
+    const { error } = await supabase.rpc('process_investment_withdrawal_request', {
+      p_request_id: requestId,
+      p_new_status: status,
+      p_notes: notes,
+    });
+    if (error) throw new Error(error.message);
+  }
 };
 
-export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: string | null }) => {
+export const UnifiedWithdrawalsTab = ({ initialStatus }: { initialStatus?: string | null }) => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
-  const [detailsRequest, setDetailsRequest] = useState<AdminWithdrawalRequest | null>(null);
-  const [actionToConfirm, setActionToConfirm] = useState<{ request: AdminWithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
+  const [detailsRequest, setDetailsRequest] = useState<UnifiedWithdrawalRequest | null>(null);
+  const [actionToConfirm, setActionToConfirm] = useState<{ request: UnifiedWithdrawalRequest; status: 'Approved' | 'Rejected' } | null>(null);
   const [rejectionNotes, setRejectionNotes] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus || "all");
@@ -69,14 +78,14 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
   const filterValue = statusFilter === 'all' ? null : statusFilter;
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
 
-  const { data: requests, isLoading } = useQuery<AdminWithdrawalRequest[]>({
-    queryKey: ['allWithdrawalRequests', currentPage, filterValue, searchValue],
+  const { data: requests, isLoading } = useQuery<UnifiedWithdrawalRequest[]>({
+    queryKey: ['allUnifiedWithdrawalRequests', currentPage, filterValue, searchValue],
     queryFn: () => fetchRequests(filterValue, searchValue, currentPage),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allWithdrawalRequestsCount', filterValue, searchValue],
+    queryKey: ['allUnifiedWithdrawalRequestsCount', filterValue, searchValue],
     queryFn: () => fetchTotalCount(filterValue, searchValue),
   });
 
@@ -91,8 +100,8 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
     mutationFn: processRequest,
     onSuccess: (_, variables) => {
       toast.success(`Request has been ${variables.status.toLowerCase()}.`);
-      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequests'] });
-      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequestsCount'] });
+      queryClient.invalidateQueries({ queryKey: ['allUnifiedWithdrawalRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['allUnifiedWithdrawalRequestsCount'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
@@ -110,7 +119,7 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
       return;
     }
     const notes = status === 'Approved' ? 'Approved by admin.' : rejectionNotes;
-    mutation.mutate({ requestId: request.request_id, status, notes });
+    mutation.mutate({ requestId: request.request_id, status, notes, type: request.request_type });
   };
 
   const renderDesktopView = () => (
@@ -119,8 +128,9 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
         <TableHeader>
           <TableRow>
             <TableHead>User</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead>Wallet Balance</TableHead>
+            <TableHead>Details</TableHead>
             <TableHead>Requested</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -128,22 +138,35 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
+            [...Array(5)].map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>)
           ) : requests && requests.length > 0 ? (
             requests.map((request) => (
               <TableRow key={request.request_id}>
                 <TableCell>
                   <Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(request.user_id)}>{request.user_name || 'Deleted User'}</Button>
                 </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="gap-1.5">
+                    {request.request_type === 'Wallet' ? <Wallet className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {request.request_type}
+                  </Badge>
+                </TableCell>
                 <TableCell>₹{request.amount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="flex items-center gap-2">
-                  <span>₹{request.wallet_balance.toLocaleString('en-IN')}</span>
-                  {request.amount > request.wallet_balance && (
-                    <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
+                <TableCell>
+                  {request.request_type === 'Wallet' && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span>Bal: ₹{request.details.wallet_balance?.toLocaleString('en-IN')}</span>
+                      {request.amount > (request.details.wallet_balance ?? 0) && (
+                        <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
+                      )}
+                    </div>
+                  )}
+                   {request.request_type === 'Investment' && (
+                    <div className="text-sm text-muted-foreground">{request.details.plan_name}</div>
                   )}
                 </TableCell>
-                <TableCell>{format(new Date(request.requested_at), "PPP")}</TableCell>
-                <TableCell><Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
+                <TableCell>{format(new Date(request.requested_at), "PP")}</TableCell>
+                <TableCell><Badge variant={request.status === "Approved" || request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge></TableCell>
                 <TableCell className="text-right">
                   {request.status === 'Pending' && (
                     <div className="flex justify-end gap-2">
@@ -156,7 +179,7 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
               </TableRow>
             ))
           ) : (
-            <TableRow><TableCell colSpan={6} className="h-24 text-center">No withdrawal requests found.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="h-24 text-center">No withdrawal requests found.</TableCell></TableRow>
           )}
         </TableBody>
       </Table>
@@ -178,19 +201,34 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
                   </CardTitle>
                   <div className="text-lg font-bold text-primary">₹{request.amount.toLocaleString('en-IN')}</div>
                 </div>
-                <Badge variant={request.status === "Approved" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
+                <Badge variant={request.status === "Approved" || request.status === "Completed" ? "success" : request.status === "Pending" ? "outline" : "destructive"}>{request.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div className="flex items-center">
-                <span className="text-muted-foreground w-28">Wallet Balance:</span>
-                <span className="flex items-center gap-2">
-                  ₹{request.wallet_balance.toLocaleString('en-IN')}
-                  {request.amount > request.wallet_balance && (
-                    <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
-                  )}
-                </span>
+                <span className="text-muted-foreground w-28">Type:</span>
+                <Badge variant="secondary" className="gap-1.5">
+                  {request.request_type === 'Wallet' ? <Wallet className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {request.request_type}
+                </Badge>
               </div>
+              {request.request_type === 'Wallet' && (
+                <div className="flex items-center">
+                  <span className="text-muted-foreground w-28">Wallet Balance:</span>
+                  <span className="flex items-center gap-2">
+                    ₹{request.details.wallet_balance?.toLocaleString('en-IN')}
+                    {request.amount > (request.details.wallet_balance ?? 0) && (
+                      <TooltipProvider><Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent><p>Insufficient funds.</p></TooltipContent></Tooltip></TooltipProvider>
+                    )}
+                  </span>
+                </div>
+              )}
+              {request.request_type === 'Investment' && (
+                 <div className="flex items-center">
+                  <span className="text-muted-foreground w-28">Plan:</span>
+                  <span>{request.details.plan_name}</span>
+                </div>
+              )}
               <div className="flex items-center">
                 <span className="text-muted-foreground w-28">Requested:</span>
                 <span>{format(new Date(request.requested_at), "PP")}</span>
@@ -223,6 +261,7 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Completed">Completed</SelectItem>
             <SelectItem value="Approved">Approved</SelectItem>
             <SelectItem value="Rejected">Rejected</SelectItem>
           </SelectContent>
@@ -242,13 +281,26 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Withdrawal Details for {detailsRequest?.user_name}</AlertDialogTitle>
-            <AlertDialogDescription>Please process the payment to the bank account below before approving.</AlertDialogDescription>
+            <AlertDialogDescription>
+              {detailsRequest?.request_type === 'Wallet' 
+                ? "Please process the payment to the bank account below before approving."
+                : "Details for this investment withdrawal request."
+              }
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-md border bg-muted/50 p-4 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Holder:</span><span className="font-medium">{detailsRequest?.bank_account_holder_name || 'N/A'}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-mono">{detailsRequest?.bank_account_number || 'N/A'}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">IFSC:</span><span className="font-mono">{detailsRequest?.bank_ifsc_code || 'N/A'}</span></div>
-          </div>
+          {detailsRequest?.request_type === 'Wallet' ? (
+            <div className="space-y-2 rounded-md border bg-muted/50 p-4 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Holder:</span><span className="font-medium">{detailsRequest?.details.bank_account_holder_name || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-mono">{detailsRequest?.details.bank_account_number || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">IFSC:</span><span className="font-mono">{detailsRequest?.details.bank_ifsc_code || 'N/A'}</span></div>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-md border bg-muted/50 p-4 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Plan:</span><span className="font-medium">{detailsRequest?.details.plan_name || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Original Principal:</span><span className="font-mono">₹{detailsRequest?.details.investment_amount?.toLocaleString('en-IN')}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Reason:</span><span className="font-medium">{detailsRequest?.details.reason || 'N/A'}</span></div>
+            </div>
+          )}
           <AlertDialogFooter><AlertDialogCancel>Close</AlertDialogCancel></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -258,7 +310,7 @@ export const WithdrawalRequestsTab = ({ initialStatus }: { initialStatus?: strin
             <AlertDialogTitle>Confirm Action</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {actionToConfirm?.status.toLowerCase()} this request of ₹{actionToConfirm?.request.amount.toLocaleString('en-IN')}?
-              {actionToConfirm?.status === 'Approved' && <p className="mt-2 text-sm text-destructive">Ensure you have completed the bank transfer before proceeding.</p>}
+              {actionToConfirm?.status === 'Approved' && actionToConfirm.request.request_type === 'Wallet' && <p className="mt-2 text-sm text-destructive">Ensure you have completed the bank transfer before proceeding.</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionToConfirm?.status === 'Rejected' && (
