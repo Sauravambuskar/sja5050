@@ -30,6 +30,7 @@ import TicketDetails from "./pages/TicketDetails";
 import PaymentDetails from "./pages/PaymentDetails";
 import Reports from "./pages/Reports";
 import Withdrawals from "./pages/Withdrawals";
+import Notes from "./pages/Notes";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/payment-details" element={<PaymentDetails />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/agreement" element={<Agreement />} />
           <Route path="/faq" element={<Faq />} />

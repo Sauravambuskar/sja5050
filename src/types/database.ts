@@ -524,3 +524,18 @@ export type AdminInvestmentCancellationRequest = {
   requested_at: string;
   status: string;
 };
+
+export type AdminUserNote = {
+  id: string;
+  note: string;
+  admin_email: string | null;
+  is_visible_to_user: boolean;
+  created_at: string;
+};
+
+export type UserNote = {
+  id: string;
+  note: string;
+  admin_email: string | null;
+  created_at: string;
+};

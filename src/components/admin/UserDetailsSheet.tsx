@@ -20,6 +20,7 @@ import { AdminUserReferralsTab } from "@/components/admin/tabs/AdminUserReferral
 import { AdminWalletAdjustmentTab } from "@/components/admin/tabs/AdminWalletAdjustmentTab";
 import { AdminUserKycTab } from "./tabs/AdminUserKycTab";
 import { AdminUserDocumentsTab } from "./tabs/AdminUserDocumentsTab";
+import { AdminUserNotesTab } from "./tabs/AdminUserNotesTab";
 
 interface UserDetailsSheetProps {
   userId: string | null;
@@ -70,6 +71,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="kyc">KYC</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="investments">Investments</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -79,6 +81,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
           <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} email={user.email} onViewUser={onViewUser} /></TabsContent>
           <TabsContent value="kyc" className="mt-4"><AdminUserKycTab userId={userId} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><AdminUserDocumentsTab userId={userId} /></TabsContent>
+          <TabsContent value="notes" className="mt-4"><AdminUserNotesTab userId={userId} /></TabsContent>
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
           <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} onViewUser={onViewUser} /></TabsContent>

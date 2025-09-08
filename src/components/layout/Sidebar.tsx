@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ const userNavItems = [
   { to: "/referrals", label: "Referrals", icon: Users },
   { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/notes", label: "Notes", icon: StickyNote },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/support", label: "Support", icon: MessageSquare },
   { to: "/faq", label: "FAQ", icon: HelpCircle },
