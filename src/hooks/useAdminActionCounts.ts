@@ -48,5 +48,6 @@ export const useAdminActionCounts = () => {
     pendingRequestsCount: pendingRequestsCount,
     openTicketsCount: openTicketsCount ?? 0,
     pendingWithdrawalsTotal,
+    pendingCancellationsCount: data?.pending_cancellations_count ?? 0,
   };
 };

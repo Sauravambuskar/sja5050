@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { InvestmentCancellation } from "@/components/support/InvestmentCancellation";
 
 const ticketSchema = z.object({
   subject: z.string().min(10, "Subject must be at least 10 characters."),
@@ -116,6 +117,10 @@ const Support = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <div className="mt-8">
+        <InvestmentCancellation />
+      </div>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>

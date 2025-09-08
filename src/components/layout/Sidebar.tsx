@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ const adminNavItems = [
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/requests", label: "Deposits", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
   { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
+  { to: "/admin/investment-cancellations", label: "Cancellations", icon: FileX, badgeKey: "pendingCancellationsCount" },
   { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
   { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
   { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
@@ -55,6 +56,7 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     pendingRequestsCount,
     openTicketsCount,
     pendingWithdrawalsTotal,
+    pendingCancellationsCount,
   } = useAdminActionCounts();
   const { isLoading: isSettingsLoading } = useIdCardSettings();
   const location = useLocation();
@@ -64,6 +66,7 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     pendingRequestsCount,
     openTicketsCount,
     pendingWithdrawalsTotal,
+    pendingCancellationsCount,
   };
 
   return (
