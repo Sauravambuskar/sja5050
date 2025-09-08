@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { History } from "lucide-react";
-import { InvestmentWithdrawalRequests } from "@/components/investments/InvestmentWithdrawalRequests";
+import { Withdrawals as InvestmentWithdrawalsPage } from "@/pages/Withdrawals";
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -73,7 +73,7 @@ const Investments = () => {
               </Card>
             </TabsContent>
             <TabsContent value="withdrawals">
-              <InvestmentWithdrawalRequests />
+              <InvestmentWithdrawalsPage />
             </TabsContent>
           </Tabs>
         ) : (

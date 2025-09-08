@@ -28,7 +28,7 @@ const withdrawalSchema = z.object({
 });
 
 const requestWithdrawal = async (amount: number) => {
-  const { error } = await supabase.rpc('request_withdrawal', { request_amount: amount });
+  const { error } = await supabase.rpc('request_wallet_withdrawal', { p_amount: amount });
   if (error) throw new Error(error.message);
 };
 
@@ -44,6 +44,7 @@ const fetchWalletBalance = async (): Promise<number> => {
 
 const fetchWithdrawalHistory = async (page: number): Promise<WithdrawalRequest[]> => {
   const { data, error } = await supabase.rpc('get_my_withdrawal_requests', {
+    p_request_type: 'Wallet',
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
   });
@@ -52,7 +53,7 @@ const fetchWithdrawalHistory = async (page: number): Promise<WithdrawalRequest[]
 };
 
 const fetchWithdrawalHistoryCount = async (): Promise<number> => {
-  const { data, error } = await supabase.rpc('get_my_withdrawal_requests_count');
+  const { data, error } = await supabase.rpc('get_my_withdrawal_requests_count', { p_request_type: 'Wallet' });
   if (error) throw new Error(error.message);
   return data;
 };

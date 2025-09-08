@@ -45,9 +45,13 @@ const fetchActiveInvestments = async (userId: string): Promise<UserInvestment[]>
 };
 
 const fetchWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
-  const { data, error } = await supabase.rpc('get_my_withdrawal_requests');
+  const { data, error } = await supabase.rpc('get_my_withdrawal_requests', {
+    p_request_type: 'Investment',
+    p_limit: 100,
+    p_offset: 0
+  });
   if (error) throw new Error(error.message);
-  return data.filter((req: WithdrawalRequest) => req.request_type === 'Investment');
+  return data;
 };
 
 const requestWithdrawal = async ({ investmentId, amount, reason }: { investmentId: string; amount: number; reason: string }) => {
