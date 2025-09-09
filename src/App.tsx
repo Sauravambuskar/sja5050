@@ -21,7 +21,6 @@ import LoginMfa from "@/pages/LoginMfa";
 // User Pages
 import Investments from "@/pages/Investments";
 import Withdrawals from "@/pages/Withdrawals";
-import FundTransfer from "@/pages/FundTransfer";
 import Wallet from "@/pages/Wallet";
 import Profile from "@/pages/Profile";
 import Referrals from "@/pages/Referrals";
@@ -40,7 +39,6 @@ import UserManagement from "@/pages/admin/UserManagement";
 import KycManagement from "@/pages/admin/KycManagement";
 import RequestManagement from "@/pages/admin/RequestManagement";
 import InvestmentRequestManagement from "@/pages/admin/InvestmentRequestManagement";
-import FundTransferApproval from "@/pages/admin/FundTransferApproval";
 import WalletWithdrawalManagement from "@/pages/admin/WalletWithdrawalManagement";
 import InvestmentManagement from "@/pages/admin/InvestmentManagement";
 import CommissionRules from "@/pages/admin/CommissionRules";
@@ -82,7 +80,6 @@ const MainRouter = () => (
           <Route path="/" element={<DashboardLoader />} />
           <Route path="/investments" element={<Investments />} />
           <Route path="/withdrawals" element={<Withdrawals />} />
-          <Route path="/fund-transfer" element={<FundTransfer />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/referrals" element={<Referrals />} />
@@ -103,7 +100,6 @@ const MainRouter = () => (
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
             <Route path="request-management" element={<RequestManagement />} />
             <Route path="wallet-withdrawal-management" element={<WalletWithdrawalManagement />} />
-            <Route path="fund-transfer-approval" element={<FundTransferApproval />} />
             <Route path="investment-requests" element={<InvestmentRequestManagement />} />
             <Route path="investment-cancellations" element={<InvestmentCancellationManagement />} />
             <Route path="investment-management" element={<InvestmentManagement />} />
