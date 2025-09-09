@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX, StickyNote } from "lucide-react";
+import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX, StickyNote, LayoutDashboard, WalletCards, Briefcase, ListOrdered, Percent, Ban, MessageSquareHeart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -27,15 +27,17 @@ const userNavItems = [
 ];
 
 const adminNavItems = [
-  { to: "/admin", label: "Admin Dashboard", icon: Home },
-  { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/requests", label: "Deposits", icon: ArrowDownToDot, badgeKey: "pendingRequestsCount" },
-  { to: "/admin/investment-requests", label: "Investment Approvals", icon: Banknote },
-  { to: "/admin/investment-cancellations", label: "Cancellations", icon: FileX, badgeKey: "pendingCancellationsCount" },
-  { to: "/admin/investments", label: "Investment Mgmt", icon: Landmark },
-  { to: "/admin/kyc", label: "KYC Toolkit", icon: ShieldCheck, badgeKey: "pendingKycCount" },
-  { to: "/admin/support", label: "Support Desk", icon: MessageSquare, badgeKey: "openTicketsCount" },
-  { to: "/admin/commissions", label: "Commission Rules", icon: GitBranch },
+  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/user-management", label: "User Management", icon: Users },
+  { to: "/admin/kyc-management", label: "KYC Management", icon: ShieldCheck },
+  { to: "/admin/request-management", label: "Deposit Requests", icon: ArrowDownToDot },
+  { to: "/admin/investment-requests", label: "Investment Requests", icon: Briefcase },
+  { to: "/admin/fund-transfer-approval", label: "Fund Transfer Approval", icon: Landmark },
+  { to: "/admin/wallet-withdrawal-management", label: "Wallet Withdrawals", icon: WalletCards },
+  { to: "/admin/investment-cancellations", label: "Cancellations", icon: Ban },
+  { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered },
+  { to: "/admin/commission-rules", label: "Commission Rules", icon: Percent },
+  { to: "/admin/support-desk", label: "Support Desk", icon: MessageSquareHeart },
   { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
   { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
   { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },

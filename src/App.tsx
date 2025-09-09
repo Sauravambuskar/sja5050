@@ -36,11 +36,12 @@ import FundTransfer from "./pages/FundTransfer";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
-import InvestmentManagement from "./pages/admin/InvestmentManagement";
-import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
-import InvestmentCancellationManagement from "./pages/admin/InvestmentCancellationManagement";
-import RequestManagement from "./pages/admin/RequestManagement";
 import KycManagement from "./pages/admin/KycManagement";
+import RequestManagement from "./pages/admin/RequestManagement";
+import InvestmentRequestManagement from "./pages/admin/InvestmentRequestManagement";
+import FundTransferApproval from "./pages/admin/FundTransferApproval";
+import WalletWithdrawalManagement from "./pages/admin/WalletWithdrawalManagement";
+import InvestmentManagement from "./pages/admin/InvestmentManagement";
 import CommissionRules from "./pages/admin/CommissionRules";
 import Reporting from "./pages/admin/Reporting";
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -53,7 +54,7 @@ import SupportDesk from "./pages/admin/SupportDesk";
 import AdminTicketDetails from "./pages/admin/AdminTicketDetails";
 import ClientPaymentDetails from "./pages/admin/ClientPaymentDetails";
 import MasterReports from "./pages/admin/MasterReports";
-import WithdrawalManagement from "./pages/admin/WithdrawalManagement";
+import InvestmentCancellationManagement from "./pages/admin/InvestmentCancellationManagement";
 
 const queryClient = new QueryClient();
 
@@ -83,10 +84,10 @@ const App = () => (
           {/* Admin Portal Routes */}
           <Route path="/admin" element={<AdminRoute />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
+            <Route path="user-management" element={<UserManagement />} />
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
             <Route path="requests" element={<RequestManagement />} />
-            <Route path="withdrawals" element={<WithdrawalManagement />} />
+            <Route path="withdrawals" element={<WalletWithdrawalManagement />} />
             <Route path="investment-requests" element={<InvestmentRequestManagement />} />
             <Route path="investment-cancellations" element={<InvestmentCancellationManagement />} />
             <Route path="investments" element={<InvestmentManagement />} />

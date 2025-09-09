@@ -20,7 +20,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Search, CheckCircle, XCircle, Landmark, Wallet } from "lucide-react";
+import { Search, CheckCircle, XCircle } from "lucide-react";
 import { usePageLayoutContext } from "@/components/layout/PageLayout";
 
 const PAGE_SIZE = 10;
@@ -29,6 +29,7 @@ const fetchRequests = async (status: string | null, search: string | null, page:
   const { data, error } = await supabase.rpc('get_all_withdrawal_requests', {
     p_status_filter: status,
     p_search_text: search,
+    p_request_type: 'Investment',
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
   });
@@ -40,6 +41,7 @@ const fetchTotalCount = async (status: string | null, search: string | null): Pr
   const { data, error } = await supabase.rpc('get_all_withdrawal_requests_count', {
     p_status_filter: status,
     p_search_text: search,
+    p_request_type: 'Investment',
   });
   if (error) throw new Error(error.message);
   return data;
@@ -54,7 +56,7 @@ const processRequest = async ({ requestId, status, notes }: { requestId: string;
   if (error) throw new Error(error.message);
 };
 
-export const UnifiedWithdrawalsTab = () => {
+export const InvestmentWithdrawalsTab = () => {
   const queryClient = useQueryClient();
   const { handleViewUser } = usePageLayoutContext();
   const [processingRequest, setProcessingRequest] = useState<UnifiedWithdrawalRequest | null>(null);
@@ -69,13 +71,13 @@ export const UnifiedWithdrawalsTab = () => {
   const searchValue = debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim();
 
   const { data: requests, isLoading } = useQuery<UnifiedWithdrawalRequest[]>({
-    queryKey: ['allWithdrawalRequests', currentPage, filterValue, searchValue],
+    queryKey: ['allInvestmentWithdrawalRequests', currentPage, filterValue, searchValue],
     queryFn: () => fetchRequests(filterValue, searchValue, currentPage),
     placeholderData: keepPreviousData,
   });
 
   const { data: totalRequests } = useQuery<number>({
-    queryKey: ['allWithdrawalRequestsCount', filterValue, searchValue],
+    queryKey: ['allInvestmentWithdrawalRequestsCount', filterValue, searchValue],
     queryFn: () => fetchTotalCount(filterValue, searchValue),
   });
 
@@ -86,8 +88,8 @@ export const UnifiedWithdrawalsTab = () => {
     mutationFn: processRequest,
     onSuccess: (_, variables) => {
       toast.success(`Request has been ${variables.status.toLowerCase()}.`);
-      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequests'] });
-      queryClient.invalidateQueries({ queryKey: ['allWithdrawalRequestsCount'] });
+      queryClient.invalidateQueries({ queryKey: ['allInvestmentWithdrawalRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['allInvestmentWithdrawalRequestsCount'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
@@ -114,9 +116,9 @@ export const UnifiedWithdrawalsTab = () => {
       <TableHeader>
         <TableRow>
           <TableHead>User</TableHead>
-          <TableHead>Type</TableHead>
           <TableHead>Amount</TableHead>
-          <TableHead>Details</TableHead>
+          <TableHead>Plan / Principal</TableHead>
+          <TableHead>Reason</TableHead>
           <TableHead>Requested</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -127,23 +129,12 @@ export const UnifiedWithdrawalsTab = () => {
           : requests?.map((req) => (
             <TableRow key={req.request_id}>
               <TableCell><Button variant="link" className="p-0 h-auto" onClick={() => handleViewUser(req.user_id)}>{req.user_name || 'Deleted User'}</Button></TableCell>
-              <TableCell>
-                <Badge variant="outline" className="flex items-center w-fit">
-                  {req.request_type === 'Investment' ? <Landmark className="h-3 w-3 mr-1" /> : <Wallet className="h-3 w-3 mr-1" />}
-                  {req.request_type}
-                </Badge>
-              </TableCell>
               <TableCell>₹{req.amount.toLocaleString('en-IN')}</TableCell>
               <TableCell className="text-xs">
-                {req.request_type === 'Investment' ? (
-                  <>
-                    <div><strong>Plan:</strong> {req.details.plan_name}</div>
-                    <div><strong>Principal:</strong> ₹{req.details.investment_amount?.toLocaleString('en-IN')}</div>
-                  </>
-                ) : (
-                  <div><strong>Wallet:</strong> ₹{req.details.wallet_balance?.toLocaleString('en-IN')}</div>
-                )}
+                <div><strong>{req.details.plan_name}</strong></div>
+                <div>₹{req.details.investment_amount?.toLocaleString('en-IN')}</div>
               </TableCell>
+              <TableCell className="max-w-[200px] truncate">{req.details.reason}</TableCell>
               <TableCell>{format(new Date(req.requested_at), "PP p")}</TableCell>
               <TableCell><Badge variant={req.status === "Completed" ? "success" : req.status === "Pending" ? "outline" : "destructive"}>{req.status}</Badge></TableCell>
               <TableCell className="text-right">
@@ -170,20 +161,9 @@ export const UnifiedWithdrawalsTab = () => {
               </div>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
-              <div className="flex items-center">
-                <Badge variant="outline" className="flex items-center w-fit">
-                  {req.request_type === 'Investment' ? <Landmark className="h-3 w-3 mr-1" /> : <Wallet className="h-3 w-3 mr-1" />}
-                  {req.request_type}
-                </Badge>
-              </div>
-              {req.request_type === 'Investment' ? (
-                <>
-                  <div><strong>Plan:</strong> {req.details.plan_name}</div>
-                  <div><strong>Principal:</strong> ₹{req.details.investment_amount?.toLocaleString('en-IN')}</div>
-                </>
-              ) : (
-                <div><strong>Wallet Balance:</strong> ₹{req.details.wallet_balance?.toLocaleString('en-IN')}</div>
-              )}
+              <div><strong>Plan:</strong> {req.details.plan_name}</div>
+              <div><strong>Principal:</strong> ₹{req.details.investment_amount?.toLocaleString('en-IN')}</div>
+              <div><strong>Reason:</strong> {req.details.reason}</div>
               <div><strong>Requested:</strong> {format(new Date(req.requested_at), "PP p")}</div>
             </CardContent>
             {req.status === 'Pending' && <CardFooter><Button className="w-full" onClick={() => handleProcessClick(req)}>Process Request</Button></CardFooter>}
@@ -211,14 +191,14 @@ export const UnifiedWithdrawalsTab = () => {
       <AlertDialog open={!!processingRequest} onOpenChange={() => setProcessingRequest(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Process Withdrawal Request</AlertDialogTitle>
+            <AlertDialogTitle>Process Fund Transfer Request</AlertDialogTitle>
             <AlertDialogDescription>Review the details and approve or reject this request. Notes are required for rejection.</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2 text-sm">
             <p><strong>User:</strong> {processingRequest?.user_name}</p>
             <p><strong>Amount:</strong> ₹{processingRequest?.amount.toLocaleString('en-IN')}</p>
-            <p><strong>Type:</strong> {processingRequest?.request_type}</p>
-            {processingRequest?.request_type === 'Investment' && <p><strong>From Plan:</strong> {processingRequest?.details.plan_name}</p>}
+            <p><strong>From Plan:</strong> {processingRequest?.details.plan_name}</p>
+            <p><strong>Reason:</strong> {processingRequest?.details.reason}</p>
           </div>
           <div className="py-2">
             <Label htmlFor="rejection-notes">Admin Notes</Label>
