@@ -6,7 +6,6 @@ import ManualDeposit from "@/components/wallet/ManualDeposit";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositHistory from "@/components/wallet/DepositHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BalanceTransfer } from "@/components/wallet/BalanceTransfer";
 
 const fetchWalletBalance = async () => {
   const { data, error } = await supabase.rpc('get_my_wallet_balance');
@@ -47,9 +46,8 @@ const Wallet = () => {
       </Card>
 
       <Tabs defaultValue="add_funds" className="w-full mt-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="add_funds">Add Funds</TabsTrigger>
-          <TabsTrigger value="transfer">Balance Transfer</TabsTrigger>
           <TabsTrigger value="withdrawals">Withdrawal History</TabsTrigger>
           <TabsTrigger value="deposits">Deposit History</TabsTrigger>
         </TabsList>
@@ -68,9 +66,6 @@ const Wallet = () => {
               <ManualDeposit />
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="transfer">
-          <BalanceTransfer />
         </TabsContent>
         <TabsContent value="withdrawals">
           <Card>
