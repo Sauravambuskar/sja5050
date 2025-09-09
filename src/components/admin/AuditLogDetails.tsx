@@ -31,6 +31,14 @@ export const AuditLogDetails = ({ action, details }: AuditLogDetailsProps) => {
           <DetailItem label="Notes" value={details.notes} />
         </div>
       );
+    case 'processed_withdrawal_request':
+      return (
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <DetailItem label="Amount" value={`₹${details.amount?.toLocaleString('en-IN')}`} />
+          <DetailItem label="New Status" value={<Badge variant={details.new_status === 'Approved' || details.new_status === 'Completed' ? 'success' : 'destructive'}>{details.new_status}</Badge>} />
+          <DetailItem label="Notes" value={details.notes} />
+        </div>
+      );
     case 'processed_kyc_request':
       return (
         <div className="flex flex-wrap gap-x-4 gap-y-1">
