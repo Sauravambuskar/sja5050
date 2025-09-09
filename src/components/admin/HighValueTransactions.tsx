@@ -20,6 +20,8 @@ export const HighValueTransactions = () => {
     queryFn: fetchHighValueTransactions,
   });
 
+  const filteredTransactions = transactions?.filter(t => t.type === 'Investment');
+
   return (
     <Card>
       <CardHeader>
@@ -30,12 +32,12 @@ export const HighValueTransactions = () => {
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
-        ) : transactions && transactions.length > 0 ? (
+        ) : filteredTransactions && filteredTransactions.length > 0 ? (
           <div className="space-y-4">
-            {transactions.map((item) => (
+            {filteredTransactions.map((item) => (
               <button key={item.id} className="flex w-full items-start gap-4 rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(item.user_id)}>
                 <div className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-                  {item.type === 'Deposit' ? <ArrowDownToDot className="h-5 w-5 text-blue-500" /> : <TrendingUp className="h-5 w-5 text-green-500" />}
+                  <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
                 <div className="flex-grow">
                   <p className="text-sm">
