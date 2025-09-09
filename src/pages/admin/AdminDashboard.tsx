@@ -30,8 +30,8 @@ const AdminDashboard = () => {
     { title: "Assets Under Management", value: `₹${stats.aum.toLocaleString('en-IN')}`, icon: DollarSign, to: "/admin/investments" },
     { title: "This Month's Payout Projection", value: `₹${stats.monthly_payout_projection.toLocaleString('en-IN')}`, icon: CalendarClock, to: "/admin/payout-reports" },
     { title: "Pending KYC Verifications", value: stats.pending_kyc.toLocaleString(), icon: UserCheck, to: "/admin/kyc" },
+    { title: "Pending Requests", value: `${(stats.pending_deposits_count + stats.pending_withdrawals_count + stats.pending_investment_withdrawals_count).toLocaleString()}`, icon: Hourglass, to: "/admin/requests" },
     { title: "Pending Investments", value: `${stats.pending_investments_count} (₹${stats.pending_investments_value.toLocaleString('en-IN')})`, icon: TrendingUp, to: "/admin/investment-requests" },
-    { title: "Pending Cancellations", value: stats.pending_cancellations_count.toLocaleString(), icon: Hourglass, to: "/admin/investment-cancellations" },
   ] : [];
 
   return (

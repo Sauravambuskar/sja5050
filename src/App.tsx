@@ -21,6 +21,7 @@ import LoginMfa from "@/pages/LoginMfa";
 // User Pages
 import Investments from "@/pages/Investments";
 import Withdrawals from "@/pages/Withdrawals";
+import Wallet from "@/pages/Wallet";
 import Profile from "@/pages/Profile";
 import Referrals from "@/pages/Referrals";
 import PaymentDetails from "@/pages/PaymentDetails";
@@ -36,7 +37,9 @@ import TicketDetails from "@/pages/TicketDetails";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserManagement from "@/pages/admin/UserManagement";
 import KycManagement from "@/pages/admin/KycManagement";
+import RequestManagement from "@/pages/admin/RequestManagement";
 import InvestmentRequestManagement from "@/pages/admin/InvestmentRequestManagement";
+import WalletWithdrawalManagement from "@/pages/admin/WalletWithdrawalManagement";
 import InvestmentManagement from "@/pages/admin/InvestmentManagement";
 import CommissionRules from "@/pages/admin/CommissionRules";
 import SystemManagement from "@/pages/admin/SystemManagement";
@@ -77,6 +80,7 @@ const MainRouter = () => (
           <Route path="/" element={<DashboardLoader />} />
           <Route path="/investments" element={<Investments />} />
           <Route path="/withdrawals" element={<Withdrawals />} />
+          <Route path="/wallet" element={<Wallet />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/payment-details" element={<PaymentDetails />} />
@@ -94,6 +98,8 @@ const MainRouter = () => (
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="user-management" element={<UserManagement />} />
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
+            <Route path="request-management" element={<RequestManagement />} />
+            <Route path="wallet-withdrawal-management" element={<WalletWithdrawalManagement />} />
             <Route path="investment-requests" element={<InvestmentRequestManagement />} />
             <Route path="investment-cancellations" element={<InvestmentCancellationManagement />} />
             <Route path="investment-management" element={<InvestmentManagement />} />

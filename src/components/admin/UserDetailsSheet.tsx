@@ -17,6 +17,7 @@ import { AdminUserProfileTab } from "@/components/admin/tabs/AdminUserProfileTab
 import { AdminUserTransactionsTab } from "@/components/admin/tabs/AdminUserTransactionsTab";
 import { AdminUserInvestmentsTab } from "@/components/admin/tabs/AdminUserInvestmentsTab";
 import { AdminUserReferralsTab } from "@/components/admin/tabs/AdminUserReferralsTab";
+import { AdminWalletAdjustmentTab } from "@/components/admin/tabs/AdminWalletAdjustmentTab";
 import { AdminUserKycTab } from "./tabs/AdminUserKycTab";
 import { AdminUserDocumentsTab } from "./tabs/AdminUserDocumentsTab";
 import { AdminUserNotesTab } from "./tabs/AdminUserNotesTab";
@@ -61,6 +62,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
             <div className="flex justify-between"><span className="text-muted-foreground">Email:</span><span>{user.email}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Joined:</span><span>{new Date(user.join_date).toLocaleDateString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">KYC Status:</span><Badge variant={user.kyc_status === "Approved" ? "default" : "outline"}>{user.kyc_status}</Badge></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Wallet Balance:</span><span className="font-mono">₹{(user.wallet_balance || 0).toLocaleString('en-IN')}</span></div>
           </div>
         </div>
         <Tabs defaultValue="profile">
@@ -73,6 +75,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="investments">Investments</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
+              <TabsTrigger value="adjust">Adjust Wallet</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} email={user.email} onViewUser={onViewUser} /></TabsContent>
@@ -82,6 +85,7 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
           <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} onViewUser={onViewUser} /></TabsContent>
+          <TabsContent value="adjust" className="mt-4"><AdminWalletAdjustmentTab userId={userId} user={user} /></TabsContent>
         </Tabs>
       </div>
     );
