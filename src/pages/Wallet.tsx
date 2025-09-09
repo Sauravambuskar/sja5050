@@ -6,6 +6,7 @@ import ManualDeposit from "@/components/wallet/ManualDeposit";
 import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
 import DepositHistory from "@/components/wallet/DepositHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BalanceTransfer } from "@/components/wallet/BalanceTransfer";
 
 const fetchWalletBalance = async () => {
   const { data, error } = await supabase.rpc('get_my_wallet_balance');
@@ -45,57 +46,61 @@ const Wallet = () => {
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Landmark />
-              <CardTitle>Add Funds to Wallet</CardTitle>
-            </div>
-            <CardDescription>
-              Deposit funds manually via bank transfer.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ManualDeposit />
-          </CardContent>
-        </Card>
-
-        <Tabs defaultValue="withdrawals" className="w-full lg:col-span-1">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-            <TabsTrigger value="deposits">Deposits</TabsTrigger>
-          </TabsList>
-          <TabsContent value="withdrawals">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <History />
-                  <CardTitle>Withdrawal History</CardTitle>
-                </div>
-                <CardDescription>Track your withdrawal requests.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <WithdrawalRequests />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="deposits">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <History />
-                  <CardTitle>Deposit History</CardTitle>
-                </div>
-                <CardDescription>Track your deposit requests.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DepositHistory />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+      <Tabs defaultValue="add_funds" className="w-full mt-6">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsTrigger value="add_funds">Add Funds</TabsTrigger>
+          <TabsTrigger value="transfer">Balance Transfer</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawal History</TabsTrigger>
+          <TabsTrigger value="deposits">Deposit History</TabsTrigger>
+        </TabsList>
+        <TabsContent value="add_funds">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Landmark />
+                <CardTitle>Add Funds to Wallet</CardTitle>
+              </div>
+              <CardDescription>
+                Deposit funds manually via bank transfer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ManualDeposit />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="transfer">
+          <BalanceTransfer />
+        </TabsContent>
+        <TabsContent value="withdrawals">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <History />
+                <CardTitle>Withdrawal History</CardTitle>
+              </div>
+              <CardDescription>Track your withdrawal requests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WithdrawalRequests />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="deposits">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <History />
+                <CardTitle>Deposit History</CardTitle>
+              </div>
+              <CardDescription>Track your deposit requests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DepositHistory />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </>
   );
 };
