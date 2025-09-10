@@ -5,8 +5,8 @@ interface PaginationControlsProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  hasPreviousPage: boolean; // Added this line
-  hasNextPage: boolean;    // Added this line
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 }
 
 export const PaginationControls = ({
