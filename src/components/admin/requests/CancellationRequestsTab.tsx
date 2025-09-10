@@ -44,6 +44,7 @@ const fetchRequests = async (
   const limit = 10;
   const offset = (page - 1) * limit;
 
+  // Fetch data
   const { data, error } = await supabase.rpc(
     "get_all_investment_cancellation_requests",
     {
@@ -56,7 +57,8 @@ const fetchRequests = async (
 
   if (error) throw error;
 
-  const { count, error: countError } = await supabase.rpc(
+  // Fetch count separately
+  const { data: countData, error: countError } = await supabase.rpc(
     "get_all_investment_cancellation_requests_count",
     {
       p_status_filter: status === "All" ? null : status,
@@ -66,7 +68,9 @@ const fetchRequests = async (
 
   if (countError) throw countError;
 
-  return { data: data || [], count: count || 0 };
+  const count = countData || 0;
+
+  return { data, count: count as number };
 };
 
 const processRequest = async ({
@@ -225,10 +229,9 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
       </Table>
       <PaginationControls
         currentPage={page}
-        totalPages={totalPages}
+        totalCount={requestsData?.count || 0}
+        pageSize={10}
         onPageChange={setPage}
-        hasPreviousPage={requestsData?.data ? page > 1 : false}
-        hasNextPage={requestsData?.data ? page < totalPages : false}
       />
 
       <Dialog open={!!selectedRequest && !!dialogStatus} onOpenChange={() => { setSelectedRequest(null); setDialogStatus(null); }}>

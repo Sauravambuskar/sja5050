@@ -70,7 +70,7 @@ export type AdminDashboardStats = {
   total_active_investments_count: number;
   total_matured_investments_count: number;
   total_investment_amount_ever: number;
-  open_tickets_count: number;
+  open_tickets_count: number; // Fix: Add missing property
 };
 
 export type BirthdayUser = {
@@ -496,17 +496,6 @@ export type MasterTransactionReportItem = {
   created_at: string;
 };
 
-export type UserInvestmentWithdrawalRequest = {
-  request_id: string;
-  plan_name: string;
-  investment_amount: number;
-  requested_amount: number;
-  requested_at: string;
-  status: string;
-  admin_notes: string | null;
-  reason: string | null;
-};
-
 export type UserInvestmentCancellationRequest = {
   request_id: string;
   user_id: string;
@@ -518,7 +507,7 @@ export type UserInvestmentCancellationRequest = {
   reason: string;
   requested_at: string;
   status: string;
-  admin_notes: string | null; // Added this line
+  admin_notes: string | null; // Fix: Added missing property
 };
 
 export type AdminInvestmentCancellationRequest = {

@@ -3,15 +3,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationControlsProps {
   currentPage: number;
-  totalPages: number; // Added this line
+  totalCount: number; // Fix: Added missing prop
+  pageSize: number;
   onPageChange: (page: number) => void;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
 }
 
 export const PaginationControls = ({
   currentPage,
-  totalPages,
+  totalCount,
+  pageSize,
   onPageChange,
   hasPreviousPage,
   hasNextPage,
@@ -27,7 +27,7 @@ export const PaginationControls = ({
         <ChevronLeft className="h-4 w-4 mr-2" /> Previous
       </Button>
       <span className="text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages}
+        Page {currentPage} of {Math.ceil(totalCount / pageSize)}
       </span>
       <Button
         variant="outline"
