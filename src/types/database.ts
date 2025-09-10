@@ -70,7 +70,7 @@ export type AdminDashboardStats = {
   total_active_investments_count: number;
   total_matured_investments_count: number;
   total_investment_amount_ever: number;
-  open_tickets_count: number; // Fix: Add missing property
+  open_tickets_count: number;
 };
 
 export type BirthdayUser = {
@@ -518,6 +518,7 @@ export type UserInvestmentCancellationRequest = {
   reason: string;
   requested_at: string;
   status: string;
+  admin_notes: string | null; // Added this line
 };
 
 export type AdminInvestmentCancellationRequest = {

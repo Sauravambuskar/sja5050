@@ -43,7 +43,8 @@ const fetchRequests = async (
 ): Promise<{ data: UserInvestmentCancellationRequest[]; count: number }> => {
   const limit = 10;
   const offset = (page - 1) * limit;
-  const { data, error, count } = await supabase.rpc(
+
+  const { data, error } = await supabase.rpc(
     "get_all_investment_cancellation_requests",
     {
       p_status_filter: status === "All" ? null : status,
@@ -51,10 +52,21 @@ const fetchRequests = async (
       p_limit: limit,
       p_offset: offset,
     }
-  ).select('*', { count: 'exact' });
+  );
 
   if (error) throw error;
-  return { data, count: count || 0 };
+
+  const { count, error: countError } = await supabase.rpc(
+    "get_all_investment_cancellation_requests_count",
+    {
+      p_status_filter: status === "All" ? null : status,
+      p_search_text: search || null,
+    }
+  );
+
+  if (countError) throw countError;
+
+  return { data: data || [], count: count || 0 };
 };
 
 const processRequest = async ({
