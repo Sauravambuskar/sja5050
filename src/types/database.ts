@@ -507,7 +507,7 @@ export type UserInvestmentCancellationRequest = {
   reason: string;
   requested_at: string;
   status: string;
-  admin_notes: string | null; // Fix: Added missing property
+  admin_notes: string | null; // Added this line
 };
 
 export type AdminInvestmentCancellationRequest = {

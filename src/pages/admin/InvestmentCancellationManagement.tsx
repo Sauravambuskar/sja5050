@@ -13,7 +13,7 @@ const InvestmentCancellationManagement = () => {
       </div>
 
       <div className="mt-6">
-        <CancellationRequestsTab statusFilter="All" />
+        <CancellationRequestsTab statusFilter="Pending" />
       </div>
     </>
   );

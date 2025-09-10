@@ -68,9 +68,9 @@ const fetchRequests = async (
 
   if (countError) throw countError;
 
-  const count = countData || 0;
+  const totalCount = countData as number; // The RPC function returns a bigint directly
 
-  return { data, count: count as number };
+  return { data: data || [], count: totalCount };
 };
 
 const processRequest = async ({
@@ -229,9 +229,10 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
       </Table>
       <PaginationControls
         currentPage={page}
-        totalCount={requestsData?.count || 0}
-        pageSize={10}
+        totalPages={totalPages}
         onPageChange={setPage}
+        hasPreviousPage={page > 1}
+        hasNextPage={page < totalPages}
       />
 
       <Dialog open={!!selectedRequest && !!dialogStatus} onOpenChange={() => { setSelectedRequest(null); setDialogStatus(null); }}>
