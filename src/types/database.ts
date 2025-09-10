@@ -67,6 +67,10 @@ export type AdminDashboardStats = {
   pending_investment_withdrawals_count: number;
   monthly_payout_projection: number;
   pending_cancellations_count: number;
+  total_active_investments_count: number;
+  total_matured_investments_count: number;
+  total_investment_amount_ever: number;
+  open_tickets_count: number; // Fix: Add missing property
 };
 
 export type BirthdayUser = {
@@ -505,11 +509,15 @@ export type UserInvestmentWithdrawalRequest = {
 
 export type UserInvestmentCancellationRequest = {
   request_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
   plan_name: string;
+  investment_amount: number;
   cancellation_amount: number;
+  reason: string;
   requested_at: string;
   status: string;
-  admin_notes: string | null;
 };
 
 export type AdminInvestmentCancellationRequest = {

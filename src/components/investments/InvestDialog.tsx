@@ -13,16 +13,25 @@ import { InvestmentPlan } from "@/types/database";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Banknote, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 interface InvestDialogProps {
   plan: InvestmentPlan;
   isOpen: boolean;
   onClose: () => void;
 }
+
+const formSchema = z.object({
+  amount: z.number().positive().min(1, "Please enter a valid investment amount."),
+  referenceId: z.string().nonempty("Please enter the transaction reference ID."),
+  screenshotPath: z.string().nonempty("Please upload a payment screenshot."),
+});
 
 const requestInvestment = async ({ planId, amount, referenceId, screenshotPath }: { planId: string; amount: number; referenceId: string; screenshotPath: string; }) => {
   const { error } = await supabase.rpc("request_investment", {
@@ -44,6 +53,8 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { settings, isLoading: isLoadingSettings } = useSystemSettings();
+
+  const { watch } = useForm<z.infer<typeof formSchema>>();
 
   const mutation = useMutation({
     mutationFn: requestInvestment,
@@ -119,6 +130,14 @@ export const InvestDialog = ({ plan, isOpen, onClose }: InvestDialogProps) => {
       toast.error(error.message);
     }
   };
+
+  const investmentAmount = watch("amount");
+  const calculatedProfit = useMemo(() => {
+    if (!plan || !investmentAmount) return 0;
+    // const monthlyRate = plan.annual_rate / 12;
+    const totalProfit = (investmentAmount * (plan.annual_rate / 100) * plan.duration_months) / 12;
+    return totalProfit;
+  }, [plan, investmentAmount]);
 
   const monthlyRate = plan.annual_rate / 12;
 

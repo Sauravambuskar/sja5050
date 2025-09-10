@@ -59,7 +59,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
-            <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
+            <Sidebar />
           </SheetContent>
         </Sheet>
 

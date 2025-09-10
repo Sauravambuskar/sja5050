@@ -1,6 +1,7 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '../auth/AuthProvider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -35,7 +36,6 @@ const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) 
   return { filePath: fileName };
 };
 
-
 export const VideoKyc = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -43,6 +43,8 @@ export const VideoKyc = () => {
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'recorded' | 'uploading'>('idle');
   const [recordedVideo, setRecordedVideo] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -77,7 +79,7 @@ export const VideoKyc = () => {
       toast.success('Video KYC uploaded successfully!');
       queryClient.invalidateQueries({ queryKey: ['kycDocuments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['profileStatus', user?.id] });
-      handleRetake(); // Reset state
+      setRecordingStatus('idle');
     },
     onError: (error) => {
       toast.error(`Upload failed: ${error.message}`);
@@ -126,10 +128,12 @@ export const VideoKyc = () => {
       };
 
       mediaRecorder.start();
+      setIsRecording(true);
       setRecordingStatus('recording');
     } catch (err) {
       console.error("Error accessing media devices.", err);
       toast.error("Could not access camera/microphone. Please check permissions.");
+      setError("Could not access camera/microphone. Please check permissions.");
     }
   }, [videoUrl]);
 
@@ -141,6 +145,7 @@ export const VideoKyc = () => {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setIsRecording(false);
   }, []);
 
   const handleUpload = () => {
@@ -183,53 +188,37 @@ export const VideoKyc = () => {
     <Card>
       <CardHeader>
         <CardTitle>Video KYC</CardTitle>
-        <CardDescription>Record a short video of yourself holding your ID for verification.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="w-full aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center relative">
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            controls={recordingStatus === 'recorded'}
-            muted={recordingStatus !== 'recorded'}
-            className="w-full h-full object-cover"
-          >
-          </video>
-          {recordingStatus === 'idle' && (
-            <div className="absolute text-center text-white pointer-events-none">
-              <Video className="mx-auto h-12 w-12 mb-2" />
-              <p>Click "Start Video KYC" to begin</p>
+        {!isSupported ? (
+          <Alert variant="destructive">
+            <AlertTitle>Unsupported Browser</AlertTitle>
+            <AlertDescription>
+              Your browser does not support the required features for video recording. Please try a different browser like Chrome or Firefox.
+            </AlertDescription>
+          </Alert>
+        ) : videoUrl ? (
+          <div className="space-y-4">
+            <p>Your Video KYC has been submitted.</p>
+            <video src={videoUrl} controls className="w-full rounded-md" />
+            <Button onClick={() => setVideoUrl(null)}>Record Again</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="relative w-full aspect-video bg-black rounded-md overflow-hidden">
+              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted />
+              {isRecording && <div className="absolute top-2 right-2 h-4 w-4 bg-red-500 rounded-full animate-pulse" />}
             </div>
-          )}
-        </div>
-        <div className="mt-4 flex justify-center gap-4">
-          {recordingStatus === 'idle' && (
-            <Button onClick={startRecording}>
-              <Video className="mr-2 h-4 w-4" /> Start Video KYC
-            </Button>
-          )}
-          {recordingStatus === 'recording' && (
-            <Button onClick={stopRecording} variant="destructive">
-              <StopCircle className="mr-2 h-4 w-4" /> Stop Recording
-            </Button>
-          )}
-          {recordingStatus === 'recorded' && (
-            <>
-              <Button onClick={handleRetake} variant="outline">
-                <RefreshCw className="mr-2 h-4 w-4" /> Retake
-              </Button>
-              <Button onClick={handleUpload}>
-                <Upload className="mr-2 h-4 w-4" /> Upload Video
-              </Button>
-            </>
-          )}
-          {recordingStatus === 'uploading' && (
-            <Button disabled>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
-            </Button>
-          )}
-        </div>
+            <div className="flex gap-2">
+              {isRecording ? (
+                <Button onClick={stopRecording} className="w-full">Stop Recording</Button>
+              ) : (
+                <Button onClick={startRecording} className="w-full" disabled={!streamRef.current}>Start Recording</Button>
+              )}
+            </div>
+            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

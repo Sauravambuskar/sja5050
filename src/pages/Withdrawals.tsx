@@ -18,6 +18,9 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import WithdrawalRequests from "@/components/wallet/WithdrawalRequests";
+import { InvestmentCancellation } from "@/components/support/InvestmentCancellation";
 
 type InvestmentWithdrawalRequest = {
   request_id: string;
@@ -63,7 +66,7 @@ const requestWithdrawal = async ({ investmentId, amount, reason }: { investmentI
   if (error) throw new Error(error.message);
 };
 
-const Withdrawals = () => {
+const WithdrawalsPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedInvestment, setSelectedInvestment] = useState<UserInvestment | null>(null);
@@ -289,4 +292,4 @@ const Withdrawals = () => {
   );
 };
 
-export default Withdrawals;
+export default WithdrawalsPage;

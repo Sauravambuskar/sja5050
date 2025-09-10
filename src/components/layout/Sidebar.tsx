@@ -1,88 +1,124 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { Bell, Home, TrendingUp, User, Users, Wallet as WalletIcon, BarChart3, ShieldCheck, Landmark, GitBranch, Banknote, FileClock, ServerCog, ArrowDownToDot, FileSpreadsheet, HelpCircle, MessageSquare, Database, FileX, StickyNote, LayoutDashboard, WalletCards, Briefcase, ListOrdered, Percent, Ban, MessageSquareHeart } from "lucide-react";
+import {
+  Bell,
+  Home,
+  TrendingUp,
+  User,
+  Users,
+  Wallet,
+  FileText,
+  LifeBuoy,
+  Settings,
+  FileQuestion,
+  Newspaper,
+  UserCog,
+  BarChart3,
+  GanttChartSquare,
+  History,
+  HandCoins,
+  Receipt,
+  Building2,
+  ShieldCheck,
+  Send,
+  BookUser,
+  UserRoundCog,
+  UserRoundSearch,
+  FilePieChart,
+  BookCheck,
+  FileKey2,
+  FileDigit,
+  FileStack,
+  UserSquare,
+  Banknote,
+  FileSpreadsheet,
+  StickyNote,
+  MessageSquare,
+  HelpCircle,
+  LayoutDashboard,
+  ArrowDownToDot,
+  Briefcase,
+  WalletCards,
+  Ban,
+  ListOrdered,
+  Percent,
+  MessageSquareHeart,
+  Database,
+  Landmark,
+  FileClock,
+  ServerCog,
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useProfile } from "@/hooks/useProfile";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 import React from "react";
 
-const userNavItems = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/investments", label: "Investments", icon: TrendingUp },
-  { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
-  { to: "/wallet", label: "Wallet", icon: WalletIcon },
-  { to: "/profile", label: "Profile", icon: User },
-  { to: "/referrals", label: "Referrals", icon: Users },
-  { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/notes", label: "Notes", icon: StickyNote },
-  { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/support", label: "Support", icon: MessageSquare },
-  { to: "/faq", label: "FAQ", icon: HelpCircle },
-];
-
-const adminNavItems = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/user-management", label: "User Management", icon: Users },
-  { to: "/admin/kyc-management", label: "KYC Management", icon: ShieldCheck },
-  { to: "/admin/request-management", label: "Deposit Requests", icon: ArrowDownToDot },
-  { to: "/admin/investment-requests", label: "Investment Requests", icon: Briefcase },
-  { to: "/admin/wallet-withdrawal-management", label: "Wallet Withdrawals", icon: WalletCards },
-  { to: "/admin/investment-cancellations", label: "Cancellations", icon: Ban },
-  { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered },
-  { to: "/admin/commission-rules", label: "Commission Rules", icon: Percent },
-  { to: "/admin/support-desk", label: "Support Desk", icon: MessageSquareHeart },
-  { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
-  { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
-  { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
-  { to: "/admin/master-reports", label: "Master Reports", icon: Database },
-  { to: "/admin/withdrawals", label: "Withdrawals", icon: Landmark, badgeKey: "pendingWithdrawalsTotal" },
-  { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
-  { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
-  { to: "/admin/system", label: "System", icon: ServerCog },
-];
-
-interface SidebarProps {
-  onLinkClick?: () => void;
-}
-
-export function Sidebar({ onLinkClick }: SidebarProps) {
-  const { count: unreadCount } = useUnreadNotifications();
+export function Sidebar({ className }: { className?: string }) {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { 
-    pendingKycCount, 
-    pendingRequestsCount,
-    openTicketsCount,
-    pendingWithdrawalsTotal,
-    pendingCancellationsCount,
-  } = useAdminActionCounts();
-  const { isLoading: isSettingsLoading } = useIdCardSettings();
-  const location = useLocation();
+  const { data: profile, isLoading: isProfileLoading } = useProfile();
+  const { count: unreadCount } = useUnreadNotifications(); // Fix: Destructure 'count' instead of 'data'
+  const { data: adminCounts } = useAdminActionCounts();
 
-  const adminBadges: { [key: string]: number } = {
-    pendingKycCount,
-    pendingRequestsCount,
-    openTicketsCount,
-    pendingWithdrawalsTotal,
-    pendingCancellationsCount,
+  const isLoading = isAdminLoading || isProfileLoading;
+
+  const badgeValues = {
+    pendingKyc: adminCounts?.pending_kyc || 0,
+    pendingDeposits: adminCounts?.pending_deposits_count || 0,
+    pendingInvestments: adminCounts?.pending_investments_count || 0,
+    pendingWithdrawalsTotal: (adminCounts?.pending_withdrawals_count || 0),
+    pendingCancellations: adminCounts?.pending_cancellations_count || 0,
+    openTickets: adminCounts?.open_tickets_count || 0, // Fix: Ensure open_tickets_count exists on AdminDashboardStats
   };
 
+  const userNavItems = [
+    { to: "/", label: "Dashboard", icon: Home },
+    { to: "/investments", label: "Investments", icon: TrendingUp },
+    { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
+    { to: "/wallet", label: "Wallet", icon: Wallet },
+    { to: "/profile", label: "Profile", icon: User },
+    { to: "/referrals", label: "Referrals", icon: Users },
+    { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
+    { to: "/reports", label: "Reports", icon: BarChart3 },
+    { to: "/notes", label: "Notes", icon: StickyNote },
+    { to: "/notifications", label: "Notifications", icon: Bell },
+    { to: "/support", label: "Support", icon: MessageSquare },
+    { to: "/faq", label: "FAQ", icon: HelpCircle },
+  ];
+
+  const adminNavItems = [
+    { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admin/user-management", label: "User Management", icon: Users },
+    { to: "/admin/kyc-management", label: "KYC Management", icon: ShieldCheck },
+    { to: "/admin/request-management", label: "Deposit Requests", icon: ArrowDownToDot },
+    { to: "/admin/investment-requests", label: "Investment Requests", icon: Briefcase },
+    { to: "/admin/wallet-withdrawal-management", label: "Wallet Withdrawals", icon: WalletCards },
+    { to: "/admin/investment-cancellations", label: "Cancellations", icon: Ban },
+    { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered },
+    { to: "/admin/commission-rules", label: "Commission Rules", icon: Percent },
+    { to: "/admin/support-desk", label: "Support Desk", icon: MessageSquareHeart },
+    { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
+    { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
+    { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
+    { to: "/admin/master-reports", label: "Master Reports", icon: Database },
+    { to: "/admin/withdrawals", label: "Withdrawals", icon: Landmark, badgeKey: "pendingWithdrawalsTotal" },
+    { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
+    { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
+    { to: "/admin/system", label: "System", icon: ServerCog },
+  ];
+
   return (
-    <aside className="flex h-full w-[256px] flex-col border-r bg-background p-4">
+    <aside className={`flex h-full w-[256px] flex-col border-r bg-background p-4 ${className}`}>
       <div className="mb-8 flex h-10 items-center p-2">
-        {isSettingsLoading ? (
-          <Skeleton className="h-10 w-50" />
-        ) : (
-          <img 
-            src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" 
-            alt="Company Logo" 
-            className="h-100 w-auto object-contain" 
-          />
-        )}
+        <img 
+          src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" 
+          alt="Company Logo" 
+          className="h-100 w-auto object-contain" 
+        />
       </div>
       <nav className="flex flex-col space-y-1">
         {userNavItems.map((item) => (
@@ -90,7 +126,6 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
-            onClick={onLinkClick}
             className={({ isActive }) =>
               cn(
                 "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
@@ -113,7 +148,7 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
         ))}
       </nav>
 
-      {isAdminLoading && (
+      {isLoading && (
         <div className="mt-auto flex flex-col space-y-1">
           <Separator className="my-4" />
           <Skeleton className="h-8 w-full" />
@@ -128,7 +163,7 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
             Admin Portal
           </div>
           {adminNavItems.map((item) => {
-            const badgeCount = item.badgeKey ? adminBadges[item.badgeKey] : 0;
+            const badgeCount = item.badgeKey ? badgeValues[item.badgeKey] : 0;
 
             // This part is for non-collapsible items
             if (!item.to) return null;
@@ -137,7 +172,6 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/admin"}
-                onClick={onLinkClick}
                 className={({ isActive: navIsActive }) =>
                   cn(
                     "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",

@@ -1,12 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Routes,
+  Route,
+} from "react-router-dom";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+
+// Layouts
 import { PageLayout } from "@/components/layout/PageLayout";
+import { AuthLayout } from "@/components/layout/AuthLayout";
 
 // Core Pages
 import Dashboard from "@/pages/Dashboard";
@@ -55,6 +61,8 @@ import InvestmentCancellationManagement from "@/pages/admin/InvestmentCancellati
 import AuditLog from "@/pages/admin/AuditLog";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import DashboardLoader from "@/pages/DashboardLoader"; // Import DashboardLoader
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 
 const queryClient = new QueryClient();
 

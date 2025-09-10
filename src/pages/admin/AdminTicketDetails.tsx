@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const replySchema = z.object({
   message: z.string().min(1, "Message cannot be empty."),
@@ -51,29 +53,37 @@ const getInitials = (name: string | null | undefined) => {
 };
 
 const AdminTicketDetails = () => {
-  const { ticketId } = useParams<{ ticketId: string }>();
-  const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof replySchema>>({ resolver: zodResolver(replySchema) });
+  const { isAdmin } = useIsAdmin();
+  const [replyMessage, setReplyMessage] = useState("");
+  const [newStatus, setNewStatus] = useState<string | null>(null);
+
+  const form = useForm<z.infer<typeof replySchema>>({
+    resolver: zodResolver(replySchema),
+    defaultValues: {
+      message: "",
+    },
+  });
 
   const { data: ticket, isLoading: isTicketLoading } = useQuery({
-    queryKey: ['supportTicketAdmin', ticketId],
-    queryFn: () => fetchTicketDetails(ticketId!),
-    enabled: !!ticketId,
+    queryKey: ['supportTicketAdmin', id],
+    queryFn: () => fetchTicketDetails(id!),
+    enabled: !!id,
   });
 
   const { data: messages, isLoading: areMessagesLoading } = useQuery({
-    queryKey: ['supportTicketMessagesAdmin', ticketId],
-    queryFn: () => fetchTicketMessages(ticketId!),
-    enabled: !!ticketId,
+    queryKey: ['supportTicketMessagesAdmin', id],
+    queryFn: () => fetchTicketMessages(id!),
+    enabled: !!id,
   });
 
   const replyMutation = useMutation({
     mutationFn: addReply,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['supportTicketMessagesAdmin', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['supportTicketMessagesAdmin', id] });
       queryClient.invalidateQueries({ queryKey: ['supportTicketsAdmin'] });
-      form.reset({ message: '' });
+      setReplyMessage("");
     },
     onError: (error) => toast.error(`Failed to send reply: ${error.message}`),
   });
@@ -82,15 +92,15 @@ const AdminTicketDetails = () => {
     mutationFn: updateStatus,
     onSuccess: () => {
       toast.success("Ticket status updated.");
-      queryClient.invalidateQueries({ queryKey: ['supportTicketAdmin', ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['supportTicketAdmin', id] });
       queryClient.invalidateQueries({ queryKey: ['supportTicketsAdmin'] });
     },
     onError: (error) => toast.error(`Failed to update status: ${error.message}`),
   });
 
   const onSubmit = (values: z.infer<typeof replySchema>) => {
-    if (!ticketId) return;
-    replyMutation.mutate({ ticketId, message: values.message });
+    if (!id) return;
+    replyMutation.mutate({ ticketId: id, message: values.message });
   };
 
   if (isTicketLoading || areMessagesLoading) {

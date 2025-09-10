@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { UserNote } from "@/types/database";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, StickyNote } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format, formatDistanceToNow } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info, Loader2, StickyNote } from "lucide-react";
 
 const fetchMyNotes = async (): Promise<UserNote[]> => {
   const { data, error } = await supabase.rpc('get_my_visible_notes');

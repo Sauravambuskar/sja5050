@@ -2,8 +2,9 @@ import { Profile, DashboardStats } from "@/types/database";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Button } from "../ui/button";
-import { ArrowRight, CheckCircle, Circle } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface GettingStartedGuideProps {
@@ -12,6 +13,12 @@ interface GettingStartedGuideProps {
 }
 
 export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps) => {
+  const { data: profileData, isLoading } = useProfile(); // Fix: Destructure 'data' instead of 'profile'
+
+  if (isLoading) {
+    return null;
+  }
+
   const steps = [
     {
       title: "Complete Your Profile",
@@ -46,13 +53,11 @@ export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps
     return null;
   }
 
-  const completenessChecks = [
-    { key: 'full_name', label: 'Add your full name', tab: 'personal' },
-    { key: 'phone', label: 'Add your phone number', tab: 'personal' },
-    { key: 'dob', label: 'Add your date of birth', tab: 'personal' },
-    { key: 'address', label: 'Add your full address', tab: 'personal' },
-    { key: 'bank_account_number', label: 'Add your bank details', tab: 'bank' },
-    { key: 'kyc_status', label: 'Complete KYC verification', tab: 'kyc', check: (val: any) => val === 'Approved' },
+  const completenessChecksList = [
+    { name: "Personal Details", completed: !!(profile.full_name && profile.phone && profile.dob), link: "/profile?tab=personal" },
+    { name: "Bank Details", completed: !!(profile.bank_account_number && profile.bank_ifsc_code), link: "/profile?tab=bank" },
+    { name: "KYC Details", completed: !!(profile.pan_number && profile.aadhaar_number), link: "/profile?tab=kyc" },
+    { name: "KYC Documents", completed: profile.kyc_status === 'Approved', link: "/profile?tab=kyc-documents" },
   ];
 
   const getInitials = (name: string | null | undefined) => {
@@ -88,7 +93,7 @@ export const GettingStartedGuide = ({ profile, stats }: GettingStartedGuideProps
                 {step.isComplete ? (
                   <CheckCircle className="h-6 w-6 mr-4 text-green-500" />
                 ) : (
-                  <Circle className="h-6 w-6 mr-4 text-muted-foreground" />
+                  <XCircle className="h-6 w-6 mr-4 text-muted-foreground" />
                 )}
                 <div>
                   <p className={cn("font-semibold", !step.isComplete && "text-primary")}>{step.title}</p>

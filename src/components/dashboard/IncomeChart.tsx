@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/chart";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
-import React from "react";
 
 const fetchIncomeHistory = async (): Promise<IncomeHistoryReportData[]> => {
   const { data, error } = await supabase.rpc('get_my_income_history_report');

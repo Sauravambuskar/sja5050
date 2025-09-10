@@ -1,12 +1,12 @@
+import { useProfile } from "@/hooks/useProfile";
+import { Badge } from "@/components/ui/badge";
 import { Profile } from "@/types/database";
+import { useAuth } from "../auth/AuthProvider";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "../auth/AuthProvider";
-import { Badge } from "../ui/badge";
 
 interface ProfileStatusProps {
   profile: Profile;
@@ -20,6 +20,7 @@ const completenessChecks = [
   { key: 'bank_account_number', label: 'Add your bank details', tab: 'bank' },
   { key: 'nominee_name', label: 'Add a nominee', tab: 'nominee' },
   { key: 'kyc_status', label: 'Complete KYC verification', tab: 'kyc', check: (val: any) => val === 'Approved' },
+  { key: 'aadhaar_number', label: 'Aadhaar Number', tab: 'kyc' },
 ];
 
 const getInitials = (name: string | null | undefined) => {
@@ -27,8 +28,13 @@ const getInitials = (name: string | null | undefined) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase();
 };
 
-export const ProfileStatus = ({ profile }: ProfileStatusProps) => {
+export const ProfileStatus = () => {
+  const { data: profile, isLoading } = useProfile();
   const { user } = useAuth();
+
+  if (isLoading || !profile) {
+    return <div>Loading...</div>; // Or a skeleton loader
+  }
 
   const completedItems = completenessChecks.filter(item => {
     const value = profile[item.key as keyof Profile];

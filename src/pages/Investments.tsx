@@ -24,8 +24,8 @@ const fetchAgreement = async (userId: string) => {
 
 const Investments = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'portfolio';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "plans";
 
   const { data: signedAgreement, isLoading } = useQuery({
     queryKey: ['investmentAgreementCheck', user?.id],
@@ -34,7 +34,7 @@ const Investments = () => {
   });
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Investments</h1>
       </div>
@@ -80,7 +80,7 @@ const Investments = () => {
           <SignAgreementPrompt />
         )}
       </div>
-    </>
+    </div>
   );
 };
 
