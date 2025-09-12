@@ -50,7 +50,11 @@ export const VideoKyc = () => {
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    const supported = !!(
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function' &&
+      typeof window.MediaRecorder !== 'undefined'
+    );
     setIsSupported(supported);
     if (!supported) {
       toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
