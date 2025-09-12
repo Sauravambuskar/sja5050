@@ -52,8 +52,8 @@ export const VideoKyc = () => {
   useEffect(() => {
     const supported = !!(
       navigator.mediaDevices &&
-      typeof navigator.mediaDevices.getUserMedia === 'function' &&
-      typeof window.MediaRecorder !== 'undefined'
+      navigator.mediaDevices.getUserMedia &&
+      window.MediaRecorder
     );
     setIsSupported(supported);
     if (!supported) {
