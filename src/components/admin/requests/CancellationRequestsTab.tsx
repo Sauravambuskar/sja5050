@@ -18,19 +18,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Search, XCircle, CheckCircle } from "lucide-react";
+import { Loader2, XCircle, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // Import Dialog components
 
 interface CancellationRequestsTabProps {
   statusFilter: string;
@@ -95,11 +108,21 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
+  const [notes, setNotes] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<UserInvestmentCancellationRequest | null>(null);
-  const [adminNotes, setAdminNotes] = useState("");
   const [dialogStatus, setDialogStatus] = useState<"Approved" | "Rejected" | null>(null);
 
   const status = statusFilter;
+
+  const confirmProcess = () => {
+    if (selectedRequest && dialogStatus) {
+      processMutation.mutate({
+        requestId: selectedRequest.request_id,
+        newStatus: dialogStatus,
+        adminNotes: notes,
+      });
+    }
+  };
 
   const {
     data: requestsData,
@@ -118,28 +141,13 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
       queryClient.invalidateQueries({ queryKey: ["investmentCancellationRequests"] });
       queryClient.invalidateQueries({ queryKey: ["adminDashboardStats"] });
       setSelectedRequest(null);
-      setAdminNotes("");
+      setNotes("");
       setDialogStatus(null);
     },
     onError: (error) => {
       toast.error(`Failed to process request: ${error.message}`);
     },
   });
-
-  const handleProcess = (newStatus: "Approved" | "Rejected") => {
-    if (!selectedRequest) return;
-    setDialogStatus(newStatus);
-  };
-
-  const confirmProcess = () => {
-    if (selectedRequest && dialogStatus) {
-      processMutation.mutate({
-        requestId: selectedRequest.request_id,
-        newStatus: dialogStatus,
-        adminNotes: adminNotes,
-      });
-    }
-  };
 
   const totalPages = requestsData ? Math.ceil(requestsData.count / 10) : 0;
 
@@ -198,7 +206,7 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
                         size="sm"
                         onClick={() => {
                           setSelectedRequest(request);
-                          setAdminNotes("");
+                          setNotes("");
                           setDialogStatus("Approved");
                         }}
                       >
@@ -209,7 +217,7 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
                         size="sm"
                         onClick={() => {
                           setSelectedRequest(request);
-                          setAdminNotes("");
+                          setNotes("");
                           setDialogStatus("Rejected");
                         }}
                       >
@@ -249,8 +257,8 @@ export const CancellationRequestsTab = ({ statusFilter }: CancellationRequestsTa
           <div className="space-y-4">
             <p>Please provide any notes for this action:</p>
             <Textarea
-              value={adminNotes}
-              onChange={(e) => setAdminNotes(e.target.value)}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Enter notes here (e.g., reason for rejection, details of approval)"
               rows={4}
             />
