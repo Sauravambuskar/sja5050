@@ -58,6 +58,22 @@ import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 import React from "react";
 
+type BadgeValues = {
+  pendingKyc: number;
+  pendingDeposits: number;
+  pendingInvestments: number;
+  pendingWithdrawalsTotal: number;
+  pendingCancellations: number;
+  openTickets: number;
+};
+
+interface AdminNavItem {
+  to: string;
+  label: string;
+  icon: any; // LucideIcon type
+  badgeKey?: keyof BadgeValues; // This ensures badgeKey is a valid key
+}
+
 export function Sidebar({ className }: { className?: string }) {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
@@ -66,7 +82,7 @@ export function Sidebar({ className }: { className?: string }) {
 
   const isLoading = isAdminLoading || isProfileLoading;
 
-  const badgeValues = {
+  const badgeValues: BadgeValues = {
     pendingKyc: adminCounts?.pending_kyc || 0,
     pendingDeposits: adminCounts?.pending_deposits_count || 0,
     pendingInvestments: adminCounts?.pending_investments_count || 0,
@@ -90,7 +106,7 @@ export function Sidebar({ className }: { className?: string }) {
     { to: "/faq", label: "FAQ", icon: HelpCircle },
   ];
 
-  const adminNavItems = [
+  const adminNavItems: AdminNavItem[] = [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/user-management", label: "User Management", icon: Users },
     { to: "/admin/kyc-management", label: "KYC Management", icon: ShieldCheck },
