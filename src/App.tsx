@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import {
-  createBrowserRouter,
-  RouterProvider,
+  // createBrowserRouter,
+  // RouterProvider,
   Routes,
   Route,
 } from "react-router-dom";
@@ -12,10 +12,8 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 // Layouts
 import { PageLayout } from "@/components/layout/PageLayout";
-import { AuthLayout } from "@/components/layout/AuthLayout";
 
 // Core Pages
-import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
