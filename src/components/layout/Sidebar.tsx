@@ -45,6 +45,8 @@ import {
   Landmark,
   FileClock,
   ServerCog,
+  FileCheck,
+  ListChecks,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -108,13 +110,13 @@ export function Sidebar({ className }: { className?: string }) {
 
   const adminNavItems: AdminNavItem[] = [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/admin/user-management", label: "User Management", icon: Users },
-    { to: "/admin/kyc-management", label: "KYC Management", icon: ShieldCheck },
-    { to: "/admin/request-management", label: "Deposit Requests", icon: ArrowDownToDot },
+    { to: "/admin/user-management", label: "Users", icon: Users },
+    { to: "/admin/kyc-management", label: "KYC", icon: FileCheck, badgeKey: "pendingKyc" },
+    { to: "/admin/request-management", label: "Requests", icon: ListChecks, badgeKey: "pendingDeposits" },
     { to: "/admin/investment-requests", label: "Investment Requests", icon: Briefcase },
     { to: "/admin/wallet-withdrawal-management", label: "Wallet Withdrawals", icon: WalletCards },
     { to: "/admin/investment-cancellations", label: "Cancellations", icon: Ban },
-    { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered },
+    { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered, badgeKey: "pendingInvestments" },
     { to: "/admin/commission-rules", label: "Commission Rules", icon: Percent },
     { to: "/admin/support-desk", label: "Support Desk", icon: MessageSquareHeart },
     { to: "/admin/reports", label: "Reporting", icon: BarChart3 },

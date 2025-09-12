@@ -67,7 +67,7 @@ export const VideoKyc = () => {
   useEffect(() => {
     // Cleanup object URL when component unmounts or URL changes
     return () => {
-      if (typeof videoUrl === 'string' && videoUrl) { // Explicitly check if videoUrl is a string and not null/empty
+      if (videoUrl !== null) { // Changed from if (videoUrl) to if (videoUrl !== null)
         URL.revokeObjectURL(videoUrl);
       }
     };
