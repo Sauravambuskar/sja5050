@@ -398,6 +398,7 @@ export type SystemSettings = {
   auth_layout_image_url_1: string | null;
   auth_layout_image_url_2: string | null;
   splash_screen_url: string | null;
+  video_kyc_prompt: string | null;
 };
 
 export type Faq = {

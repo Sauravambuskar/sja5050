@@ -7,6 +7,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Video, StopCircle, Upload, RefreshCw, Loader2, VideoOff } from 'lucide-react';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) => {
   console.log("Attempting to upload video KYC for user:", userId);
@@ -48,6 +50,7 @@ const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) 
 export const VideoKyc = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { settings, isLoading: isLoadingSettings } = useSystemSettings();
   const [isSupported, setIsSupported] = useState(true);
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'recorded' | 'uploading'>('idle');
   const [recordedVideo, setRecordedVideo] = useState<File | null>(null);
@@ -215,6 +218,22 @@ export const VideoKyc = () => {
     );
   }
 
+  if (isLoadingSettings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Video KYC</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Skeleton className="w-full aspect-video" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -252,7 +271,16 @@ export const VideoKyc = () => {
           <div className="space-y-4">
             <div className="relative w-full aspect-video bg-black rounded-md overflow-hidden">
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted />
-              {isRecording && <div className="absolute top-2 right-2 h-4 w-4 bg-red-500 rounded-full animate-pulse" />}
+              {isRecording && (
+                <>
+                  <div className="absolute inset-0 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                    <p className="text-white text-center text-lg md:text-xl font-semibold leading-relaxed whitespace-pre-wrap">
+                      {settings?.video_kyc_prompt || "Please state your full name and today's date clearly."}
+                    </p>
+                  </div>
+                  <div className="absolute top-2 right-2 h-4 w-4 bg-red-500 rounded-full animate-pulse" />
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               {isRecording ? (

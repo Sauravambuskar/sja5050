@@ -27,6 +27,7 @@ import { MaintenanceMode } from "@/components/admin/MaintenanceMode";
 import { CompanyBankDetails } from "@/components/admin/CompanyBankDetails";
 import { AuthLayoutCustomizer } from "@/components/admin/AuthLayoutCustomizer";
 import { SplashScreenCustomizer } from "@/components/admin/SplashScreenCustomizer";
+import { VideoKycPromptManager } from "@/components/admin/VideoKycPromptManager";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -102,6 +103,7 @@ const SystemManagement = () => {
           <CompanyBankDetails />
           <AuthLayoutCustomizer />
           <SplashScreenCustomizer />
+          <VideoKycPromptManager />
         </div>
         <div className="space-y-6">
           <Card>
