@@ -16,6 +16,7 @@ import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
 import { VideoKyc } from "./VideoKyc";
 import { KycForm } from "./KycForm";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
 
 // --- Constants ---
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -136,6 +137,15 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
 
   return (
     <div className="space-y-6">
+      {/* Informational Alert for KYC Process */}
+      <Alert variant="info" className="mb-6">
+        <Info className="h-4 w-4" />
+        <AlertTitle>KYC Verification Process</AlertTitle>
+        <AlertDescription>
+          Please complete all the steps below. Once all required documents and details are submitted, your KYC status will be updated to 'Pending Review'. Our team will then review your submission, which may take up to 48 hours. You will be notified of the outcome.
+        </AlertDescription>
+      </Alert>
+
       <div className={cn("flex items-start rounded-md border p-4", colorVariants[bannerInfo.color])}><bannerInfo.icon className="mr-3 h-5 w-5 flex-shrink-0" /><p className="text-sm">{bannerInfo.text}</p></div>
       <div className="space-y-8">
         {steps.map(step => (
@@ -153,7 +163,7 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
                   <TableRow key={doc.id}>
                     <TableCell><div className="font-medium">{doc.document_type}</div>{doc.status === 'Rejected' && doc.admin_notes && (<p className="text-xs text-destructive mt-1">Note: {doc.admin_notes}</p>)}</TableCell>
                     <TableCell>{format(new Date(doc.submitted_at), "PPP")}</TableCell>
-                    <TableCell className="text-right"><Badge variant={doc.status === "Approved" ? "default" : doc.status === "Pending" ? "outline" : "destructive"}>{doc.status}</Badge></TableCell>
+                    <TableCell className="text-right"><Badge variant={doc.status === "Approved" ? "success" : doc.status === "Pending" ? "outline" : "destructive"}>{doc.status}</Badge></TableCell>
                   </TableRow>
                 ))
               ) : (<TableRow><TableCell colSpan={3} className="h-24 text-center">No documents submitted yet.</TableCell></TableRow>)}
