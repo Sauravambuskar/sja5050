@@ -70,7 +70,7 @@ export const VideoKyc = () => {
       toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
     }
 
-    // Cleanup stream on unmount
+    // Cleanup stream and videoUrl on unmount
     return () => {
       if (streamRef.current) {
         console.log("Stopping media stream on unmount.");
@@ -78,15 +78,6 @@ export const VideoKyc = () => {
       }
       if (videoUrl) {
         console.log("Revoking object URL on unmount.");
-        URL.revokeObjectURL(videoUrl);
-      }
-    };
-  }, [videoUrl]);
-
-  useEffect(() => {
-    // Cleanup object URL when component unmounts or URL changes
-    return () => {
-      if (typeof videoUrl === 'string' && videoUrl) {
         URL.revokeObjectURL(videoUrl);
       }
     };
