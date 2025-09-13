@@ -12,7 +12,6 @@ import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
-import { KycWizard } from "@/components/kyc/KycWizard";
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,10 +32,23 @@ const ProfilePage = () => {
   const tabs = [
     { value: "personal", label: "Personal", component: <PersonalDetailsForm profile={profile} /> },
     { value: "bank", label: "Bank", component: <BankDetailsForm profile={profile} /> },
-    { value: "nominee", label: "Nominee", component: <NomineeForm /> },
-    { value: "kyc", label: "KYC", component: <KycForm profile={profile} /> },
-    { value: "video-kyc", label: "Video KYC", component: <VideoKyc /> },
-    { value: "additional-docs", label: "Additional Documents", component: <AdditionalDocuments /> },
+    {
+      value: "kyc-and-docs",
+      label: "KYC & Documents",
+      component: (
+        <div className="space-y-6">
+          <KycDocuments profile={profile} />
+          <Separator className="my-6" />
+          <h2 className="text-xl font-semibold">Additional Documents</h2>
+          <p className="text-muted-foreground">Upload any other supporting documents.</p>
+          <AdditionalDocuments />
+          <Separator className="my-6" />
+          <h2 className="text-xl font-semibold">Nominee Details</h2>
+          <p className="text-muted-foreground">Manage your nominee information.</p>
+          <NomineeForm />
+        </div>
+      ),
+    },
     { value: "security", label: "Security", component: <SecuritySettings /> },
   ];
 
@@ -65,20 +77,7 @@ const ProfilePage = () => {
             <div className="mt-6 md:mt-0">
               {tabs.map(tab => (
                 <TabsContent key={tab.value} value={tab.value} className="mt-0">
-                  {tab.value === "kyc" ? (
-                    <div className="space-y-6">
-                      <KycForm profile={profile} />
-                      <KycDocuments profile={profile} />
-                      <AdditionalDocuments />
-                      <NomineeForm />
-                      <Separator />
-                      <h2 className="text-xl font-semibold">Video KYC</h2>
-                      <p className="text-muted-foreground">Complete your video verification process.</p>
-                      <KycWizard />
-                    </div>
-                  ) : (
-                    tab.component
-                  )}
+                  {tab.component}
                 </TabsContent>
               ))}
             </div>

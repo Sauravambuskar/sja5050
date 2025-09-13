@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Video, StopCircle, Upload, RefreshCw, Loader2, VideoOff } from 'lucide-react';
 
 const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) => {
+  console.log("Attempting to upload video KYC for user:", userId);
   const fileName = `${userId}/video-kyc-${Date.now()}.webm`;
   
   const { error: uploadError } = await supabase.storage
@@ -16,8 +17,10 @@ const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) 
     .upload(fileName, file);
 
   if (uploadError) {
+    console.error("Supabase Storage Upload Error:", uploadError);
     throw new Error(`Storage Error: ${uploadError.message}`);
   }
+  console.log("Video uploaded to storage:", fileName);
 
   const { error: dbError } = await supabase.from('kyc_documents').insert({
     user_id: userId,
@@ -27,11 +30,17 @@ const uploadVideoKyc = async ({ userId, file }: { userId: string; file: File }) 
   });
 
   if (dbError) {
+    console.error("Supabase DB Insert Error:", dbError);
     throw new Error(`Database Error: ${dbError.message}`);
   }
+  console.log("Video KYC entry added to database.");
   
   const { error: profileError } = await supabase.from('profiles').update({ kyc_status: 'Pending Review' }).eq('id', userId);
-  if (profileError) throw new Error(`Profile Update Error: ${profileError.message}`);
+  if (profileError) {
+    console.error("Supabase Profile Update Error:", profileError);
+    throw new Error(`Profile Update Error: ${profileError.message}`);
+  }
+  console.log("User profile KYC status updated to 'Pending Review'.");
 
   return { filePath: fileName };
 };
@@ -56,6 +65,7 @@ export const VideoKyc = () => {
       window.MediaRecorder
     );
     setIsSupported(supported);
+    console.log("Browser video recording support:", supported);
     if (!supported) {
       toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
     }
@@ -63,10 +73,15 @@ export const VideoKyc = () => {
     // Cleanup stream on unmount
     return () => {
       if (streamRef.current) {
+        console.log("Stopping media stream on unmount.");
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (videoUrl) {
+        console.log("Revoking object URL on unmount.");
+        URL.revokeObjectURL(videoUrl);
+      }
     };
-  }, []);
+  }, [videoUrl]);
 
   useEffect(() => {
     // Cleanup object URL when component unmounts or URL changes
@@ -84,30 +99,37 @@ export const VideoKyc = () => {
       queryClient.invalidateQueries({ queryKey: ['kycDocuments', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['profileStatus', user?.id] });
       setRecordingStatus('idle');
+      console.log("Video KYC mutation successful.");
     },
     onError: (error) => {
       toast.error(`Upload failed: ${error.message}`);
       setRecordingStatus('recorded'); // Allow retry
+      console.error("Video KYC mutation failed:", error);
     },
   });
 
   const startRecording = useCallback(async () => {
-    if (typeof videoUrl === 'string') {
+    console.log("Attempting to start recording.");
+    if (typeof videoUrl === 'string' && videoUrl) {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl(null);
+      console.log("Revoked previous video object URL.");
     }
 
     try {
+      console.log("Requesting media devices (camera/microphone).");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        console.log("Camera stream attached to video element.");
       }
 
       const options = {
         mimeType: 'video/webm; codecs=vp9',
         videoBitsPerSecond: 1000000, // 1 Mbps for compression
       };
+      console.log("MediaRecorder options:", options);
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       
@@ -115,50 +137,64 @@ export const VideoKyc = () => {
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunks.push(event.data);
+          console.log("Data available from MediaRecorder, chunk size:", event.data.size);
         }
       };
 
       mediaRecorder.onstop = () => {
+        console.log("MediaRecorder stopped. Total chunks:", chunks.length);
         const blob = new Blob(chunks, { type: 'video/webm' });
         const file = new File([blob], 'video-kyc.webm', { type: 'video/webm' });
         setRecordedVideo(file);
         const url = URL.createObjectURL(blob);
         setVideoUrl(url);
         setRecordingStatus('recorded');
+        console.log("Recorded video blob created, object URL:", url);
         if (videoRef.current) {
           videoRef.current.srcObject = null;
           videoRef.current.src = url;
+          videoRef.current.load(); // Ensure video reloads with new src
+          console.log("Recorded video set as source for playback.");
         }
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingStatus('recording');
+      console.log("MediaRecorder started.");
     } catch (err) {
-      console.error("Error accessing media devices.", err);
-      toast.error("Could not access camera/microphone. Please check permissions.");
+      console.error("Error accessing media devices:", err);
+      toast.error("Could not access camera/microphone. Please check permissions and ensure no other application is using them.");
       setError("Could not access camera/microphone. Please check permissions.");
     }
   }, [videoUrl]);
 
   const stopRecording = useCallback(() => {
+    console.log("Attempting to stop recording.");
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
+      console.log("MediaRecorder stop method called.");
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+      console.log("Media stream tracks stopped.");
     }
     setIsRecording(false);
   }, []);
 
   const handleUpload = () => {
-    if (!user || !recordedVideo) return;
+    if (!user || !recordedVideo) {
+      console.warn("Upload attempted without user or recorded video.");
+      return;
+    }
+    console.log("Initiating video upload.");
     setRecordingStatus('uploading');
     mutation.mutate({ userId: user.id, file: recordedVideo });
   };
 
   const handleRetake = () => {
+    console.log("Retake initiated.");
     setRecordedVideo(null);
     if (videoUrl) {
       URL.revokeObjectURL(videoUrl);
@@ -201,11 +237,25 @@ export const VideoKyc = () => {
               Your browser does not support the required features for video recording. Please try a different browser like Chrome or Firefox.
             </AlertDescription>
           </Alert>
-        ) : videoUrl ? (
+        ) : recordingStatus === 'recorded' || recordingStatus === 'uploading' ? (
           <div className="space-y-4">
-            <p>Your Video KYC has been submitted.</p>
-            <video src={videoUrl} controls className="w-full rounded-md" />
-            <Button onClick={() => setVideoUrl(null)}>Record Again</Button>
+            <video src={videoUrl || undefined} controls className="w-full rounded-md" />
+            <div className="flex gap-2">
+              <Button onClick={handleRetake} variant="outline" disabled={recordingStatus === 'uploading'}>
+                <RefreshCw className="mr-2 h-4 w-4" /> Retake
+              </Button>
+              <Button onClick={handleUpload} disabled={!recordedVideo || recordingStatus === 'uploading'} className="w-full">
+                {recordingStatus === 'uploading' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" /> Upload Video
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -215,9 +265,13 @@ export const VideoKyc = () => {
             </div>
             <div className="flex gap-2">
               {isRecording ? (
-                <Button onClick={stopRecording} className="w-full">Stop Recording</Button>
+                <Button onClick={stopRecording} className="w-full">
+                  <StopCircle className="mr-2 h-4 w-4" /> Stop Recording
+                </Button>
               ) : (
-                <Button onClick={startRecording} className="w-full" disabled={!streamRef.current}>Start Recording</Button>
+                <Button onClick={startRecording} className="w-full" disabled={!isSupported}>
+                  <Video className="mr-2 h-4 w-4" /> Start Recording
+                </Button>
               )}
             </div>
             {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
