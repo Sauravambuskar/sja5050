@@ -4,12 +4,15 @@ import PersonalDetailsForm from "@/components/profile/PersonalDetailsForm";
 import { BankDetailsForm } from "@/components/profile/BankDetailsForm";
 import { NomineeForm } from "@/components/profile/NomineeForm";
 import { KycForm } from "@/components/profile/KycForm";
+import KycDocuments from "@/components/profile/KycDocuments";
 import { SecuritySettings } from "@/components/profile/SecuritySettings";
 import { VideoKyc } from "@/components/profile/VideoKyc";
 import { AdditionalDocuments } from "@/components/profile/AdditionalDocuments";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
+import { KycWizard } from "@/components/kyc/KycWizard";
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,7 +65,20 @@ const ProfilePage = () => {
             <div className="mt-6 md:mt-0">
               {tabs.map(tab => (
                 <TabsContent key={tab.value} value={tab.value} className="mt-0">
-                  {tab.component}
+                  {tab.value === "kyc" ? (
+                    <div className="space-y-6">
+                      <KycForm profile={profile} />
+                      <KycDocuments profile={profile} />
+                      <AdditionalDocuments />
+                      <NomineeForm />
+                      <Separator />
+                      <h2 className="text-xl font-semibold">Video KYC</h2>
+                      <p className="text-muted-foreground">Complete your video verification process.</p>
+                      <KycWizard />
+                    </div>
+                  ) : (
+                    tab.component
+                  )}
                 </TabsContent>
               ))}
             </div>
