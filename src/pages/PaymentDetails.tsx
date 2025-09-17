@@ -133,7 +133,7 @@ const PaymentDetails = () => {
                       <TableCell>{payment.total_days}</TableCell>
                       <TableCell>₹{payment.total_interest.toFixed(2)}</TableCell>
                       <TableCell>₹{payment.month_amount.toFixed(2)}</TableCell>
-                      <TableCell>₹{payment.yearly_amount.toFixed(2)}</TableCell> {/* Display Yearly Amount */}
+                      <TableCell>₹{(payment.yearly_amount ?? 0).toFixed(2)}</TableCell> {/* Display Yearly Amount */}
                     </TableRow>
                   ))
                 ) : (
