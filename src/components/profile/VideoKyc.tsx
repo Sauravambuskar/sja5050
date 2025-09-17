@@ -104,7 +104,7 @@ export const VideoKyc = () => {
 
   const startRecording = useCallback(async () => {
     console.log("Attempting to start recording.");
-    if (typeof videoUrl === 'string' && videoUrl) {
+    if (videoUrl) {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl(null);
       console.log("Revoked previous video object URL.");
