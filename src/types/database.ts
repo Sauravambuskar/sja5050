@@ -313,6 +313,7 @@ export type CommissionPayoutReportData = {
 export type DailyIncomeStats = {
   today_investment_income: number;
   today_commission_income: number;
+  today_total_income: number;
 };
 
 export type IncomeHistoryReportData = {
@@ -537,4 +538,16 @@ export type UserNote = {
   note: string;
   admin_email: string | null;
   created_at: string;
+};
+
+export type InvestorPaymentDetail = {
+  invt_id: string;
+  invt_date: string;
+  invt_amount: number;
+  rate: number;
+  per_day_amount: number;
+  total_days: number;
+  total_interest: number;
+  month_amount: number;
+  yearly_amount: number; // Added this line
 };
