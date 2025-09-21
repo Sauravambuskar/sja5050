@@ -48,7 +48,7 @@ import {
   FileCheck,
   ListChecks,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -76,11 +76,17 @@ interface AdminNavItem {
   badgeKey?: keyof BadgeValues; // This ensures badgeKey is a valid key
 }
 
-export function Sidebar({ className }: { className?: string }) {
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void; // Add callback for navigation
+}
+
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
   const { count: unreadCount } = useUnreadNotifications(); // Fix: Destructure 'count' instead of 'data'
   const { data: adminCounts } = useAdminActionCounts();
+  const navigate = useNavigate();
 
   const isLoading = isAdminLoading || isProfileLoading;
 
@@ -129,6 +135,13 @@ export function Sidebar({ className }: { className?: string }) {
     { to: "/admin/system", label: "System", icon: ServerCog },
   ];
 
+  const handleNavClick = (to: string) => {
+    navigate(to);
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
   return (
     <aside className={`flex h-full w-[256px] flex-col border-r bg-background p-4 ${className}`}>
       <div className="mb-8 flex h-10 items-center p-2">
@@ -144,9 +157,10 @@ export function Sidebar({ className }: { className?: string }) {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={() => handleNavClick(item.to)}
             className={({ isActive }) =>
               cn(
-                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -190,9 +204,10 @@ export function Sidebar({ className }: { className?: string }) {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/admin"}
+                onClick={() => handleNavClick(item.to)}
                 className={({ isActive: navIsActive }) =>
                   cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
                     navIsActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

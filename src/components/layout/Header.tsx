@@ -48,6 +48,10 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
+  const handleMobileNavClick = () => {
+    setIsSheetOpen(false);
+  };
+
   return (
     <>
       <header className="flex h-14 items-center gap-4 border-b bg-background px-2 sm:px-4 lg:h-[60px] lg:px-6">
@@ -59,7 +63,7 @@ export function Header({ handleViewUser }: { handleViewUser: (userId: string) =>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
-            <Sidebar />
+            <Sidebar onNavigate={handleMobileNavClick} />
           </SheetContent>
         </Sheet>
 

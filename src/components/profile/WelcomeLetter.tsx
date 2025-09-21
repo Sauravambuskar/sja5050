@@ -69,7 +69,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
       [welcomeContent]
     ];
 
-    const logoUrl = 'https://i.ibb.co/Zp0b1J6B/SJA-LOGO.jpg'; // Your provided logo URL
+    const logoUrl = 'https://i.ibb.co/V0ws00DB/SJALAND.png'; // Your provided logo URL
 
     exportToPdf(
       `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
