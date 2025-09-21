@@ -56,7 +56,7 @@ Your Contact Information:
 
 We wish you success in your investment journey with us! Our team is here to support you every step of the way. If you have any questions or need assistance, please don't hesitate to reach out.
 
-Wish You All the best !!!!
+Wish You All the best !
 
 Regards,
 SJA Team
@@ -69,7 +69,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
       [welcomeContent]
     ];
 
-    const logoUrl = 'https://i.ibb.co/V0ws00DB/SJALAND.png'; // Your provided logo URL
+    const logoUrl = 'https://i.ibb.co/Zp0b1J6B/SJA-LOGO.jpg'; // Your provided logo URL
 
     exportToPdf(
       `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
