@@ -275,7 +275,7 @@ export const VideoKyc = () => {
                 <>
                   <div className="absolute inset-0 flex items-center justify-center p-4 bg-black bg-opacity-50">
                     <p className="text-white text-center text-lg md:text-xl font-semibold leading-relaxed whitespace-pre-wrap">
-                      {settings?.video_kyc_prompt || "Please state your full name and today's date clearly."}
+                      {settings?.video_kyc_prompt || "Please state your full name and today's date clearly i am investing my amount in real estate plan with my all consent i know all the terms and conditions and i am ready to invest my amount with SJA Foundation."}
                     </p>
                   </div>
                   <div className="absolute top-2 right-2 h-4 w-4 bg-red-500 rounded-full animate-pulse" />
