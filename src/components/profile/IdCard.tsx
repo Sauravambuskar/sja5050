@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -26,10 +26,11 @@ const fetchIdCardData = async () => {
 export const IdCard = () => {
   const { user } = useAuth();
   const idCardRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
-    queryFn: () => fetchIdCardData(),
+    queryFn: fetchIdCardData,
     enabled: !!user,
   });
 
@@ -44,29 +45,119 @@ export const IdCard = () => {
       return;
     }
 
+    setIsDownloading(true);
+
     try {
       // Add a small delay to ensure the DOM is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      const dataUrl = await toPng(idCardRef.current, { 
+      // Get the element and ensure it's visible
+      const element = idCardRef.current;
+      
+      // Ensure the element is properly styled for export
+      element.style.transform = 'scale(1)';
+      element.style.transformOrigin = 'top left';
+      
+      // Create a canvas-friendly version
+      const dataUrl = await toPng(element, { 
         cacheBust: true, 
         pixelRatio: 2,
         backgroundColor: '#ffffff',
         width: 380,
-        height: 280
+        height: 280,
+        quality: 0.95,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
       });
       
+      if (!dataUrl) {
+        throw new Error('Failed to generate image data');
+      }
+      
+      // Create download link
       const link = document.createElement('a');
       link.download = `SJA-Member-ID-${data.profile.member_id}.png`;
       link.href = dataUrl;
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+      }, 100);
       
       toast.success("ID Card downloaded successfully!");
     } catch (err) {
       console.error('Download error:', err);
-      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card image'}`);
+      
+      // Try alternative method using canvas
+      try {
+        toast.info("Trying alternative method...");
+        await downloadWithCanvas();
+      } catch (fallbackError) {
+        console.error('Fallback download error:', fallbackError);
+        toast.error("All download methods failed. Please try again or contact support.");
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const downloadWithCanvas = async () => {
+    if (!idCardRef.current || !data?.profile.member_id) return;
+
+    try {
+      // Create a canvas element
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+
+      // Set canvas dimensions
+      canvas.width = 380;
+      canvas.height = 280;
+
+      // Get the element
+      const element = idCardRef.current;
+      
+      // Use html-to-image with proper options
+      const dataUrl = await toPng(element, {
+        width: 380,
+        height: 280,
+        pixelRatio: 1,
+        backgroundColor: '#ffffff'
+      });
+
+      if (!dataUrl) {
+        throw new Error('Canvas method failed to generate image');
+      }
+
+      // Create and trigger download
+      const link = document.createElement('a');
+      link.download = `SJA-Member-ID-${data.profile.member_id}.png`;
+      link.href = dataUrl;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+      }, 100);
+      
+      toast.success("ID Card downloaded using alternative method!");
+    } catch (canvasError) {
+      console.error('Canvas method error:', canvasError);
+      throw canvasError;
     }
   };
 
@@ -150,8 +241,9 @@ export const IdCard = () => {
           </div>
         </div>
       )}
-      <Button onClick={handleDownload} disabled={isLoading}>
-        <Download className="mr-2 h-4 w-4" /> Download ID Card
+      <Button onClick={handleDownload} disabled={isLoading || isDownloading}>
+        <Download className="mr-2 h-4 w-4" /> 
+        {isDownloading ? 'Downloading...' : 'Download ID Card'}
       </Button>
     </div>
   );
