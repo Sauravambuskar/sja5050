@@ -48,72 +48,92 @@ export function exportToPdf(
   headers: string[],
   data: (string | number)[][],
   userName: string,
-  logoUrl?: string // Added logoUrl parameter
+  logoUrl?: string
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yOffset = 20; // Initial Y offset for content
+  let yOffset = 20;
 
-  // Add Logo if provided
-  if (logoUrl) {
-    const img = new Image();
-    img.src = logoUrl;
-    // Ensure image is loaded before adding to PDF
-    img.onload = () => {
-      const imgWidth = 30; // Desired width for the logo
-      const imgHeight = (img.height * imgWidth) / img.width; // Maintain aspect ratio
-      const xPos = (pageWidth - imgWidth) / 2; // Center the logo
-      doc.addImage(img, 'JPEG', xPos, 10, imgWidth, imgHeight);
-      yOffset = 10 + imgHeight + 10; // Adjust yOffset below the logo with some padding
-      addContent();
-    };
-    img.onerror = () => {
-      console.error("Failed to load logo image.");
-      addContent(); // Proceed without logo if it fails to load
-    };
-  } else {
-    addContent();
-  }
+  // Create a promise to handle logo loading
+  const loadLogo = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // Handle CORS
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to load logo'));
+      img.src = url;
+    });
+  };
 
-  function addContent() {
-    // Header
-    doc.setFontSize(20);
-    doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
-    yOffset += 10; // Add some space after title
-    doc.setFontSize(12);
-    doc.text(`Statement for: ${userName}`, 14, yOffset);
-    yOffset += 6;
-    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
-    yOffset += 10; // Add space before table
-
-    // Table
-    autoTable(doc, {
-      startY: yOffset,
-      head: [headers],
-      body: data,
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] }, // Blue color for header
-      didDrawPage: function (data) {
-        // Footer on each page
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-          doc.setPage(i);
-          doc.setFontSize(10);
-          doc.text(
-            `Page ${i} of ${pageCount}`,
-            pageWidth - 14,
-            doc.internal.pageSize.getHeight() - 10,
-            { align: 'right' }
-          );
-          doc.text(
-            'SJA Foundation',
-            14,
-            doc.internal.pageSize.getHeight() - 10
-          );
+  const generatePdf = async () => {
+    try {
+      // Add Logo if provided
+      if (logoUrl) {
+        try {
+          const img = await loadLogo(logoUrl);
+          const imgWidth = 30;
+          const imgHeight = (img.height * imgWidth) / img.width;
+          const xPos = (pageWidth - imgWidth) / 2;
+          doc.addImage(img, 'JPEG', xPos, 10, imgWidth, imgHeight);
+          yOffset = 10 + imgHeight + 10;
+        } catch (error) {
+          console.warn('Logo failed to load, proceeding without logo:', error);
+          yOffset = 20; // Reset to default if logo fails
         }
       }
-    });
 
-    doc.save(filename);
-  }
+      // Header
+      doc.setFontSize(20);
+      doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
+      yOffset += 10;
+      doc.setFontSize(12);
+      doc.text(`Statement for: ${userName}`, 14, yOffset);
+      yOffset += 6;
+      doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
+      yOffset += 10;
+
+      // Table
+      autoTable(doc, {
+        startY: yOffset,
+        head: [headers],
+        body: data,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: {
+          fontSize: 10,
+          cellPadding: 5,
+          overflow: 'linebreak'
+        },
+        columnStyles: {
+          0: { cellWidth: 'auto' }
+        },
+        didDrawPage: function (data) {
+          // Footer on each page
+          const pageCount = (doc as any).internal.getNumberOfPages();
+          for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.text(
+              `Page ${i} of ${pageCount}`,
+              pageWidth - 14,
+              doc.internal.pageSize.getHeight() - 10,
+              { align: 'right' }
+            );
+            doc.text(
+              'SJA Foundation',
+              14,
+              doc.internal.pageSize.getHeight() - 10
+            );
+          }
+        }
+      });
+
+      doc.save(filename);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      throw error;
+    }
+  };
+
+  generatePdf();
 }
