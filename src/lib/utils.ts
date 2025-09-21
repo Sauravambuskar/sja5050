@@ -47,44 +47,73 @@ export function exportToPdf(
   title: string,
   headers: string[],
   data: (string | number)[][],
-  userName: string
+  userName: string,
+  logoUrl?: string // Added logoUrl parameter
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  let yOffset = 20; // Initial Y offset for content
 
-  // Header
-  doc.setFontSize(20);
-  doc.text(title, pageWidth / 2, 20, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text(`Statement for: ${userName}`, 14, 30);
-  doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, 36);
-
-  // Table
-  autoTable(doc, {
-    startY: 42,
-    head: [headers],
-    body: data,
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235] }, // Blue color for header
-  });
-
-  // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(10);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      pageWidth - 14,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: 'right' }
-    );
-    doc.text(
-      'SJA Foundation',
-      14,
-      doc.internal.pageSize.getHeight() - 10
-    );
+  // Add Logo if provided
+  if (logoUrl) {
+    const img = new Image();
+    img.src = logoUrl;
+    // Ensure image is loaded before adding to PDF
+    img.onload = () => {
+      const imgWidth = 30; // Desired width for the logo
+      const imgHeight = (img.height * imgWidth) / img.width; // Maintain aspect ratio
+      const xPos = (pageWidth - imgWidth) / 2; // Center the logo
+      doc.addImage(img, 'JPEG', xPos, 10, imgWidth, imgHeight);
+      yOffset = 10 + imgHeight + 10; // Adjust yOffset below the logo with some padding
+      addContent();
+    };
+    img.onerror = () => {
+      console.error("Failed to load logo image.");
+      addContent(); // Proceed without logo if it fails to load
+    };
+  } else {
+    addContent();
   }
 
-  doc.save(filename);
+  function addContent() {
+    // Header
+    doc.setFontSize(20);
+    doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
+    yOffset += 10; // Add some space after title
+    doc.setFontSize(12);
+    doc.text(`Statement for: ${userName}`, 14, yOffset);
+    yOffset += 6;
+    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
+    yOffset += 10; // Add space before table
+
+    // Table
+    autoTable(doc, {
+      startY: yOffset,
+      head: [headers],
+      body: data,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] }, // Blue color for header
+      didDrawPage: function (data) {
+        // Footer on each page
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(10);
+          doc.text(
+            `Page ${i} of ${pageCount}`,
+            pageWidth - 14,
+            doc.internal.pageSize.getHeight() - 10,
+            { align: 'right' }
+          );
+          doc.text(
+            'SJA Foundation',
+            14,
+            doc.internal.pageSize.getHeight() - 10
+          );
+        }
+      }
+    });
+
+    doc.save(filename);
+  }
 }

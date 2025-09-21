@@ -38,7 +38,7 @@ export const WelcomeLetter = () => {
 
     // Create a detailed welcome letter in paragraph format
     const welcomeContent = `
-Welcome to ${data.companyName}!
+Welcome to SJA Foundation!
 
 Dear ${data.profile.full_name || 'Valued Member'},
 
@@ -56,8 +56,10 @@ Your Contact Information:
 
 We wish you success in your investment journey with us! Our team is here to support you every step of the way. If you have any questions or need assistance, please don't hesitate to reach out.
 
-Best regards,
-The ${data.companyName} Team
+Wish You All the best !
+
+Regards,
+SJA Team
 
 Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
     `.trim();
@@ -67,12 +69,15 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
       [welcomeContent]
     ];
 
+    const logoUrl = 'https://i.ibb.co/Zp0b1J6B/SJA-LOGO.jpg'; // Your provided logo URL
+
     exportToPdf(
       `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
       'Welcome Letter - SJA Foundation',
       headers,
       letterData,
-      data.profile.full_name || 'Member'
+      data.profile.full_name || 'Member',
+      logoUrl // Pass the logo URL
     );
   };
 
@@ -210,8 +215,9 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
             If you have any questions or need assistance, please don't hesitate to reach out.
           </p>
           <div className="text-center mt-4">
-            <p className="text-blue-900 font-semibold">Best regards,</p>
-            <p className="text-blue-800">The SJA Foundation Team</p>
+            <p className="text-blue-900 font-semibold">Wish You All the best !</p>
+            <p className="text-blue-800">Regards,</p>
+            <p className="text-blue-800">SJA Team</p>
           </div>
         </div>
         
