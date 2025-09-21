@@ -33,19 +33,41 @@ export const IdCard = () => {
     enabled: !!user,
   });
 
-  const handleDownload = () => {
-    if (!idCardRef.current) return;
-    toPng(idCardRef.current, { cacheBust: true, pixelRatio: 2 })
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = `SJA-Member-ID-${data?.profile.member_id}.png`;
-        link.href = dataUrl;
-        link.click();
-        toast.success("ID Card downloaded successfully!");
-      })
-      .catch((err) => {
-        toast.error(`Download failed: ${err.message}`);
+  const handleDownload = async () => {
+    if (!idCardRef.current) {
+      toast.error("ID card element not found");
+      return;
+    }
+
+    if (!data?.profile.member_id) {
+      toast.error("Member ID not available");
+      return;
+    }
+
+    try {
+      // Add a small delay to ensure the DOM is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const dataUrl = await toPng(idCardRef.current, { 
+        cacheBust: true, 
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: 380,
+        height: 280
       });
+      
+      const link = document.createElement('a');
+      link.download = `SJA-Member-ID-${data.profile.member_id}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("ID Card downloaded successfully!");
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   };
 
   const getInitials = (name: string | null | undefined) => {
