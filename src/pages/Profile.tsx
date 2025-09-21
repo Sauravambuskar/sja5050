@@ -12,6 +12,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
+import { WelcomeLetter } from "@/components/profile/WelcomeLetter";
+import { IdCardSection } from "@/components/profile/IdCardSection";
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,6 +52,8 @@ const ProfilePage = () => {
       ),
     },
     { value: "security", label: "Security", component: <SecuritySettings /> },
+    { value: "welcome", label: "Welcome Letter", component: <WelcomeLetter /> },
+    { value: "id-card", label: "ID Card", component: <IdCardSection /> },
   ];
 
   return (
