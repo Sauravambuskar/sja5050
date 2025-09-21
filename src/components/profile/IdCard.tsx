@@ -12,6 +12,7 @@ import { Profile, IdCardSettings } from '@/types/database';
 import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import jsPDF from 'jspdf';
 
 const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
@@ -34,7 +35,7 @@ export const IdCard = () => {
     enabled: !!user,
   });
 
-  const handleDownload = async () => {
+  const handleDownloadPdf = async () => {
     if (!idCardRef.current) {
       toast.error("ID card element not found");
       return;
@@ -48,116 +49,34 @@ export const IdCard = () => {
     setIsDownloading(true);
 
     try {
-      // Add a small delay to ensure the DOM is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Get the element and ensure it's visible
       const element = idCardRef.current;
-      
-      // Ensure the element is properly styled for export
-      element.style.transform = 'scale(1)';
-      element.style.transformOrigin = 'top left';
-      
-      // Create a canvas-friendly version
-      const dataUrl = await toPng(element, { 
-        cacheBust: true, 
-        pixelRatio: 2,
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        pixelRatio: 2, // Use higher resolution for better PDF quality
         backgroundColor: '#ffffff',
-        width: 380,
-        height: 280,
-        quality: 0.95,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
-        }
       });
-      
-      if (!dataUrl) {
-        throw new Error('Failed to generate image data');
-      }
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.download = `SJA-Member-ID-${data.profile.member_id}.png`;
-      link.href = dataUrl;
-      link.style.display = 'none';
-      
-      // Add to DOM, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      setTimeout(() => {
-        if (document.body.contains(link)) {
-          document.body.removeChild(link);
-        }
-      }, 100);
-      
-      toast.success("ID Card downloaded successfully!");
+
+      // Standard credit card dimensions in mm
+      const cardWidthMM = 85.6;
+      const cardHeightMM = 53.98;
+
+      // Create a new PDF document with a size slightly larger than the card
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: [cardWidthMM + 10, cardHeightMM + 10]
+      });
+
+      const margin = 5; // 5mm margin
+      doc.addImage(dataUrl, 'PNG', margin, margin, cardWidthMM, cardHeightMM);
+      doc.save(`SJA-Member-ID-${data.profile.member_id}.pdf`);
+
+      toast.success("ID Card downloaded as PDF!");
     } catch (err) {
-      console.error('Download error:', err);
-      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card image'}`);
-      
-      // Try alternative method using canvas
-      try {
-        toast.info("Trying alternative method...");
-        await downloadWithCanvas();
-      } catch (fallbackError) {
-        console.error('Fallback download error:', fallbackError);
-        toast.error("All download methods failed. Please try again or contact support.");
-      }
+      console.error('PDF Download error:', err);
+      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card PDF'}`);
     } finally {
       setIsDownloading(false);
-    }
-  };
-
-  const downloadWithCanvas = async () => {
-    if (!idCardRef.current || !data?.profile.member_id) return;
-
-    try {
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
-
-      // Set canvas dimensions
-      canvas.width = 380;
-      canvas.height = 280;
-
-      // Get the element
-      const element = idCardRef.current;
-      
-      // Use html-to-image with proper options
-      const dataUrl = await toPng(element, {
-        width: 380,
-        height: 280,
-        pixelRatio: 1,
-        backgroundColor: '#ffffff'
-      });
-
-      if (!dataUrl) {
-        throw new Error('Canvas method failed to generate image');
-      }
-
-      // Create and trigger download
-      const link = document.createElement('a');
-      link.download = `SJA-Member-ID-${data.profile.member_id}.png`;
-      link.href = dataUrl;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      
-      setTimeout(() => {
-        if (document.body.contains(link)) {
-          document.body.removeChild(link);
-        }
-      }, 100);
-      
-      toast.success("ID Card downloaded using alternative method!");
-    } catch (canvasError) {
-      console.error('Canvas method error:', canvasError);
-      throw canvasError;
     }
   };
 
@@ -241,9 +160,9 @@ export const IdCard = () => {
           </div>
         </div>
       )}
-      <Button onClick={handleDownload} disabled={isLoading || isDownloading}>
+      <Button onClick={handleDownloadPdf} disabled={isLoading || isDownloading}>
         <Download className="mr-2 h-4 w-4" /> 
-        {isDownloading ? 'Downloading...' : 'Download ID Card'}
+        {isDownloading ? 'Downloading PDF...' : 'Download ID Card (PDF)'}
       </Button>
     </div>
   );
