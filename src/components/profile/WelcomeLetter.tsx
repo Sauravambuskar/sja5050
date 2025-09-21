@@ -36,14 +36,35 @@ export const WelcomeLetter = () => {
   const handleDownloadWelcomeLetter = () => {
     if (!data) return;
 
-    const headers = ['Field', 'Details'];
+    // Create a detailed welcome letter in paragraph format
+    const welcomeContent = `
+Welcome to ${data.companyName}!
+
+Dear ${data.profile.full_name || 'Valued Member'},
+
+We are delighted to have you as a member of our investment community. Your trust in us means everything, and we're committed to helping you achieve your financial goals.
+
+Your membership has been successfully created with Member ID: ${data.profile.member_id || 'N/A'}. You joined us on ${format(new Date(data.joinDate), 'MMMM dd, yyyy')}.
+
+As a member, you now have access to our investment plans, referral program, and comprehensive dashboard to track your earnings and investments.
+
+Your unique referral code is: ${data.profile.referral_code || 'N/A'}. Share this with friends and family to earn referral commissions.
+
+Your Contact Information:
+- Email: ${user?.email || 'N/A'}
+- Phone: ${data.profile.phone || 'N/A'}
+
+We wish you success in your investment journey with us! Our team is here to support you every step of the way. If you have any questions or need assistance, please don't hesitate to reach out.
+
+Best regards,
+The ${data.companyName} Team
+
+Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
+    `.trim();
+
+    const headers = ['Welcome Letter Details'];
     const letterData = [
-      ['Member Name', data.profile.full_name || 'N/A'],
-      ['Member ID', data.profile.member_id || 'N/A'],
-      ['Join Date', format(new Date(data.joinDate), 'MMMM dd, yyyy')],
-      ['Email', user?.email || 'N/A'],
-      ['Phone', data.profile.phone || 'N/A'],
-      ['Referral Code', data.profile.referral_code || 'N/A'],
+      [welcomeContent]
     ];
 
     exportToPdf(
