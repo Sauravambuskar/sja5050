@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
-loading: true,
+  loading: true,
   isImpersonating: false,
   impersonateUser: async () => {},
   stopImpersonating: async () => {},
@@ -32,9 +32,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isImpersonating, setIsImpersonating] = useState(false);
 
   useEffect(() => {
-    const savedSessionJson = localStorage.getItem('original_session');
-    if (savedSessionJson) {
-      setIsImpersonating(true);
+    // Safely check for impersonation state
+    try {
+      const savedSessionJson = localStorage.getItem('original_session');
+      if (savedSessionJson && savedSessionJson !== 'undefined' && savedSessionJson !== 'null') {
+        setIsImpersonating(true);
+      }
+    } catch (error) {
+      console.warn('Error checking impersonation state:', error);
+      localStorage.removeItem('original_session'); // Clear potentially corrupted data
     }
 
     const getSessionAndProfile = async () => {
@@ -98,7 +104,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(error?.message || 'Failed to get impersonation session.');
       }
 
-      localStorage.setItem('original_session', JSON.stringify(currentSession));
+      // Safely store the original session
+      try {
+        localStorage.setItem('original_session', JSON.stringify(currentSession));
+      } catch (storageError) {
+        console.error('Error storing original session:', storageError);
+        toast.error("Failed to save original session. Impersonation might not work correctly.");
+      }
       
       const { session: impersonatedSession } = data;
       await supabase.auth.setSession({
@@ -120,15 +132,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const stopImpersonating = async () => {
     const savedSessionJson = localStorage.getItem('original_session');
     if (savedSessionJson) {
-      const savedSession = JSON.parse(savedSessionJson);
-      await supabase.auth.setSession({
-        access_token: savedSession.access_token,
-        refresh_token: savedSession.refresh_token,
-      });
-      localStorage.removeItem('original_session');
-      setIsImpersonating(false);
-      toast.success("Stopped impersonating. Reloading...");
-      window.location.reload();
+      try {
+        const savedSession = JSON.parse(savedSessionJson);
+        await supabase.auth.setSession({
+          access_token: savedSession.access_token,
+          refresh_token: savedSession.refresh_token,
+        });
+        localStorage.removeItem('original_session');
+        setIsImpersonating(false);
+        toast.success("Stopped impersonating. Reloading...");
+        window.location.reload();
+      } catch (parseError) {
+        console.error('Error parsing original session from localStorage:', parseError);
+        toast.error("Failed to restore original session. Please log in again.");
+        await supabase.auth.signOut();
+      }
     } else {
       toast.error("No original session found. Signing out.");
       await supabase.auth.signOut();
@@ -154,7 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-if (context === undefined) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
