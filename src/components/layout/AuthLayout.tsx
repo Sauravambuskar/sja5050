@@ -7,6 +7,7 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
 
   const imageUrl1 = settings?.auth_layout_image_url_1 || "https://png.pngtree.com/background/20250107/original/pngtree-hands-holding-money-green-investment-wealth-growth-concept-picture-image_16144123.jpg";
   const imageUrl2 = settings?.auth_layout_image_url_2 || "https://ideogram.ai/assets/progressive-image/balanced/response/N1ygBDjpR2Gu9OPylgNwoA";
+  const logoUrl = settings?.login_page_logo_url || "https://i.ibb.co/nNKNZvFP/Untitled-design.png";
 
   return (
     <div className="light w-full min-h-screen bg-muted lg:grid lg:grid-cols-2">
@@ -30,7 +31,19 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         }}
       >
         <div className="lg:hidden absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-        <div className="relative z-10 w-full">
+        <div className="relative z-10 w-full max-w-md">
+          {/* Logo Section */}
+          <div className="mb-8 flex justify-center">
+            {isLoading ? (
+              <Skeleton className="h-16 w-32" />
+            ) : (
+              <img 
+                src={logoUrl}
+                alt="Company Logo" 
+                className="h-16 w-auto object-contain" 
+              />
+            )}
+          </div>
           {children}
         </div>
       </div>
