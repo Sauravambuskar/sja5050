@@ -77,7 +77,7 @@ export const AuthLayoutCustomizer = () => {
       toast.success("Auth page settings updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['systemSettings'] });
     },
-    onError: (error) => { toast.error(`Update failed: ${error.message}`); },
+    onError: (error: Error) => { toast.error(`Update failed: ${error.message}`); },
   });
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +95,7 @@ export const AuthLayoutCustomizer = () => {
       form.setValue('login_page_logo_url', publicUrl);
       toast.success('Logo uploaded successfully!');
     } catch (error) {
-      toast.error(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
       event.target.value = '';
