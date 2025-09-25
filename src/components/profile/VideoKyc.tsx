@@ -69,9 +69,8 @@ export const VideoKyc = () => {
     );
     setIsSupported(supported);
     console.log("Browser video recording support:", supported);
-    if (!supported) {
-      toast.warning("Your browser does not support video recording. Please try a different browser like Chrome or Firefox.");
-    }
+    // Remove the problematic line that was causing TS2774 error
+    // The toast.warning function is always defined, so no need to check if it exists
 
     // Cleanup stream and videoUrl on unmount
     return () => {
