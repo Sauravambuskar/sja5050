@@ -25,7 +25,7 @@ const fetchDashboardStats = async (userId: string): Promise<DashboardStatsType |
     .rpc('get_dashboard_stats')
     .single();
   if (error) throw new Error(error.message);
-  return data;
+  return data as DashboardStatsType;
 };
 
 export default function Dashboard() {

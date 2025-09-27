@@ -1,191 +1,80 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Profile } from "@/types/database";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon, Download } from "lucide-react";
-import { cn, exportToPdf } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { NomineeManager } from "../NomineeManager";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-const profileSchema = z.object({
-  full_name: z.string().min(2, "Name is required.").max(100),
-  phone: z.string().optional().nullable(),
-  dob: z.date().optional().nullable(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state: z.string().optional().nullable(),
-  pincode: z.string().optional().nullable(),
-  bank_name: z.string().optional().nullable(),
-  bank_account_holder_name: z.string().optional().nullable(),
-  bank_account_number: z.string().optional().nullable(),
-  bank_ifsc_code: z.string().optional().nullable(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
-
-const fetchUserProfileForAdmin = async (userId: string): Promise<Profile> => {
-  const { data, error } = await supabase.rpc('get_user_profile_for_admin', { user_id_to_fetch: userId });
-  if (error) throw new Error(error.message);
-  if (!data || data.length === 0) throw new Error("User profile not found.");
-  return data[0];
-};
-
-const DetailRow = ({ label, value, children }: { label: string; value?: string | number | null | undefined, children?: React.ReactNode }) => (
-  <div className="flex justify-between items-center text-sm py-1.5 border-b border-dashed">
-    <span className="text-muted-foreground">{label}:</span>
-    {children ? <div className="text-right">{children}</div> : <span className="font-medium text-right">{value || 'N/A'}</span>}
-  </div>
-);
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { EditUserDialog } from '@/components/admin/EditUserDialog';
+import { Profile } from '@/types/database';
 
 interface AdminUserProfileTabProps {
   userId: string;
-  email: string | undefined;
-  onViewUser: (userId: string) => void;
 }
 
-export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProfileTabProps) => {
-  const queryClient = useQueryClient();
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
+export function AdminUserProfileTab({ userId }: AdminUserProfileTabProps) {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['userProfileForAdmin', userId],
-    queryFn: () => fetchUserProfileForAdmin(userId),
-    enabled: !!userId,
+  const { data: profile, isLoading } = useQuery<Profile>({
+    queryKey: ['userProfile', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_user_profile_for_admin', { user_id_to_fetch: userId })
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Profile;
+    },
   });
 
-  useEffect(() => {
-    if (profile && isEditingProfile) {
-      profileForm.reset({
-        full_name: profile.full_name || "",
-        phone: profile.phone || "",
-        dob: profile.dob ? new Date(profile.dob) : null,
-        address: profile.address || "",
-        city: profile.city || "",
-        state: profile.state || "",
-        pincode: profile.pincode || "",
-        bank_name: profile.bank_name || "",
-        bank_account_holder_name: profile.bank_account_holder_name || "",
-        bank_account_number: profile.bank_account_number || "",
-        bank_ifsc_code: profile.bank_ifsc_code || "",
-      });
-    }
-  }, [profile, isEditingProfile, profileForm]);
+  if (isLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (values: ProfileFormValues) => {
-      if (!userId) throw new Error("User ID is missing.");
-      const profileData = { ...values, dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null };
-      const { error } = await supabase.functions.invoke('admin-update-profile', { body: { userId, profileData } });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Profile updated successfully!");
-      queryClient.invalidateQueries({ queryKey: ['userProfileForAdmin', userId] });
-      queryClient.invalidateQueries({ queryKey: ['userDetails', userId] });
-      queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
-      setIsEditingProfile(false);
-    },
-    onError: (error) => { toast.error(`Update failed: ${error.message}`); },
-  });
-
-  const onProfileSubmit = (values: ProfileFormValues) => updateProfileMutation.mutate(values);
-
-  const handleDownloadProfile = () => {
-    if (!profile) {
-      toast.error("Profile data not loaded yet.");
-      return;
-    }
-
-    const filename = `SJA_Profile_${profile.member_id || userId}.pdf`;
-    const title = "User Profile Statement";
-    const headers = ["Field", "Details"];
-    const data = [
-      ["Member ID", profile.member_id || 'N/A'],
-      ["Full Name", profile.full_name || 'N/A'],
-      ["Email", email || 'N/A'],
-      ["Phone", profile.phone || 'N/A'],
-      ["Date of Birth", profile.dob ? format(new Date(profile.dob), 'PPP') : 'N/A'],
-      ["Address", `${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`.replace(/, ,/g, ',').replace(/^,|,$/g, '')],
-      ["KYC Status", profile.kyc_status || 'N/A'],
-      ["Referral Code", profile.referral_code || 'N/A'],
-      ["Referred By", profile.referrer_full_name || 'N/A'],
-      ["Bank Name", profile.bank_name || 'N/A'],
-      ["Bank Account Holder", profile.bank_account_holder_name || 'N/A'],
-      ["Bank Account Number", profile.bank_account_number || 'N/A'],
-      ["Bank IFSC Code", profile.bank_ifsc_code || 'N/A'],
-    ];
-
-    exportToPdf(filename, title, headers, data.map(row => [row[0], String(row[1])]), profile.full_name || "User");
-    toast.success("Profile downloaded as PDF.");
-  };
-
-  if (isProfileLoading) return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (!profile) return <p>Could not load profile.</p>;
+  if (!profile) {
+    return <div className="text-center text-destructive">Failed to load profile.</div>;
+  }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1.5">
-            <CardTitle>User Profile Details</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isEditingProfile && (
-              <Button variant="outline" size="sm" onClick={handleDownloadProfile}>
-                <Download className="mr-2 h-4 w-4" /> Download
-              </Button>
-            )}
-            {!isEditingProfile && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Button>
-            )}
-          </div>
+          <CardTitle>User Profile</CardTitle>
+          <Button onClick={() => setIsEditDialogOpen(true)}>Edit Profile</Button>
         </CardHeader>
-        <CardContent>
-          {isEditingProfile ? (
-            <Form {...profileForm}>
-              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                <h4 className="font-semibold">Personal Details</h4>
-                <FormField control={profileForm.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                
-                <h4 className="font-semibold pt-4">Bank Details</h4>
-                <FormField control={profileForm.control} name="bank_name" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
-                  <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
-                </div>
-              </form>
-            </Form>
-          ) : (
-            <div className="space-y-4">
-              <div><h4 className="font-semibold mb-2">Account Details</h4><DetailRow label="Referral Code" value={profile.referral_code} /><DetailRow label="Referred By">{profile.referrer_id && profile.referrer_full_name ? (<Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>{profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" /></Button>) : (<span>N/A</span>)}</DetailRow></div>
-              <div><h4 className="font-semibold mb-2">Personal Details</h4><DetailRow label="Full Name" value={profile.full_name} /><DetailRow label="Phone" value={profile.phone} /><DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} /><DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} /></div>
-              <div><h4 className="font-semibold mb-2">Bank Details</h4><DetailRow label="Bank Name" value={profile.bank_name} /><DetailRow label="Account Holder" value={profile.bank_account_holder_name} /><DetailRow label="Account Number" value={profile.bank_account_number} /><DetailRow label="IFSC Code" value={profile.bank_ifsc_code} /></div>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+              <p className="text-lg">{profile.full_name || 'N/A'}</p>
             </div>
-          )}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Email</p>
+              <p className="text-lg">{profile.id}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Phone</p>
+              <p className="text-lg">{profile.phone || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">KYC Status</p>
+              <p className="text-lg">{profile.kyc_status || 'Not Submitted'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Role</p>
+              <p className="text-lg">{profile.role}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Referral Code</p>
+              <p className="text-lg">{profile.referral_code || 'N/A'}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
-      <NomineeManager userId={userId} />
+
+      <EditUserDialog
+        user={profile as any}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+      />
     </div>
   );
-};
+}

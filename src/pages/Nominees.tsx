@@ -1,5 +1,7 @@
 import { NomineeManager } from "@/components/admin/NomineeManager";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Nominees() {
-  return <NomineeManager />;
+  const { user } = useAuth();
+  return <NomineeManager userId={user?.id} />;
 }

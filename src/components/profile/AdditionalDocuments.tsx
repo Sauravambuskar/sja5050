@@ -20,7 +20,7 @@ const fetchAdditionalDocuments = async (userId: string): Promise<AdditionalDocum
   return data;
 };
 
-export const AdditionalDocuments = () => {
+export default function AdditionalDocuments() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [documentName, setDocumentName] = useState('');
@@ -162,4 +162,6 @@ export const AdditionalDocuments = () => {
       </CardContent>
     </Card>
   );
-};
+}
+
+export { AdditionalDocuments };

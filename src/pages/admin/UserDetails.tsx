@@ -4,21 +4,21 @@ import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types/database';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AdminUserProfileTab from '@/components/admin/tabs/AdminUserProfileTab';
-import AdminUserInvestmentsTab from '@/components/admin/tabs/AdminUserInvestmentsTab';
-import AdminUserTransactionsTab from '@/components/admin/tabs/AdminUserTransactionsTab';
-import AdminUserReferralsTab from '@/components/admin/tabs/AdminUserReferralsTab';
-import AdminUserKycTab from '@/components/admin/tabs/AdminUserKycTab';
-import AdminUserNotesTab from '@/components/admin/tabs/AdminUserNotesTab';
-import AdminWalletAdjustmentTab from '@/components/admin/tabs/AdminWalletAdjustmentTab';
-import AdminUserDocumentsTab from '@/components/admin/tabs/AdminUserDocumentsTab';
+import { AdminUserProfileTab } from '@/components/admin/tabs/AdminUserProfileTab';
+import { AdminUserInvestmentsTab } from '@/components/admin/tabs/AdminUserInvestmentsTab';
+import { AdminUserTransactionsTab } from '@/components/admin/tabs/AdminUserTransactionsTab';
+import { AdminUserReferralsTab } from '@/components/admin/tabs/AdminUserReferralsTab';
+import { AdminUserKycTab } from '@/components/admin/tabs/AdminUserKycTab';
+import { AdminUserNotesTab } from '@/components/admin/tabs/AdminUserNotesTab';
+import { AdminWalletAdjustmentTab } from '@/components/admin/tabs/AdminWalletAdjustmentTab';
+import { AdminUserDocumentsTab } from '@/components/admin/tabs/AdminUserDocumentsTab';
 
-const fetchUserDetails = async (userId: string) => {
+const fetchUserDetails = async (userId: string): Promise<Profile> => {
   const { data, error } = await supabase
     .rpc('get_user_profile_for_admin', { user_id_to_fetch: userId })
     .single();
   if (error) throw new Error(error.message);
-  return data;
+  return data as Profile;
 };
 
 export default function UserDetails() {
@@ -46,7 +46,7 @@ export default function UserDetails() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold">{user.full_name || 'User Details'}</h1>
+      <h1 className="text-3xl font-bold">{user?.full_name || 'User Details'}</h1>
       <Tabs defaultValue="profile">
         <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="profile">Profile</TabsTrigger>

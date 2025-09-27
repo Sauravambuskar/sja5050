@@ -1,162 +1,115 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, Upload, Trash2, FileText, Download } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Eye, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { AdditionalDocument } from '@/types/database';
-import { format } from 'date-fns';
 
 interface AdminUserDocumentsTabProps {
   userId: string;
 }
 
-const fetchAdditionalDocuments = async (userId: string): Promise<AdditionalDocument[]> => {
-  const { data, error } = await supabase
-    .from('user_additional_documents')
-    .select('*')
-    .eq('user_id', userId)
-    .order('uploaded_at', { ascending: false });
-  if (error) throw error;
-  return data;
-};
-
-export const AdminUserDocumentsTab = ({ userId }: AdminUserDocumentsTabProps) => {
-  const { user: adminUser } = useAuth();
+export function AdminUserDocumentsTab({ userId }: AdminUserDocumentsTabProps) {
   const queryClient = useQueryClient();
-  const [documentName, setDocumentName] = useState('');
-  const [file, setFile] = useState<File | null>(null);
 
   const { data: documents, isLoading } = useQuery({
-    queryKey: ['additionalDocuments', userId],
-    queryFn: () => fetchAdditionalDocuments(userId),
-    enabled: !!userId,
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!file || !documentName.trim() || !adminUser) throw new Error('File and document name are required.');
-
-      const filePath = `${userId}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('additional_documents')
-        .upload(filePath, file);
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase.from('user_additional_documents').insert({
-        user_id: userId,
-        document_name: documentName.trim(),
-        file_path: filePath,
-        uploaded_by: adminUser.id,
-      });
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      toast.success('Document uploaded successfully for user!');
-      queryClient.invalidateQueries({ queryKey: ['additionalDocuments', userId] });
-      setDocumentName('');
-      setFile(null);
-    },
-    onError: (error: Error) => {
-      toast.error(`Upload failed: ${error.message}`);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (doc: AdditionalDocument) => {
-      const { error: storageError } = await supabase.storage
-        .from('additional_documents')
-        .remove([doc.file_path]);
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
+    queryKey: ['userAdditionalDocuments', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('user_additional_documents')
-        .delete()
-        .eq('id', doc.id);
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      toast.success('Document deleted.');
-      queryClient.invalidateQueries({ queryKey: ['additionalDocuments', userId] });
-    },
-    onError: (error: Error) => {
-      toast.error(`Deletion failed: ${error.message}`);
+        .select('*')
+        .eq('user_id', userId)
+        .order('uploaded_at', { ascending: false });
+      
+      if (error) throw new Error(error.message);
+      return data;
     },
   });
 
-  const handleDownload = async (filePath: string) => {
-    const { data, error } = await supabase.storage.from('additional_documents').download(filePath);
-    if (error) {
-      toast.error(`Download failed: ${error.message}`);
-      return;
-    }
-    const url = URL.createObjectURL(data);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filePath.split('/').pop() || 'download';
-    document.body.appendChild(a);
-a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleViewDocument = (filePath: string) => {
+    window.open(filePath, '_blank');
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-4 rounded-md border p-4">
-        <h3 className="font-semibold">Upload New Document for User</h3>
-        <div className="space-y-2">
-          <Input
-            placeholder="Document Name"
-            value={documentName}
-            onChange={(e) => setDocumentName(e.target.value)}
-            disabled={uploadMutation.isPending}
-          />
-          <Input
-            type="file"
-            onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-            disabled={uploadMutation.isPending}
-          />
-        </div>
-        <Button onClick={() => uploadMutation.mutate()} disabled={!file || !documentName.trim() || uploadMutation.isPending}>
-          {uploadMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-          Upload Document
-        </Button>
-      </div>
+  const handleDeleteDocument = async (documentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_additional_documents')
+        .delete()
+        .eq('id', documentId);
 
-      <div className="space-y-4">
-        <h3 className="font-semibold">Uploaded Documents</h3>
-        {isLoading ? (
-          <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
-        ) : documents && documents.length > 0 ? (
-          <ul className="space-y-2">
-            {documents.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between rounded-md border p-3">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">{doc.document_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Uploaded on {format(new Date(doc.uploaded_at), 'PPP')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={() => handleDownload(doc.file_path)}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="icon" onClick={() => deleteMutation.mutate(doc)} disabled={deleteMutation.isPending && deleteMutation.variables?.id === doc.id}>
-                    {deleteMutation.isPending && deleteMutation.variables?.id === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-center text-sm text-muted-foreground">No additional documents uploaded for this user.</p>
-        )}
-      </div>
-    </div>
+      if (error) throw error;
+
+      toast.success('Document deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['userAdditionalDocuments', userId] });
+    } catch (error) {
+      toast.error('Failed to delete document');
+      console.error('Error deleting document:', error);
+    }
+  };
+
+  if (isLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  if (!documents || documents.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Additional Documents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground py-8">No additional documents found for this user.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Additional Documents</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Document Name</TableHead>
+                <TableHead>Uploaded At</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc: any) => (
+                <TableRow key={doc.id}>
+                  <TableCell>{doc.document_name}</TableCell>
+                  <TableCell>{new Date(doc.uploaded_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDocument(doc.file_path)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteDocument(doc.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
-};
+}

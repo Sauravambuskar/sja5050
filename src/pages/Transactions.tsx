@@ -6,11 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { PaginationControls } from '@/components/ui/PaginationControls';
-import { usePagination } from '@/hooks/usePagination';
+import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const ITEMS_PER_PAGE = 10;
 
-const fetchTransactions = async (page: number) => {
+const fetchTransactions = async (page: number): Promise<Transaction[]> => {
   const { data, error } = await supabase.rpc('get_my_transactions', {
     page_limit: ITEMS_PER_PAGE,
     page_offset: (page - 1) * ITEMS_PER_PAGE,
@@ -19,14 +21,14 @@ const fetchTransactions = async (page: number) => {
   return data as Transaction[];
 };
 
-const fetchTransactionsCount = async () => {
+const fetchTransactionsCount = async (): Promise<number> => {
   const { data, error } = await supabase.rpc('get_my_transactions_count').single();
   if (error) throw new Error(error.message);
-  return data;
+  return data as number;
 };
 
 export default function Transactions() {
-  const { currentPage, setCurrentPage } = usePagination();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['myTransactions', currentPage],
@@ -39,6 +41,8 @@ export default function Transactions() {
   });
 
   const totalPages = Math.ceil((totalCount || 0) / ITEMS_PER_PAGE);
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
 
   return (
     <Card>
@@ -80,6 +84,8 @@ export default function Transactions() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          hasPreviousPage={hasPreviousPage}
+          hasNextPage={hasNextPage}
         />
       </CardContent>
     </Card>

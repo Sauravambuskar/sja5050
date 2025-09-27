@@ -36,7 +36,7 @@ import IdCard from "./pages/IdCard";
 import Nominees from "./pages/Nominees";
 import Agreements from "./pages/Agreements";
 import UserNotes from "./pages/Notes";
-import AdditionalDocuments from "./pages/profile/AdditionalDocuments";
+import { AdditionalDocuments } from "./components/profile/AdditionalDocuments";
 
 const queryClient = new QueryClient();
 

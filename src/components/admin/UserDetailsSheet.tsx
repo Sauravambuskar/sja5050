@@ -78,14 +78,14 @@ export const UserDetailsSheet = ({ userId, isOpen, onOpenChange, onViewUser }: U
               <TabsTrigger value="adjust">Adjust Wallet</TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} email={user.email} onViewUser={onViewUser} /></TabsContent>
+          <TabsContent value="profile" className="mt-4"><AdminUserProfileTab userId={userId} /></TabsContent>
           <TabsContent value="kyc" className="mt-4"><AdminUserKycTab userId={userId} /></TabsContent>
           <TabsContent value="documents" className="mt-4"><AdminUserDocumentsTab userId={userId} /></TabsContent>
           <TabsContent value="notes" className="mt-4"><AdminUserNotesTab userId={userId} /></TabsContent>
           <TabsContent value="transactions" className="mt-4"><AdminUserTransactionsTab userId={userId} /></TabsContent>
           <TabsContent value="investments" className="mt-4"><AdminUserInvestmentsTab userId={userId} /></TabsContent>
-          <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} onViewUser={onViewUser} /></TabsContent>
-          <TabsContent value="adjust" className="mt-4"><AdminWalletAdjustmentTab userId={userId} user={user} /></TabsContent>
+          <TabsContent value="referrals" className="mt-4"><AdminUserReferralsTab userId={userId} /></TabsContent>
+          <TabsContent value="adjust" className="mt-4"><AdminWalletAdjustmentTab userId={userId} /></TabsContent>
         </Tabs>
       </div>
     );
