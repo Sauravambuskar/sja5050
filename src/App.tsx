@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -12,21 +11,21 @@ import Profile from "./pages/Profile";
 import Referrals from "./pages/Referrals";
 import Support from "./pages/Support";
 import Wallet from "./pages/Wallet";
-import Withdraw from "./pages/Withdraw";
-import MainLayout from "./components/layout/MainLayout";
-import AuthLayout from "./components/layout/AuthLayout";
+import Withdrawals from "./pages/Withdrawals";
+import { PageLayout as MainLayout } from "./components/layout/PageLayout";
+import { AuthLayout } from "./components/layout/AuthLayout";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import ManageUsers from "./pages/admin/ManageUsers";
-import ManageInvestments from "./pages/admin/ManageInvestments";
+import ManageUsers from "./pages/admin/UserManagement";
+import ManageInvestments from "./pages/admin/InvestmentManagement";
 import ManagePlans from "./pages/admin/ManagePlans";
-import ManageRequests from "./pages/admin/ManageRequests";
-import ManageWithdrawals from "./pages/admin/ManageWithdrawals";
-import ManageSupport from "./pages/admin/ManageSupport";
-import SystemSettings from "./pages/admin/SystemSettings";
+import ManageRequests from "./pages/admin/RequestManagement";
+import ManageWithdrawals from "./pages/admin/WalletWithdrawalManagement";
+import ManageSupport from "./pages/admin/SupportDesk";
+import SystemSettings from "./pages/admin/SystemManagement";
 import UserDetails from "./pages/admin/UserDetails";
-import Reports from "./pages/admin/Reports";
-import AdminAuditLog from "./pages/admin/AdminAuditLog";
+import Reports from "./pages/admin/Reporting";
+import AdminAuditLog from "./pages/admin/AuditLog";
 import Broadcast from "./pages/admin/Broadcast";
 import ManageBanners from "./pages/admin/ManageBanners";
 import Notifications from "./pages/Notifications";
@@ -36,8 +35,8 @@ import FaqPage from "./pages/FaqPage";
 import IdCard from "./pages/IdCard";
 import Nominees from "./pages/Nominees";
 import Agreements from "./pages/Agreements";
-import UserNotes from "./pages/UserNotes";
-import AdditionalDocuments from "./pages/AdditionalDocuments";
+import UserNotes from "./pages/Notes";
+import AdditionalDocuments from "./pages/profile/AdditionalDocuments";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +59,7 @@ function App() {
               <Route path="support" element={<Support />} />
               <Route path="support/ticket/:ticketId" element={<TicketDetails />} />
               <Route path="wallet" element={<Wallet />} />
-              <Route path="withdraw" element={<Withdraw />} />
+              <Route path="withdrawals" element={<Withdrawals />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="faq" element={<FaqPage />} />
               <Route path="id-card" element={<IdCard />} />
@@ -97,7 +96,7 @@ function App() {
 function AuthWrapper() {
   const { user, loading } = useAuth();
   if (loading) return <div>Loading...</div>; // Or a proper splash screen
-  return user ? <MainLayout><Dashboard /></MainLayout> : <AuthLayout><Login /></AuthLayout>;
+  return user ? <MainLayout /> : <AuthLayout><Login /></AuthLayout>;
 }
 
 export default App;

@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { DashboardStats as DashboardStatsType } from "@/types/database";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { ActiveInvestments } from "@/components/dashboard/ActiveInvestments";
@@ -18,7 +19,7 @@ const getGreeting = () => {
   return "Good Evening";
 };
 
-const fetchDashboardStats = async (userId: string) => {
+const fetchDashboardStats = async (userId: string): Promise<DashboardStatsType | null> => {
   if (!userId) return null;
   const { data, error } = await supabase
     .rpc('get_dashboard_stats')
@@ -60,7 +61,7 @@ export default function Dashboard() {
 
         <KycStatusAlert kycStatus={stats?.kycStatus} />
 
-        <DashboardStats stats={stats} isLoading={isLoading} />
+        <DashboardStats stats={stats as DashboardStatsType} isLoading={isLoading} />
 
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
           <div className="lg:col-span-2">
