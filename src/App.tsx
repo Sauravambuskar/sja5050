@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -44,49 +44,46 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<AuthWrapper />} />
-            <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
-            <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
-            
-            <Route path="/" element={<MainLayout />}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="investments" element={<Investments />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="referrals" element={<Referrals />} />
-              <Route path="support" element={<Support />} />
-              <Route path="support/ticket/:ticketId" element={<TicketDetails />} />
-              <Route path="wallet" element={<Wallet />} />
-              <Route path="withdrawals" element={<Withdrawals />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="faq" element={<FaqPage />} />
-              <Route path="id-card" element={<IdCard />} />
-              <Route path="nominees" element={<Nominees />} />
-              <Route path="agreements" element={<Agreements />} />
-              <Route path="notes" element={<UserNotes />} />
-              <Route path="documents" element={<AdditionalDocuments />} />
-            </Route>
+        <Routes>
+          <Route path="/" element={<AuthWrapper />} />
+          <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
+          <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
+          
+          <Route path="/" element={<MainLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="investments" element={<Investments />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="referrals" element={<Referrals />} />
+            <Route path="support" element={<Support />} />
+            <Route path="support/ticket/:ticketId" element={<TicketDetails />} />
+            <Route path="wallet" element={<Wallet />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="faq" element={<FaqPage />} />
+            <Route path="id-card" element={<IdCard />} />
+            <Route path="nominees" element={<Nominees />} />
+            <Route path="agreements" element={<Agreements />} />
+            <Route path="notes" element={<UserNotes />} />
+            <Route path="documents" element={<AdditionalDocuments />} />
+          </Route>
 
-            <Route path="admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<ManageUsers />} />
-              <Route path="users/:userId" element={<UserDetails />} />
-              <Route path="investments" element={<ManageInvestments />} />
-              <Route path="plans" element={<ManagePlans />} />
-              <Route path="requests" element={<ManageRequests />} />
-              <Route path="withdrawals" element={<ManageWithdrawals />} />
-              <Route path="support" element={<ManageSupport />} />
-              <Route path="settings" element={<SystemSettings />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="audit-log" element={<AdminAuditLog />} />
-              <Route path="broadcast" element={<Broadcast />} />
-              <Route path="banners" element={<ManageBanners />} />
-            </Route>
-
-          </Routes>
-        </Router>
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<ManageUsers />} />
+            <Route path="users/:userId" element={<UserDetails />} />
+            <Route path="investments" element={<ManageInvestments />} />
+            <Route path="plans" element={<ManagePlans />} />
+            <Route path="requests" element={<ManageRequests />} />
+            <Route path="withdrawals" element={<ManageWithdrawals />} />
+            <Route path="support" element={<ManageSupport />} />
+            <Route path="settings" element={<SystemSettings />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="audit-log" element={<AdminAuditLog />} />
+            <Route path="broadcast" element={<Broadcast />} />
+            <Route path="banners" element={<ManageBanners />} />
+          </Route>
+        </Routes>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
