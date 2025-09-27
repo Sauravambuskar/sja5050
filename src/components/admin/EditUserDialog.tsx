@@ -29,7 +29,7 @@ type EditUserFormValues = z.infer<typeof editUserSchema>;
 interface EditUserDialogProps {
   user: AdminUserView | null;
   isOpen: boolean;
-  onClose: () => void;
+  onOpenChange: (isOpen: boolean) => void;
 }
 
 const updateUser = async (values: EditUserFormValues & { userId: string }) => {
@@ -43,7 +43,7 @@ const updateUser = async (values: EditUserFormValues & { userId: string }) => {
   return data;
 };
 
-export const EditUserDialog = ({ user, isOpen, onClose }: EditUserDialogProps) => {
+export const EditUserDialog = ({ user, isOpen, onOpenChange }: EditUserDialogProps) => {
   const queryClient = useQueryClient();
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(editUserSchema),
@@ -63,7 +63,7 @@ export const EditUserDialog = ({ user, isOpen, onClose }: EditUserDialogProps) =
     onSuccess: () => {
       toast.success("User updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
-      onClose();
+      onOpenChange(false);
     },
     onError: (error) => {
       toast.error(`Failed to update user: ${error.message}`);
@@ -78,7 +78,7 @@ export const EditUserDialog = ({ user, isOpen, onClose }: EditUserDialogProps) =
   if (!user) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
@@ -107,7 +107,7 @@ export const EditUserDialog = ({ user, isOpen, onClose }: EditUserDialogProps) =
               <FormMessage /></FormItem>
             )} />
             <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Saving..." : "Save Changes"}
               </Button>

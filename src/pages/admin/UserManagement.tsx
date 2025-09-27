@@ -217,7 +217,7 @@ const UserManagement = () => {
           {renderPagination()}
         </CardContent>
       </Card>
-      <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onClose={() => setIsEditUserDialogOpen(false)} />
+      <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
       <AddUserDialog isOpen={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen} />
       <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action will {isUserSuspended(userToSuspend) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend) ? 'be able to' : 'not be able to'} log in.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmSuspend} disabled={suspendMutation.isPending}>{suspendMutation.isPending ? "Processing..." : "Confirm"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>

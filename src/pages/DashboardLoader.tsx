@@ -52,7 +52,7 @@ const DashboardLoader = () => {
     return <div className="text-center text-destructive p-8">Could not load dashboard data. Please try again later.</div>;
   }
 
-  return <Dashboard />;
+  return <Dashboard stats={stats} transactions={transactions} profile={profile} />;
 };
 
 export default DashboardLoader;
