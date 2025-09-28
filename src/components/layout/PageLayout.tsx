@@ -6,7 +6,6 @@ import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { MobileBottomNav } from "./MobileBottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +20,7 @@ export const usePageLayoutContext = () => {
 export const PageLayout = () => {
   const { data: profile } = useProfile();
   const isAdmin = profile?.role === 'admin';
-  const { session } = useAuth();
+  const { isImpersonating } = useAuth();
   const { settings: systemSettings } = useSystemSettings();
 
   const [isUserDetailsSheetOpen, setIsUserDetailsSheetOpen] = useState(false);
@@ -44,14 +43,17 @@ export const PageLayout = () => {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      {session && <ImpersonationBanner />}
-      {isAdmin ? <Sidebar /> : null}
-      <div className={cn("flex flex-col", isAdmin ? "lg:pl-64" : "")}>
-        <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 pb-20 lg:pb-4">
-          <Outlet context={{ handleViewUser }} />
-        </main>
-        <MobileBottomNav />
+      {isImpersonating && <ImpersonationBanner />}
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <div className="hidden border-r bg-background md:block">
+          <Sidebar />
+        </div>
+        <div className="flex flex-col">
+          <Header />
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 pb-20 md:pb-6">
+            <Outlet context={{ handleViewUser }} />
+          </main>
+        </div>
       </div>
       {selectedUserId && (
         <UserDetailsSheet
