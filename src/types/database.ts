@@ -336,6 +336,11 @@ export type AumGrowthReportData = {
   month: string;
 };
 
+export type ExtendedDashboardStats = {
+  total_investment_return: number;
+  total_referral_commission: number;
+};
+
 export type Profile = {
   id: string;
   full_name: string | null;

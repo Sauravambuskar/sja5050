@@ -1,11 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { DashboardStats, Transaction, Profile } from "@/types/database";
+import { DashboardStats, Transaction, Profile, ExtendedDashboardStats } from "@/types/database";
 import Dashboard from "./Dashboard";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   const { data, error } = await supabase.rpc('get_dashboard_stats');
+  if (error) throw new Error(error.message);
+  return data[0];
+};
+
+const fetchExtendedDashboardStats = async (): Promise<ExtendedDashboardStats> => {
+  const { data, error } = await supabase.rpc('get_my_extended_dashboard_stats');
   if (error) throw new Error(error.message);
   return data[0];
 };
@@ -31,6 +37,11 @@ const DashboardLoader = () => {
     queryFn: fetchDashboardStats,
   });
 
+  const { data: extendedStats, isLoading: extendedStatsLoading, isError: extendedStatsError } = useQuery<ExtendedDashboardStats>({
+    queryKey: ['extendedDashboardStats'],
+    queryFn: fetchExtendedDashboardStats,
+  });
+
   const { data: transactions, isLoading: transactionsLoading, isError: transactionsError } = useQuery<Transaction[]>({
     queryKey: ['recentTransactions'],
     queryFn: fetchRecentTransactions,
@@ -41,18 +52,18 @@ const DashboardLoader = () => {
     queryFn: fetchMyProfile,
   });
 
-  const isLoading = statsLoading || transactionsLoading || profileLoading;
-  const isError = statsError || transactionsError || profileError;
+  const isLoading = statsLoading || transactionsLoading || profileLoading || extendedStatsLoading;
+  const isError = statsError || transactionsError || profileError || extendedStatsError;
 
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  if (isError || !stats || !transactions || !profile) {
+  if (isError || !stats || !transactions || !profile || !extendedStats) {
     return <div className="text-center text-destructive p-8">Could not load dashboard data. Please try again later.</div>;
   }
 
-  return <Dashboard stats={stats} transactions={transactions} profile={profile} />;
+  return <Dashboard stats={stats} extendedStats={extendedStats} transactions={transactions} profile={profile} />;
 };
 
 export default DashboardLoader;

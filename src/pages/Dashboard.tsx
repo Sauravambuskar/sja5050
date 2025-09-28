@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownToLine, ArrowUpFromLine, TrendingUp, Users, ArrowRightLeft } from "lucide-react";
-import { DashboardStats, Transaction, Profile } from "@/types/database";
+import { ArrowDownToLine, ArrowUpFromLine, TrendingUp, Users, ArrowRightLeft, Wallet, PiggyBank, Gift, Landmark } from "lucide-react";
+import { DashboardStats, Transaction, Profile, ExtendedDashboardStats } from "@/types/database";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -11,11 +11,12 @@ import { MyInvestments } from "@/components/dashboard/MyInvestments";
 
 interface DashboardProps {
   stats: DashboardStats;
+  extendedStats: ExtendedDashboardStats;
   transactions: Transaction[];
   profile: Profile;
 }
 
-const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
+const Dashboard = ({ stats, extendedStats, transactions, profile }: DashboardProps) => {
   const isMobile = useIsMobile();
 
   const getGreeting = () => {
@@ -53,6 +54,13 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
     if (type === 'Wallet Adjustment') return amount > 0 ? '+' : '';
     return '';
   };
+
+  const summaryStats = [
+    { title: "Wallet Balance", value: stats.walletBalance, icon: Wallet, color: "text-blue-500" },
+    { title: "Active Investments", value: stats.totalInvested, icon: PiggyBank, color: "text-green-500" },
+    { title: "Investment Returns", value: extendedStats.total_investment_return, icon: Landmark, color: "text-purple-500" },
+    { title: "Referral Commission", value: extendedStats.total_referral_commission, icon: Gift, color: "text-pink-500" },
+  ];
 
   const quickActions = [
     { title: "Deposit", icon: ArrowDownToLine, link: "/wallet?tab=deposit" },
@@ -127,21 +135,31 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
         <p className="text-muted-foreground">Welcome to your dashboard.</p>
       </div>
 
-      <Card className="w-full bg-primary text-primary-foreground">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-normal">Total Balance</CardTitle>
+          <CardTitle>Account Summary</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-4xl font-bold">
-            ₹{(stats?.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          {summaryStats.map((item) => (
+            <div key={item.title} className="flex items-center gap-4 rounded-lg border p-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-lg bg-muted ${item.color}`}>
+                <item.icon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{item.title}</p>
+                <p className="text-2xl font-bold">
+                  ₹{(item.value ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-4 gap-4 text-center">
         {quickActions.map((action) => (
-          <Link key={action.title} to={action.link} className="flex flex-col items-center gap-2">
-            <Button variant="outline" size="icon" className="h-14 w-14 rounded-full bg-primary/5">
+          <Link key={action.title} to={action.link} className="flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-primary/5 hover:bg-primary/10">
               <action.icon className="h-6 w-6 text-primary" />
             </Button>
             <span className="text-xs font-medium">{action.title}</span>
