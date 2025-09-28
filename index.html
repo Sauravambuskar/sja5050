@@ -5,9 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SJA</title>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Request full-screen mode when the page loads
+      window.addEventListener('load', function() {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.log('Could not enter full-screen mode:', err);
+          });
+        } else if (document.documentElement.webkitRequestFullscreen) { // Safari
+          document.documentElement.webkitRequestFullscreen().catch(err => {
+            console.log('Could not enter full-screen mode:', err);
+          });
+        } else if (document.documentElement.msRequestFullscreen) { // IE11
+          document.documentElement.msRequestFullscreen().catch(err => {
+            console.log('Could not enter full-screen mode:', err);
+          });
+        }
+      });
+    </script>
   </body>
 </html>
