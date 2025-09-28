@@ -6,6 +6,7 @@ import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 export type PageLayoutContext = {
   handleViewUser: (userId: string) => void;
@@ -63,19 +64,13 @@ export function PageLayout() {
         <div className="hidden md:block">
           <Sidebar />
         </div>
-        <div className="relative flex flex-1 flex-col min-w-0">
-          {/* Persistent subtle background */}
-          <div
-            className="absolute inset-0 z-[-1] bg-cover bg-center opacity-20"
-            style={{
-              backgroundImage: `url('${splashUrl}')`,
-            }}
-          />
+        <div className="flex flex-1 flex-col">
           <Header handleViewUser={handleViewUser} />
-          <main className="flex flex-1 flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:gap-6 lg:p-6">
-            <Outlet context={{ handleViewUser }} />
+          <main className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-6 pb-20 md:pb-6">
+            <Outlet context={{ handleViewUser}} />
           </main>
         </div>
+        <MobileBottomNav />
       </div>
       <UserDetailsSheet 
         userId={selectedUserIdForSheet} 

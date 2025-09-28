@@ -47,8 +47,11 @@ import {
   ServerCog,
   FileCheck,
   ListChecks,
+  FileSignature,
+  GitPullRequest,
+  Headset,
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -59,175 +62,115 @@ import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
 import React from "react";
-
-type BadgeValues = {
-  pendingKyc: number;
-  pendingDeposits: number;
-  pendingInvestments: number;
-  pendingWithdrawalsTotal: number;
-  pendingCancellations: number;
-  openTickets: number;
-};
-
-interface AdminNavItem {
-  to: string;
-  label: string;
-  icon: any; // LucideIcon type
-  badgeKey?: keyof BadgeValues; // This ensures badgeKey is a valid key
-}
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
-  className?: string;
-  onNavigate?: () => void; // Add callback for navigation
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ className, onNavigate }: SidebarProps) {
-  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { data: profile, isLoading: isProfileLoading } = useProfile();
-  const { count: unreadCount } = useUnreadNotifications(); // Fix: Destructure 'count' instead of 'data'
+interface NavItem {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  countKey?: string;
+}
+
+const userNavItems: NavItem[] = [
+  { to: "/", icon: Home, label: "Dashboard" },
+  { to: "/investments", icon: TrendingUp, label: "Investments" },
+  { to: "/wallet", icon: Wallet, label: "Wallet" },
+  { to: "/referrals", icon: Users, label: "Referrals" },
+  { to: "/reports", icon: BarChart3, label: "Reports" },
+  { to: "/payment-details", icon: Banknote, label: "Payment Details" },
+  { to: "/agreement", icon: FileSignature, label: "Agreement" },
+  { to: "/support", icon: LifeBuoy, label: "Support" },
+  { to: "/faq", icon: HelpCircle, label: "FAQ" },
+];
+
+const adminNavItems: NavItem[] = [
+  { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/admin/user-management", icon: Users, label: "Users" },
+  { to: "/admin/request-management", icon: GitPullRequest, label: "Requests", countKey: 'total' },
+  { to: "/admin/investment-management", icon: Briefcase, label: "Investments" },
+  { to: "/admin/kyc-management", icon: ShieldCheck, label: "KYC", countKey: 'kyc' },
+  { to: "/admin/support-desk", icon: Headset, label: "Support", countKey: 'support' },
+  { to: "/admin/commission-rules", icon: Percent, label: "Commissions" },
+  { to: "/admin/reporting", icon: BarChart3, label: "Analytics" },
+  { to: "/admin/payout-reports", icon: FileSpreadsheet, label: "Payouts" },
+  { to: "/admin/master-reports", icon: Database, label: "Master Reports" },
+  { to: "/admin/faq-management", icon: HelpCircle, label: "FAQ" },
+  { to: "/admin/audit-log", icon: History, label: "Audit Log" },
+  { to: "/admin/system-management", icon: Settings, label: "System" },
+];
+
+export function Sidebar({ onNavigate }: SidebarProps) {
+  const { isAdmin } = useIsAdmin();
+  const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
-  const navigate = useNavigate();
 
-  const isLoading = isAdminLoading || isProfileLoading;
+  const navItems = isAdmin ? adminNavItems : userNavItems;
 
-  const badgeValues: BadgeValues = {
-    pendingKyc: adminCounts?.pending_kyc || 0,
-    pendingDeposits: adminCounts?.pending_deposits_count || 0,
-    pendingInvestments: adminCounts?.pending_investments_count || 0,
-    pendingWithdrawalsTotal: (adminCounts?.pending_withdrawals_count || 0),
-    pendingCancellations: adminCounts?.pending_cancellations_count || 0,
-    openTickets: adminCounts?.open_tickets_count || 0, // Fix: Ensure open_tickets_count exists on AdminDashboardStats
-  };
-
-  const userNavItems = [
-    { to: "/", label: "Dashboard", icon: Home },
-    { to: "/investments", label: "Investments", icon: TrendingUp },
-    { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
-    { to: "/wallet", label: "Wallet", icon: Wallet },
-    { to: "/profile", label: "Profile", icon: User },
-    { to: "/referrals", label: "Referrals", icon: Users },
-    { to: "/payment-details", label: "Payment Details", icon: FileSpreadsheet },
-    { to: "/reports", label: "Reports", icon: BarChart3 },
-    { to: "/notes", label: "Notes", icon: StickyNote },
-    { to: "/notifications", label: "Notifications", icon: Bell },
-    { to: "/support", label: "Support", icon: MessageSquare },
-    { to: "/faq", label: "FAQ", icon: HelpCircle },
-  ];
-
-  const adminNavItems: AdminNavItem[] = [
-    { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/admin/user-management", label: "Users", icon: Users },
-    { to: "/admin/kyc-management", label: "KYC", icon: FileCheck, badgeKey: "pendingKyc" },
-    { to: "/admin/request-management", label: "Requests", icon: ListChecks, badgeKey: "pendingDeposits" },
-    { to: "/admin/investment-requests", label: "Investment Requests", icon: Briefcase },
-    { to: "/admin/wallet-withdrawal-management", label: "Wallet Withdrawals", icon: WalletCards },
-    { to: "/admin/investment-cancellations", label: "Cancellations", icon: Ban },
-    { to: "/admin/investment-management", label: "Investment Plans", icon: ListOrdered, badgeKey: "pendingInvestments" },
-    { to: "/admin/commission-rules", label: "Commission Rules", icon: Percent },
-    { to: "/admin/support-desk", label: "Support Desk", icon: MessageSquareHeart },
-    { to: "/admin/reports", label: "Reporting", icon: BarChart3 },
-    { to: "/admin/financial-reports", label: "Financial Reports", icon: FileSpreadsheet },
-    { to: "/admin/payout-reports", label: "Payout Reports", icon: FileSpreadsheet },
-    { to: "/admin/master-reports", label: "Master Reports", icon: Database },
-    { to: "/admin/withdrawals", label: "Withdrawals", icon: Landmark, badgeKey: "pendingWithdrawalsTotal" },
-    { to: "/admin/faqs", label: "FAQ Management", icon: HelpCircle },
-    { to: "/admin/audit-log", label: "Audit Log", icon: FileClock },
-    { to: "/admin/system", label: "System", icon: ServerCog },
-  ];
-
-  const handleNavClick = (to: string) => {
-    navigate(to);
-    if (onNavigate) {
-      onNavigate();
-    }
-  };
+  const getCount = (key?: string) => {
+    if (!key || !isAdmin) return 0;
+    return adminCounts?.[key as keyof typeof adminCounts] || 0;
+  }
 
   return (
-    <aside className={`flex h-full w-[256px] flex-col border-r bg-background p-4 ${className}`}>
-      <div className="mb-8 flex h-10 items-center p-2">
-        <img 
-          src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" 
-          alt="Company Logo" 
-          className="h-100 w-auto object-contain" 
-        />
+    <aside className="flex h-full max-h-screen flex-col gap-2 border-r bg-sidebar text-sidebar-foreground">
+      <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+        <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
+          <img src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" alt="SJA Logo" className="h-8 w-auto" />
+          <span className="">SJA</span>
+        </Link>
+        {!isAdmin && (
+          <Link to="/notifications" className="ml-auto" onClick={onNavigate}>
+            <Button variant="outline" size="icon" className="h-8 w-8 relative">
+              <Bell className="h-4 w-4" />
+              {unreadNotifications > 0 && (
+                <Badge className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-xs">
+                  {unreadNotifications}
+                </Badge>
+              )}
+              <span className="sr-only">Toggle notifications</span>
+            </Button>
+          </Link>
+        )}
       </div>
-      <nav className="flex flex-col space-y-1">
-        {userNavItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            onClick={() => handleNavClick(item.to)}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              )
-            }
-          >
-            <div className="flex items-center">
-              <item.icon className="mr-3 h-5 w-5" />
-              <span>{item.label}</span>
-            </div>
-            {item.label === "Notifications" && unreadCount > 0 && (
-              <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                {unreadCount}
-              </Badge>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-
-      {isLoading && (
-        <div className="mt-auto flex flex-col space-y-1">
-          <Separator className="my-4" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="mt-auto flex flex-col space-y-1">
-          <Separator className="my-4" />
-          <div className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">
-            Admin Portal
-          </div>
-          {adminNavItems.map((item) => {
-            const badgeCount = item.badgeKey ? badgeValues[item.badgeKey] : 0;
-
-            // This part is for non-collapsible items
-            if (!item.to) return null;
+      <div className="flex-1 overflow-y-auto">
+        <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+          {navItems.map((item) => {
+            const count = getCount(item.countKey);
             return (
               <NavLink
-                key={item.to}
+                key={item.label}
                 to={item.to}
-                end={item.to === "/admin"}
-                onClick={() => handleNavClick(item.to)}
-                className={({ isActive: navIsActive }) =>
+                end={item.to === "/admin" || item.to === "/"}
+                onClick={onNavigate}
+                className={({ isActive }) =>
                   cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium cursor-pointer",
-                    navIsActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isActive && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground"
                   )
                 }
               >
-                <div className="flex items-center">
-                  <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.label}</span>
-                </div>
-                {badgeCount > 0 && (
-                  <Badge className="flex h-5 w-5 items-center justify-center rounded-full p-0">
-                    {badgeCount}
+                <item.icon className="h-4 w-4" />
+                {item.label}
+                {count > 0 && (
+                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                    {count}
                   </Badge>
                 )}
               </NavLink>
             );
           })}
-        </div>
-      )}
+        </nav>
+      </div>
     </aside>
   );
-};
+}
