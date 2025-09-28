@@ -1,7 +1,7 @@
 import { useAuth } from "../auth/AuthProvider";
 import { Button } from "../ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase";
+import { supabase } from "@/lib/supabase";
 
 const fetchImpersonatedUserProfile = async (userId: string | undefined) => {
   if (!userId) return null;
