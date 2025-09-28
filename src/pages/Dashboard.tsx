@@ -1,29 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Activity, CreditCard, DollarSign, Users, ArrowRightLeft, ArrowDown, ArrowUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowDownToLine, ArrowUpFromLine, TrendingUp, Users, ArrowRightLeft } from "lucide-react";
 import { DashboardStats, Transaction, Profile } from "@/types/database";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import DailyIncome from "@/components/dashboard/DailyIncome";
-import IncomeChart from "@/components/dashboard/IncomeChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { GettingStartedGuide } from "@/components/dashboard/GettingStartedGuide";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { QuickActions } from "@/components/dashboard/QuickActions";
+import { MyInvestments } from "@/components/dashboard/MyInvestments";
 
 interface DashboardProps {
   stats: DashboardStats;
   transactions: Transaction[];
   profile: Profile;
 }
-
-const completenessChecks = [
-  { key: 'phone', check: (p: Profile) => !!p.phone },
-  { key: 'address', check: (p: Profile) => !!p.address },
-  { key: 'bank_account_number', check: (p: Profile) => !!p.bank_account_number },
-  { key: 'kyc_status', check: (p: Profile) => p.kyc_status === 'Approved' },
-];
 
 const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
   const isMobile = useIsMobile();
@@ -37,30 +27,39 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'Deposit': case 'Commission': return <ArrowDown className="h-5 w-5 text-green-500" />;
-      case 'Withdrawal': case 'Investment': return <ArrowUp className="h-5 w-5 text-red-500" />;
-      default: return <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />;
+      case 'Deposit':
+      case 'Commission':
+      case 'Investment Payout':
+      case 'Wallet Adjustment':
+        return <ArrowDownToLine className="h-5 w-5 text-green-500" />;
+      case 'Withdrawal':
+      case 'Investment':
+        return <ArrowUpFromLine className="h-5 w-5 text-red-500" />;
+      default:
+        return <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
-  const getTransactionAmountClass = (type: string) => {
-    switch (type) {
-      case 'Deposit': case 'Commission': return 'text-green-600';
-      case 'Withdrawal': case 'Investment': return 'text-destructive';
-      default: return '';
-    }
+  const getTransactionAmountClass = (type: string, amount: number) => {
+    if (['Deposit', 'Commission', 'Investment Payout'].includes(type)) return 'text-green-600';
+    if (['Withdrawal', 'Investment'].includes(type)) return 'text-destructive';
+    if (type === 'Wallet Adjustment') return amount > 0 ? 'text-green-600' : 'text-destructive';
+    return '';
   };
 
-  const getTransactionAmountPrefix = (type: string) => {
-    switch (type) {
-      case 'Deposit': case 'Commission': return '+';
-      case 'Withdrawal': case 'Investment': return '-';
-      default: return '';
-    }
+  const getTransactionAmountPrefix = (type: string, amount: number) => {
+    if (['Deposit', 'Commission', 'Investment Payout'].includes(type)) return '+';
+    if (['Withdrawal', 'Investment'].includes(type)) return '-';
+    if (type === 'Wallet Adjustment') return amount > 0 ? '+' : '';
+    return '';
   };
 
-  const completedItems = profile ? completenessChecks.filter(item => item.check(profile)).length : 0;
-  const isProfileComplete = profile ? completedItems === completenessChecks.length : false;
+  const quickActions = [
+    { title: "Deposit", icon: ArrowDownToLine, link: "/wallet?tab=deposit" },
+    { title: "Withdraw", icon: ArrowUpFromLine, link: "/wallet?tab=withdraw" },
+    { title: "Invest", icon: TrendingUp, link: "/investments" },
+    { title: "Referrals", icon: Users, link: "/referrals" },
+  ];
 
   const renderDesktopTransactions = () => (
     <Table>
@@ -84,8 +83,8 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
                 <div className="font-medium">{txn.description || txn.type}</div>
                 <div className="text-sm text-muted-foreground">{format(new Date(txn.created_at), "PPP")}</div>
               </TableCell>
-              <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
-                {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
+              <TableCell className={cn("text-right font-semibold", getTransactionAmountClass(txn.type, txn.amount))}>
+                {getTransactionAmountPrefix(txn.type, txn.amount)} ₹{Math.abs(txn.amount).toLocaleString('en-IN')}
               </TableCell>
             </TableRow>
           ))
@@ -110,8 +109,8 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
               <div className="font-medium">{txn.description || txn.type}</div>
               <div className="text-xs text-muted-foreground">{format(new Date(txn.created_at), "PPP")}</div>
             </div>
-            <div className={cn("text-right font-semibold", getTransactionAmountClass(txn.type))}>
-              {getTransactionAmountPrefix(txn.type)} ₹{txn.amount.toLocaleString('en-IN')}
+            <div className={cn("text-right font-semibold", getTransactionAmountClass(txn.type, txn.amount))}>
+              {getTransactionAmountPrefix(txn.type, txn.amount)} ₹{Math.abs(txn.amount).toLocaleString('en-IN')}
             </div>
           </div>
         ))
@@ -122,132 +121,47 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
   );
 
   return (
-    <>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{getGreeting()}, {stats?.fullName || 'User'}!</h1>
-          <p className="text-muted-foreground">
-            Here's a summary of your portfolio and activities.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">{getGreeting()}, {profile?.full_name?.split(' ')[0] || 'User'}!</h1>
+        <p className="text-muted-foreground">Welcome to your dashboard.</p>
+      </div>
+
+      <Card className="w-full bg-primary text-primary-foreground">
+        <CardHeader>
+          <CardTitle className="text-sm font-normal">Total Balance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-4xl font-bold">
+            ₹{(stats?.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {profile && stats && (
-        isProfileComplete ? <QuickActions /> : <GettingStartedGuide profile={profile} stats={stats} />
-      )}
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats && stats.walletBalance > 0 ? (
-          <Link to="/wallet">
-            <Card className="transition-all hover:bg-accent hover:shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{(stats.walletBalance).toLocaleString('en-IN')}</div>
-                <p className="text-xs text-muted-foreground">Available to invest</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{(stats?.walletBalance ?? 0).toLocaleString('en-IN')}</div>
-              <p className="text-xs text-muted-foreground">Make your first deposit</p>
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/wallet?tab=deposit">Deposit Funds</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-        
-        {stats && stats.totalInvested > 0 ? (
-          <Link to="/investments">
-            <Card className="transition-all hover:bg-accent hover:shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{(stats.totalInvested).toLocaleString('en-IN')}</div>
-                <p className="text-xs text-muted-foreground">{stats.activeInvestmentsCount} active investments</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Get Started</div>
-              <p className="text-xs text-muted-foreground">Make your first investment</p>
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/investments">Browse Plans</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <Link to="/referrals">
-          <Card className="transition-all hover:bg-accent hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.referralCount ?? 0}</div>
-              <p className="text-xs text-muted-foreground">All time</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">KYC Status</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.kycStatus || 'Not Submitted'}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.kycStatus === 'Approved' ? 'Your account is verified' : 'Verification required'}
-            </p>
-            {stats?.kycStatus !== 'Approved' && (
-              <Button asChild size="sm" className="mt-2">
-                <Link to="/profile?tab=kyc">Complete KYC</Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <DailyIncome />
-        <IncomeChart />
-      </div>
-
-      <div className="mt-6">
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>A summary of your latest wallet activity.</CardDescription>
-            </div>
-            <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
-              <Link to="/wallet">View All</Link>
+      <div className="grid grid-cols-4 gap-4 text-center">
+        {quickActions.map((action) => (
+          <Link key={action.title} to={action.link} className="flex flex-col items-center gap-2">
+            <Button variant="outline" size="icon" className="h-14 w-14 rounded-full bg-primary/5">
+              <action.icon className="h-6 w-6 text-primary" />
             </Button>
+            <span className="text-xs font-medium">{action.title}</span>
+          </Link>
+        ))}
+      </div>
+
+      <MyInvestments />
+
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isMobile ? renderMobileTransactions() : renderDesktopTransactions()}
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   );
 };
 
