@@ -6,7 +6,6 @@ import { NomineeForm } from "@/components/profile/NomineeForm";
 import { KycForm } from "@/components/profile/KycForm";
 import KycDocuments from "@/components/profile/KycDocuments";
 import { SecuritySettings } from "@/components/profile/SecuritySettings";
-import { VideoKyc } from "@/components/profile/VideoKyc";
 import { AdditionalDocuments } from "@/components/profile/AdditionalDocuments";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";

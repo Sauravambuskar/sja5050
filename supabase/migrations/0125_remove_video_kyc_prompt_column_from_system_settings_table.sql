@@ -1,0 +1,1 @@
+ALTER TABLE public.system_settings DROP COLUMN IF EXISTS video_kyc_prompt;

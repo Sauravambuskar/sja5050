@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
-import { VideoKyc } from "./VideoKyc";
 import { KycForm } from "./KycForm";
 
 // --- Constants ---
@@ -131,7 +130,6 @@ const KycDocuments = ({ profile }: { profile: Profile }) => {
   const steps = [
     { title: "Provide Your Details", description: "Enter your PAN and Aadhaar numbers.", isComplete: !!(profile.pan_number && profile.aadhaar_number), component: <KycForm profile={profile} /> },
     { title: "Upload Documents", description: "Upload clear images of your PAN and Aadhaar cards.", isComplete: !!(documents?.some(d => d.document_type === 'PAN Card' && d.status !== 'Rejected') && documents?.some(d => d.document_type === 'Aadhaar Card' && d.status !== 'Rejected')), component: <DocumentUploadSection /> },
-    { title: "Video Verification", description: "Record a short video holding your ID for live verification.", isComplete: !!documents?.some(d => d.document_type === 'Video KYC' && d.status !== 'Rejected'), component: <VideoKyc /> }
   ];
 
   return (

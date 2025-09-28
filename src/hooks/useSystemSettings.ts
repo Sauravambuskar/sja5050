@@ -17,7 +17,6 @@ const fetchSettings = async (): Promise<SystemSettings> => {
       auth_layout_image_url_2: null, 
       login_page_logo_url: null,
       splash_screen_url: null, 
-      video_kyc_prompt: null 
     };
   }
   return data;
