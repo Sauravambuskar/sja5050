@@ -42,19 +42,24 @@ export const PageLayout = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <div className="flex min-h-screen w-full bg-background">
       {isImpersonating && <ImpersonationBanner />}
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-background md:block">
-          <Sidebar />
-        </div>
-        <div className="flex flex-col">
-          <Header />
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <Outlet context={{ handleViewUser }} />
-          </main>
-        </div>
+      
+      {/* Desktop Sidebar */}
+      <div className={cn("hidden border-r bg-background md:block", isAdmin ? "md:w-[220px] lg:w-[280px]" : "md:w-0")}>
+        {isAdmin && <Sidebar />}
       </div>
+
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <div className="flex flex-col gap-4 lg:gap-6">
+            <Outlet context={{ handleViewUser }} />
+          </div>
+        </main>
+      </div>
+
       {selectedUserId && (
         <UserDetailsSheet
           userId={selectedUserId}
