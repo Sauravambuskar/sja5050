@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { UserPlus, TrendingUp, ArrowDownToDot, Banknote, ShieldCheck } from "lucide-react";
-import { usePageLayoutContext } from "../layout/PageLayout";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 
 type ActivityFeedItem = {
   event_type: string;

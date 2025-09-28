@@ -7,77 +7,60 @@ import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { useProfile } from "@/hooks/useProfile";
+import { cn } from "@/lib/utils";
 
-export type PageLayoutContext = {
+interface PageLayoutContextType {
   handleViewUser: (userId: string) => void;
-};
-
-export function usePageLayoutContext() {
-  return useOutletContext<PageLayoutContext>();
 }
 
-export function PageLayout() {
-  const { isImpersonating } = useAuth();
-  const { settings } = useSystemSettings();
-  const [selectedUserIdForSheet, setSelectedUserIdForSheet] = useState<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+export const usePageLayoutContext = () => {
+  return useOutletContext<PageLayoutContextType>();
+};
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2000); // 2 seconds
+export const PageLayout = () => {
+  const { data: profile } = useProfile();
+  const isAdmin = profile?.role === 'admin';
+  const { session } = useAuth();
+  const { settings: systemSettings } = useSystemSettings();
 
-    return () => clearTimeout(timer);
-  }, []);
+  const [isUserDetailsSheetOpen, setIsUserDetailsSheetOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const handleViewUser = (userId: string) => {
-    setSelectedUserIdForSheet(userId);
-    setIsSheetOpen(true);
+    setSelectedUserId(userId);
+    setIsUserDetailsSheetOpen(true);
   };
 
-  // This function will be passed to the sheet to handle recursive views
-  const handleViewAnotherUser = (userId: string) => {
-    // By setting the user ID, the sheet will re-fetch data for the new user
-    setSelectedUserIdForSheet(userId);
-    if (!isSheetOpen) {
-      setIsSheetOpen(true);
+  useEffect(() => {
+    if (!isUserDetailsSheetOpen) {
+      setSelectedUserId(null);
     }
-  };
+  }, [isUserDetailsSheetOpen]);
 
-  const splashUrl = settings?.splash_screen_url || 'https://ideogram.ai/assets/image/lossless/response/en5XqJOZStqt5DtSo2UG4A';
+  if (systemSettings?.maintenance_mode_enabled && !isAdmin) {
+    return <ImpersonationBanner />; // Maintenance component will be rendered by router
+  }
 
   return (
-    <>
-      {/* Full-screen splash loader */}
-      <div
-        className={`fixed inset-0 z-50 bg-cover bg-center transition-opacity duration-500 ${
-          showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backgroundImage: `url('${splashUrl}')`,
-        }}
-      />
-
-      {isImpersonating && <ImpersonationBanner />}
-      <div className="flex min-h-screen w-full">
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-        <div className="flex flex-1 flex-col">
-          <Header handleViewUser={handleViewUser} />
-          <main className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-6 pb-20 md:pb-6">
-            <Outlet context={{ handleViewUser}} />
-          </main>
-        </div>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      {session && <ImpersonationBanner />}
+      {isAdmin ? <Sidebar /> : null}
+      <div className={cn("flex flex-col", isAdmin ? "lg:pl-64" : "")}>
+        <Header />
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 pb-20 lg:pb-4">
+          <Outlet context={{ handleViewUser }} />
+        </main>
         <MobileBottomNav />
       </div>
-      <UserDetailsSheet 
-        userId={selectedUserIdForSheet} 
-        isOpen={isSheetOpen} 
-        onOpenChange={setIsSheetOpen} 
-        onViewUser={handleViewAnotherUser} 
-      />
-    </>
+      {selectedUserId && (
+        <UserDetailsSheet
+          userId={selectedUserId}
+          isOpen={isUserDetailsSheetOpen}
+          onOpenChange={setIsUserDetailsSheetOpen}
+          onViewUser={handleViewUser}
+        />
+      )}
+    </div>
   );
 };

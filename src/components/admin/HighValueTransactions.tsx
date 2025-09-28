@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowDownToDot, TrendingUp } from "lucide-react";
-import { usePageLayoutContext } from "../layout/PageLayout";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 import { AdminHighValueTransaction } from "@/types/database";
 
 const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]> => {

@@ -23,7 +23,7 @@ import { usePagination, DOTS } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { PageLayoutContext } from "@/components/layout/PageLayout";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const PAGE_SIZE = 20;
@@ -61,7 +61,7 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { handleViewUser } = useOutletContext<PageLayoutContext>();
+  const { handleViewUser } = usePageLayoutContext();
   const { impersonateUser } = useAuth();
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUserView | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);

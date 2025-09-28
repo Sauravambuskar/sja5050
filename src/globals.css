@@ -2,10 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 @layer base {
   :root, .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 100%; /* Default light background */
+    --foreground: 222.2 84% 4.9%; /* Default dark text */
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -71,29 +73,40 @@
     --chart-2: 160 60% 55%;
   }
 
-  .warm {
-    --background: 39 53% 96%;
-    --foreground: 25 45% 25%;
-    --card: 39 53% 96%;
-    --card-foreground: 25 45% 25%;
-    --popover: 39 53% 96%;
-    --popover-foreground: 25 45% 25%;
-    --primary: 24 84% 50%;
-    --primary-foreground: 30 100% 98%;
-    --secondary: 30 20% 40%;
-    --secondary-foreground: 30 100% 98%;
-    --muted: 40 50% 94%;
-    --muted-foreground: 30 10% 50%;
-    --accent: 40 50% 90%;
-    --accent-foreground: 25 45% 25%;
+  /* New theme based on the provided image */
+  .modern-light {
+    --background: 240 20% 98%; /* Light background, slightly off-white */
+    --foreground: 220 20% 10%; /* Dark text */
+
+    --card: 0 0% 100%; /* White card background */
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 255 70% 70%; /* Medium purple from image */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+
+    --secondary: 220 20% 90%; /* Light gray for secondary elements */
+    --secondary-foreground: 220 20% 30%;
+
+    --muted: 220 20% 95%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 220 20% 90%;
+    --accent-foreground: 220 20% 10%;
+
     --destructive: 0 72% 51%;
-    --destructive-foreground: 30 100% 98%;
-    --border: 30 20% 85%;
-    --input: 30 20% 85%;
-    --ring: 24 84% 50%;
-    
-    --chart-1: 25 80% 55%;
-    --chart-2: 10 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
+    --ring: 255 70% 70%;
+
+    --radius: 0.75rem; /* Slightly more rounded corners */
+
+    --chart-1: 255 70% 70%;
+    --chart-2: 220 60% 70%;
   }
 }
 
@@ -102,6 +115,6 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-['Plus_Jakarta_Sans'] antialiased;
   }
 }

@@ -350,20 +350,21 @@ export type Profile = {
   city: string | null;
   state: string | null;
   pincode: string | null;
-  updated_at: string | null; // Added this line
+  updated_at: string | null;
   kyc_status: string | null;
   referral_code: string | null;
   referrer_id: string | null;
   role: string;
-  bank_name: string | null;
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
-  referrer_full_name: string | null;
   member_id: string | null;
+  referrer_full_name: string | null;
   pan_number: string | null;
   aadhaar_number: string | null;
   blood_group: string | null;
+  bank_name: string | null;
+  avatar_url: string | null;
 };
 
 export type InvestmentSummary = {
@@ -555,4 +556,16 @@ export type InvestorPaymentDetail = {
   total_interest: number;
   month_amount: number;
   yearly_amount: number; // Added this line
+};
+
+export type Wallet = {
+  id: string;
+  balance: number;
+  currency: string;
+  updated_at: string;
+  user_id: string;
+  wallet_type: 'wallet' | 'investment';
+  is_locked: boolean;
+  locked_until: string | null;
+  transaction_history: Transaction[];
 };
