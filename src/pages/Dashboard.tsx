@@ -136,7 +136,7 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
         isProfileComplete ? <QuickActions /> : <GettingStartedGuide profile={profile} stats={stats} />
       )}
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats && stats.walletBalance > 0 ? (
           <Link to="/wallet">
             <Card className="transition-all hover:bg-accent hover:shadow-md">
@@ -226,7 +226,7 @@ const Dashboard = ({ stats, transactions, profile }: DashboardProps) => {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <DailyIncome />
         <IncomeChart />
       </div>
