@@ -221,12 +221,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Fixed position */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="h-4 w-4" />
+            <Button variant="outline" size="icon" className="h-10 w-10">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle navigation menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-[280px]">

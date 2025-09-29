@@ -1,22 +1,18 @@
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Bell, Menu } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ModeToggle";
 import { useProfile } from "@/hooks/useProfile";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Sidebar } from "./Sidebar";
-import { useState } from "react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const Header = () => {
   const { data: profile } = useProfile();
   const { count: unreadCount } = useUnreadNotifications();
-  const [isSheetOpen, setSheetOpen] = useState(false);
+  const { isAdmin } = useIsAdmin();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -26,22 +22,14 @@ export const Header = () => {
   };
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 md:ml-[220px] lg:ml-[280px]">
-       <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle navigation menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0">
-          <Sidebar onNavigate={() => setSheetOpen(false)} />
-        </SheetContent>
-      </Sheet>
+    <header className={cn(
+      "flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6",
+      "md:ml-[220px] lg:ml-[280px]" // Account for sidebar width on desktop
+    )}>
+      {/* Mobile menu button - hidden on desktop */}
+      <div className="md:hidden">
+        {/* This space is reserved for the mobile menu button which is handled by Sidebar component */}
+      </div>
 
       <div className="w-full flex-1">
         <h1 className="text-lg font-semibold">
@@ -49,15 +37,17 @@ export const Header = () => {
         </h1>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative" asChild>
+        {!isAdmin && (
           <Link to="/notifications">
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-              </span>
-            )}
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                </span>
+              )}
+            </Button>
           </Link>
-        </Button>
+        )}
         <ModeToggle />
         <Link to="/profile">
           <Avatar className="h-9 w-9">
