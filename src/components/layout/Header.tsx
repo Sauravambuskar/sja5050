@@ -26,9 +26,9 @@ export const Header = () => {
       "flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6",
       "md:ml-[220px] lg:ml-[280px]" // Account for sidebar width on desktop
     )}>
-      {/* Mobile menu button - hidden on desktop */}
-      <div className="md:hidden">
-        {/* This space is reserved for the mobile menu button which is handled by Sidebar component */}
+      {/* Mobile menu placeholder - handled by Sidebar component */}
+      <div className="md:hidden w-10">
+        {/* Space reserved for mobile menu button */}
       </div>
 
       <div className="w-full flex-1">

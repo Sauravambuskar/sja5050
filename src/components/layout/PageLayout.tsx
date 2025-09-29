@@ -45,10 +45,8 @@ export const PageLayout = () => {
     <div className="flex min-h-screen w-full bg-background">
       {isImpersonating && <ImpersonationBanner />}
       
-      {/* Desktop Sidebar - Show for all authenticated users */}
-      <div className="hidden border-r bg-background md:block md:w-[220px] lg:w-[280px]">
-        <Sidebar />
-      </div>
+      {/* Sidebar Component - Handles both mobile and desktop */}
+      <Sidebar />
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
