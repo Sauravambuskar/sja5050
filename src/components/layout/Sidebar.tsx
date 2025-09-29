@@ -50,6 +50,7 @@ import {
   FileSignature,
   GitPullRequest,
   Headset,
+  LogOut,
 } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -113,6 +117,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { isAdmin } = useIsAdmin();
   const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
+  const { revertImpersonation } = useAuth();
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
@@ -120,6 +125,22 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     if (!key || !isAdmin) return 0;
     return adminCounts?.[key as keyof typeof adminCounts] || 0;
   }
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error('Failed to logout. Please try again.');
+      } else {
+        toast.success('Logged out successfully');
+        if (onNavigate) {
+          onNavigate();
+        }
+      }
+    } catch (error) {
+      toast.error('An error occurred during logout.');
+    }
+  };
 
   return (
     <aside className="flex h-full max-h-screen flex-col gap-2 border-r bg-sidebar text-sidebar-foreground">
@@ -142,6 +163,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </Link>
         )}
       </div>
+      
       <div className="flex-1 overflow-y-auto">
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
           {navItems.map((item) => {
@@ -170,6 +192,18 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             );
           })}
         </nav>
+      </div>
+
+      {/* Logout Button at Bottom */}
+      <div className="p-4 border-t">
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </div>
     </aside>
   );
