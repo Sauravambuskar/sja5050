@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowDownToDot, TrendingUp } from "lucide-react";
-import { usePageLayoutContext } from "@/components/layout/PageLayout";
+import { useNavigate } from "react-router-dom";
 import { AdminHighValueTransaction } from "@/types/database";
 
 const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]> => {
@@ -14,11 +14,16 @@ const fetchHighValueTransactions = async (): Promise<AdminHighValueTransaction[]
 };
 
 export const HighValueTransactions = () => {
-  const { handleViewUser } = usePageLayoutContext();
+  const navigate = useNavigate();
   const { data: transactions, isLoading } = useQuery<AdminHighValueTransaction[]>({
     queryKey: ['highValueTransactions'],
     queryFn: fetchHighValueTransactions,
   });
+
+  const handleUserClick = (userId: string) => {
+    // Navigate to user management page with the user ID
+    navigate(`/admin/user-management?user=${userId}`);
+  };
 
   return (
     <Card>
@@ -33,7 +38,7 @@ export const HighValueTransactions = () => {
         ) : transactions && transactions.length > 0 ? (
           <div className="space-y-4">
             {transactions.map((item) => (
-              <button key={item.id} className="flex w-full items-start gap-4 rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(item.user_id)}>
+              <button key={item.id} className="flex w-full items-start gap-4 rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleUserClick(item.user_id)}>
                 <div className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
                   {item.type === 'Deposit' ? <ArrowDownToDot className="h-5 w-5 text-blue-500" /> : <TrendingUp className="h-5 w-5 text-green-500" />}
                 </div>

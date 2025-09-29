@@ -1,90 +1,118 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, UserCheck, Hourglass, ArrowDownToDot, TrendingUp, CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { AdminDashboardStats } from "@/types/database";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import UserGrowthChart from "@/components/admin/UserGrowthChart";
-import AumGrowthChart from "@/components/admin/AumGrowthChart";
-import CommissionPayoutChart from "@/components/admin/CommissionPayoutChart";
-import NewInvestmentsChart from "@/components/admin/NewInvestmentsChart";
-import { Link } from "react-router-dom";
+import { TrendingUp, Users, Wallet, ShieldCheck, GitPullRequest } from "lucide-react";
 import { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
 import { HighValueTransactions } from "@/components/admin/HighValueTransactions";
-import { BirthdayList } from "@/components/admin/BirthdayList";
+import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
+import { useNavigate } from "react-router-dom";
 
-const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
-  const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
-  if (error) throw new Error(error.message);
-  return data[0];
+type AdminStats = {
+  total_users: number;
+  aum: number;
+  pending_kyc: number;
+  pending_withdrawals_count: number;
+  pending_deposits_count: number;
+  pending_deposits_value: number;
+  pending_investments_count: number;
+  pending_investments_value: number;
+  monthly_payout_projection: number;
+  pending_cancellations_count: number;
 };
 
-const AdminDashboard = () => {
-  const { data: stats, isLoading: statsLoading } = useQuery<AdminDashboardStats>({
-    queryKey: ['adminDashboardStats'],
+const fetchAdminStats = async (): Promise<AdminStats> => {
+  const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const { data: stats, isLoading } = useQuery<AdminStats>({
+    queryKey: ['adminStats'],
     queryFn: fetchAdminStats,
   });
 
-  const kpiData = stats ? [
-    { title: "Total Users", value: stats.total_users.toLocaleString(), icon: Users, to: "/admin/users" },
-    { title: "Assets Under Management", value: `₹${stats.aum.toLocaleString('en-IN')}`, icon: DollarSign, to: "/admin/investments" },
-    { title: "This Month's Payout Projection", value: `₹${stats.monthly_payout_projection.toLocaleString('en-IN')}`, icon: CalendarClock, to: "/admin/payout-reports" },
-    { title: "Pending KYC Verifications", value: stats.pending_kyc.toLocaleString(), icon: UserCheck, to: "/admin/kyc" },
-    { title: "Pending Requests", value: `${(stats.pending_deposits_count + stats.pending_withdrawals_count + stats.pending_investment_withdrawals_count).toLocaleString()}`, icon: Hourglass, to: "/admin/requests" },
-    { title: "Pending Investments", value: `${stats.pending_investments_count} (₹${stats.pending_investments_value.toLocaleString('en-IN')})`, icon: TrendingUp, to: "/admin/investment-requests" },
-  ] : [];
+  const handleViewUser = (userId: string) => {
+    navigate(`/admin/user-management?user=${userId}`);
+  };
 
   return (
-    <>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of platform KPIs and activities.</p>
-        </div>
-      </div>
-      
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {statsLoading ? (
-          [...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
-              <CardContent><Skeleton className="h-8 w-1/2" /><Skeleton className="h-4 w-2/3 mt-1" /></CardContent>
-            </Card>
-          ))
-        ) : (
-          kpiData.map((kpi, index) => (
-            <Link to={kpi.to} key={index}>
-              <Card className="transition-all hover:bg-accent hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                  <kpi.icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{kpi.value}</div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        )}
+    <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <AdminUserSearch onUserSelect={handleViewUser} />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.total_users || 0}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total AUM</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">₹{(stats?.aum || 0).toLocaleString('en-IN')}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending KYC</CardTitle>
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.pending_kyc || 0}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Withdrawals</CardTitle>
+            <GitPullRequest className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.pending_withdrawals_count || 0}</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Feed and High Value Transactions */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="lg:col-span-4">
           <AdminActivityFeed />
         </div>
-        <div className="space-y-6">
-          <BirthdayList />
+        <div className="lg:col-span-3">
           <HighValueTransactions />
         </div>
       </div>
-
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <UserGrowthChart />
-        <AumGrowthChart />
-        <NewInvestmentsChart />
-        <CommissionPayoutChart />
-      </div>
-    </>
+    </div>
   );
-};
-export default AdminDashboard;
+}

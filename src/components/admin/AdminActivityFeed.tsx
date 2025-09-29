@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { UserPlus, TrendingUp, ArrowDownToDot, Banknote, ShieldCheck } from "lucide-react";
-import { usePageLayoutContext } from "@/components/layout/PageLayout";
+import { useNavigate } from "react-router-dom";
 
 type ActivityFeedItem = {
   event_type: string;
@@ -29,11 +29,16 @@ const eventConfig = {
 };
 
 export const AdminActivityFeed = () => {
-  const { handleViewUser } = usePageLayoutContext();
+  const navigate = useNavigate();
   const { data: feedItems, isLoading } = useQuery<ActivityFeedItem[]>({
     queryKey: ['adminActivityFeed'],
     queryFn: fetchActivityFeed,
   });
+
+  const handleUserClick = (userId: string) => {
+    // Navigate to user management page with the user ID
+    navigate(`/admin/user-management?user=${userId}`);
+  };
 
   return (
     <Card>
@@ -52,7 +57,7 @@ export const AdminActivityFeed = () => {
               const config = eventConfig[item.event_type as keyof typeof eventConfig] || defaultConfig;
               const Icon = config.icon;
               return (
-                <button key={index} className="flex w-full items-start gap-4 rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleViewUser(item.user_id)}>
+                <button key={index} className="flex w-full items-start gap-4 rounded-md p-2 text-left transition-colors hover:bg-accent" onClick={() => handleUserClick(item.user_id)}>
                   <div className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted ${config.color}`}>
                     <Icon className="h-5 w-5" />
                   </div>
