@@ -26,7 +26,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 md:ml-[220px] lg:ml-[280px]">
        <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
           <Button
@@ -44,7 +44,9 @@ export const Header = () => {
       </Sheet>
 
       <div className="w-full flex-1">
-        {/* Search bar can go here if needed in the future */}
+        <h1 className="text-lg font-semibold">
+          {getGreeting()}, {profile?.full_name || "User"}!
+        </h1>
       </div>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="relative" asChild>

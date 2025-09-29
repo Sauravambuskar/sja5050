@@ -45,9 +45,9 @@ export const PageLayout = () => {
     <div className="flex min-h-screen w-full bg-background">
       {isImpersonating && <ImpersonationBanner />}
       
-      {/* Desktop Sidebar */}
-      <div className={cn("hidden border-r bg-background md:block", isAdmin ? "md:w-[220px] lg:w-[280px]" : "md:w-0")}>
-        {isAdmin && <Sidebar />}
+      {/* Desktop Sidebar - Show for all authenticated users */}
+      <div className="hidden border-r bg-background md:block md:w-[220px] lg:w-[280px]">
+        <Sidebar />
       </div>
 
       {/* Main Content */}
