@@ -45,13 +45,11 @@ export const PageLayout = () => {
     <div className="flex min-h-screen w-full bg-background">
       {isImpersonating && <ImpersonationBanner />}
       
-      {/* Sidebar Component - Handles both mobile and desktop */}
       <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col md:ml-[220px] lg:ml-[280px]">
         <Header />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6">
           <div className="flex flex-col gap-4 lg:gap-6">
             <Outlet context={{ handleViewUser }} />
           </div>
