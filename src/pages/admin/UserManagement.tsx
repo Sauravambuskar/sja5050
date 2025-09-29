@@ -22,9 +22,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { usePagination, DOTS } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
-import { useOutletContext, useNavigate } from "react-router-dom";
-import { usePageLayoutContext } from "@/components/layout/PageLayout";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { usePageLayoutContext } from "@/components/layout/PageLayout";
 
 const PAGE_SIZE = 20;
 
@@ -61,8 +61,20 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { handleViewUser } = usePageLayoutContext();
   const { impersonateUser } = useAuth();
+  
+  // Handle the case when usePageLayoutContext is not available
+  let handleViewUser: ((userId: string) => void) | undefined;
+  try {
+    const context = usePageLayoutContext();
+    handleViewUser = context.handleViewUser;
+  } catch (error) {
+    // Context is not available, create our own handleViewUser function
+    handleViewUser = (userId: string) => {
+      navigate(`/admin/user-management?user=${userId}`);
+    };
+  }
+  
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUserView | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
@@ -219,7 +231,22 @@ const UserManagement = () => {
       </Card>
       <EditUserDialog user={selectedUserForEdit} isOpen={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen} />
       <AddUserDialog isOpen={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen} />
-      <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action will {isUserSuspended(userToSuspend) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend) ? 'be able to' : 'not be able to'} log in.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmSuspend} disabled={suspendMutation.isPending}>{suspendMutation.isPending ? "Processing..." : "Confirm"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will {isUserSuspended(userToSuspend) ? 'reinstate' : 'suspend'} the user account for '{userToSuspend?.full_name}'. They will {isUserSuspended(userToSuspend) ? 'be able to' : 'not be able to'} log in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSuspend} disabled={suspendMutation.isPending}>
+              {suspendMutation.isPending ? "Processing..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
