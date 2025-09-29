@@ -51,8 +51,6 @@ import {
   GitPullRequest,
   Headset,
   LogOut,
-  Menu,
-  X,
 } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -64,7 +62,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { useAdminActionCounts } from "@/hooks/useAdminActionCounts";
 import { useIdCardSettings } from "@/hooks/useIdCardSettings";
-import React, { useState } from "react";
+import React from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -75,11 +73,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -120,7 +113,7 @@ const adminNavItems: NavItem[] = [
   { to: "/admin/system-management", icon: Settings, label: "System" },
 ];
 
-const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
+export function Sidebar({ onNavigate }: SidebarProps) {
   const { isAdmin } = useIsAdmin();
   const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
@@ -213,33 +206,5 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         </Button>
       </div>
     </aside>
-  );
-};
-
-export function Sidebar({ onNavigate }: SidebarProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  return (
-    <>
-      {/* Mobile Menu Button - Fixed position */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="h-10 w-10">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle navigation menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[280px]">
-            <SidebarContent onNavigate={() => setIsMobileMenuOpen(false)} />
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <SidebarContent onNavigate={onNavigate} />
-      </div>
-    </>
   );
 }
