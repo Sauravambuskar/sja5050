@@ -24,10 +24,10 @@ const DOCUMENT_TYPES = ["Aadhaar Front", "Aadhaar Back", "PAN", "Selfie", "Voter
 
 const fetchKycOverview = async (page: number, searchTerm: string, status: string): Promise<{ data: AdminKycOverview[], count: number }> => {
   const { data, error } = await supabase.rpc('get_admin_kyc_overview', {
-    p_page: page,
-    p_limit: PAGE_SIZE,
     p_search_text: searchTerm || null,
     p_status_filter: status === 'all' ? null : status,
+    p_limit: PAGE_SIZE,
+    p_offset: (page - 1) * PAGE_SIZE,
   });
 
   const { data: countData, error: countError } = await supabase.rpc('get_admin_kyc_overview_count', {
@@ -125,6 +125,10 @@ const KycManagement = () => {
     );
   };
 
+  const totalPages = Math.ceil((data?.count || 0) / PAGE_SIZE);
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
+
   return (
     <>
       <Card>
@@ -220,8 +224,9 @@ const KycManagement = () => {
           </div>
           <PaginationControls
             currentPage={currentPage}
-            totalCount={data?.count || 0}
-            pageSize={PAGE_SIZE}
+            totalPages={totalPages}
+            hasPreviousPage={hasPreviousPage}
+            hasNextPage={hasNextPage}
             onPageChange={handlePageChange}
           />
         </CardContent>
