@@ -7,6 +7,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export async function keepTrying<T>(
+  fn: () => Promise<{ data: T | null; error: Error | null }>,
+  retries = 3,
+  delay = 1000
+): Promise<{ data: T | null; error: Error | null }> {
+  for (let i = 0; i < retries; i++) {
+    const { data, error } = await fn();
+    if (data) {
+      return { data, error: null };
+    }
+    if (error && i < retries - 1) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } else if (error) {
+      return { data: null, error };
+    }
+  }
+  return { data: null, error: new Error("Failed after multiple retries") };
+}
+
 export function exportToCsv(filename: string, rows: object[]) {
   if (!rows || !rows.length) {
     return;

@@ -54,6 +54,22 @@ export type AdminKycRequest = {
   admin_notes: string | null;
 };
 
+export type AdminKycOverview = {
+  user_id: string;
+  full_name: string;
+  email: string;
+  aadhaar_number: string | null;
+  pan_number: string | null;
+  status: string;
+  "Aadhaar Front": string | null;
+  "Aadhaar Back": string | null;
+  "PAN": string | null;
+  "Selfie": string | null;
+  "Voter ID": string | null;
+  "Driving License": string | null;
+  "Bank Statement": string | null;
+};
+
 export type AdminDashboardStats = {
   total_users: number;
   aum: number;
@@ -459,7 +475,7 @@ export type MasterUserReportItem = {
   email: string | null;
   phone: string | null;
   role: string;
-  join_date: string;
+join_date: string;
   last_sign_in_at: string | null;
   account_status: string;
   kyc_status: string | null;
