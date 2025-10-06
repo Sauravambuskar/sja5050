@@ -272,6 +272,17 @@ export type ReferralTreeUser = {
   children: ReferralTreeUser[];
 };
 
+export type ReferralNetworkMember = {
+  user_id: string;
+  full_name: string;
+  member_id: string;
+  join_date: string;
+  city: string | null;
+  sponsor_user_id: string;
+  sponsor_full_name: string;
+  sponsor_member_id: string;
+};
+
 export type UserGrowthReportData = {
   month_start: string;
   user_count: number;
