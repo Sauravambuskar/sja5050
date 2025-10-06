@@ -4,92 +4,128 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AdminKycRequest } from "@/types/database";
-import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { keepTrying } from "@/lib/utils";
+import { Download, X, Calendar, User, FileText } from "lucide-react";
+import { format } from "date-fns";
 
-interface KycViewerDialogProps {
-  request: AdminKycRequest | null;
-  isOpen: boolean;
-  onClose: () => void;
+interface KycRequest {
+  request_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  document_type: string;
+  file_path: string;
+  submitted_at: string;
+  status: string;
+  admin_notes: string | null;
 }
 
-export const KycViewerDialog = ({ request, isOpen, onClose }: KycViewerDialogProps) => {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+interface KycViewerDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  request: KycRequest | null;
+}
 
-  useEffect(() => {
-    if (isOpen && request) {
-      const getSignedUrl = async () => {
-        setIsLoadingUrl(true);
-        setSignedUrl(null);
-        const { data, error } = await supabase.storage
-          .from('kyc_documents')
-          .createSignedUrl(request.file_path, 300); // URL valid for 5 minutes
+export const KycViewerDialog = ({ isOpen, onClose, request }: KycViewerDialogProps) => {
+  const { data: imageUrl, isLoading } = useQuery({
+    queryKey: ['kycImage', request?.file_path],
+    queryFn: async () => {
+      if (!request?.file_path) return null;
+      const { data } = await keepTrying(() => 
+        supabase.storage.from('kyc_documents').createSignedUrl(request.file_path, 3600)
+      );
+      return data?.signedUrl || null;
+    },
+    enabled: !!request?.file_path && isOpen,
+  });
 
-        if (error) {
-          toast.error("Could not load document preview.");
-          console.error(error);
-        } else {
-          setSignedUrl(data.signedUrl);
-        }
-        setIsLoadingUrl(false);
-      };
-      getSignedUrl();
+  const handleDownload = () => {
+    if (imageUrl) {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `${request?.user_name}_${request?.document_type}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
-  }, [isOpen, request]);
-
-  if (!request) return null;
-
-  const fileExtension = request.file_path.split('.').pop()?.toLowerCase();
-
-  const renderContent = () => {
-    if (isLoadingUrl) {
-      return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-    }
-    if (!signedUrl) {
-      return <div className="text-center p-4 text-destructive">Could not load document.</div>;
-    }
-
-    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExtension || '')) {
-      return <img src={signedUrl} alt={request.document_type} className="w-full h-auto rounded-md" />;
-    }
-    if (['webm', 'mp4', 'ogg'].includes(fileExtension || '')) {
-      return <video src={signedUrl} controls autoPlay className="w-full rounded-md" />;
-    }
-    if (fileExtension === 'pdf') {
-      return <iframe src={signedUrl} className="w-full h-[70vh] border-0" title={request.document_type} />;
-    }
-    return (
-      <div className="text-center p-4">
-        <p>Unsupported file type: .{fileExtension}</p>
-        <Button asChild variant="link">
-          <a href={signedUrl} target="_blank" rel="noopener noreferrer">Open file in new tab</a>
-        </Button>
-      </div>
-    );
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Reviewing: {request.document_type}</DialogTitle>
-          <DialogDescription>
-            For user: {request.user_name}
-          </DialogDescription>
+          <DialogTitle>KYC Document Viewer</DialogTitle>
+          <DialogDescription>View and manage KYC document submissions</DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          {renderContent()}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </DialogFooter>
+        
+        {request && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{request.user_name}</span>
+                  <span className="text-muted-foreground">({request.user_email})</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>{request.document_type}</span>
+                  <Calendar className="h-4 w-4 ml-2" />
+                  <span>{format(new Date(request.submitted_at), "PPP")}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={request.status === "Approved" ? "default" : request.status === "Pending" ? "outline" : "destructive"}>
+                  {request.status}
+                </Badge>
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="relative bg-muted rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+              {isLoading ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Skeleton className="w-full h-full" />
+                </div>
+              ) : imageUrl ? (
+                <img 
+                  src={imageUrl} 
+                  alt={`${request.document_type} for ${request.user_name}`}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <FileText className="h-12 w-12 mx-auto mb-2" />
+                    <p>Unable to load document</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {request.admin_notes && (
+              <div className="bg-muted p-3 rounded-lg">
+                <p className="text-sm font-medium mb-1">Admin Notes:</p>
+                <p className="text-sm text-muted-foreground">{request.admin_notes}</p>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <Button variant="outline" onClick={handleDownload} disabled={!imageUrl}>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
