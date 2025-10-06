@@ -95,10 +95,10 @@ const UserManagement = () => {
     searchParams.get("search") || ""
   );
   const [kycStatus, setKycStatus] = useState(
-    searchParams.get("kyc_status") || ""
+    searchParams.get("kyc_status") || "all"
   );
   const [accountStatus, setAccountStatus] = useState(
-    searchParams.get("account_status") || ""
+    searchParams.get("account_status") || "all"
   );
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -127,7 +127,7 @@ const UserManagement = () => {
       accountStatus,
     ],
     queryFn: () =>
-      fetchUsers(page, debouncedSearchTerm, kycStatus, accountStatus),
+      fetchUsers(page, debouncedSearchTerm, kycStatus === "all" ? "" : kycStatus, accountStatus === "all" ? "" : accountStatus),
     placeholderData: keepPreviousData,
   });
 
@@ -156,7 +156,7 @@ const UserManagement = () => {
   ) => {
     if (filter === "kyc_status") setKycStatus(value);
     if (filter === "account_status") setAccountStatus(value);
-    updateSearchParams({ [filter]: value, page: "1" });
+    updateSearchParams({ [filter]: value === "all" ? "" : value, page: "1" });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,7 +268,7 @@ const UserManagement = () => {
               <SelectValue placeholder="Filter by KYC Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All KYC Statuses</SelectItem>
+              <SelectItem value="all">All KYC Statuses</SelectItem>
               <SelectItem value="Approved">Approved</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
@@ -280,7 +280,7 @@ const UserManagement = () => {
               <SelectValue placeholder="Filter by Account Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Account Statuses</SelectItem>
+              <SelectItem value="all">All Account Statuses</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Suspended">Suspended</SelectItem>
             </SelectContent>
