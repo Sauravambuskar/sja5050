@@ -11,6 +11,13 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/useProfile";
 
+interface Referral {
+  id: string;
+  full_name: string;
+  join_date: string;
+  kyc_status: string;
+}
+
 const fetchReferralStats = async () => {
   const { data, error } = await supabase.rpc('get_my_commission_stats');
   if (error) throw new Error(error.message);
@@ -20,7 +27,7 @@ const fetchReferralStats = async () => {
 const fetchReferrals = async () => {
   const { data, error } = await supabase.rpc('get_my_referrals');
   if (error) throw new Error(error.message);
-  return data;
+  return data as Referral[];
 };
 
 export default function Referrals() {
@@ -109,7 +116,7 @@ export default function Referrals() {
                 </div>
               ) : referrals && referrals.length > 0 ? (
                 <div className="space-y-2">
-                  {referrals.map((referral) => (
+                  {referrals.map((referral: Referral) => (
                     <div key={referral.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{referral.full_name}</p>

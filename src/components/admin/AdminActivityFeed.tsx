@@ -37,7 +37,7 @@ const fetchActivityFeed = async (): Promise<ActivityFeedItem[]> => {
         }
       ];
     }
-    return data;
+    return data as ActivityFeedItem[];
   } catch (error) {
     console.error('Error fetching activity feed:', error);
     return [];

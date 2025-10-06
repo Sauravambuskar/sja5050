@@ -13,6 +13,13 @@ interface AdminUserReferralsTabProps {
   onViewUser: (userId: string) => void;
 }
 
+interface Referral {
+  id: string;
+  full_name: string;
+  join_date: string;
+  kyc_status: string;
+}
+
 const fetchReferralStats = async (userId: string) => {
   const { data, error } = await supabase.rpc('get_my_commission_stats', { p_user_id: userId });
   if (error) throw new Error(error.message);
@@ -22,7 +29,7 @@ const fetchReferralStats = async (userId: string) => {
 const fetchReferrals = async (userId: string) => {
   const { data, error } = await supabase.rpc('get_my_referrals', { p_user_id: userId });
   if (error) throw new Error(error.message);
-  return data;
+  return data as Referral[];
 };
 
 export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferralsTabProps) => {
@@ -101,7 +108,7 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
                 </div>
               ) : referrals && referrals.length > 0 ? (
                 <div className="space-y-2">
-                  {referrals.map((referral) => (
+                  {referrals.map((referral: Referral) => (
                     <div key={referral.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{referral.full_name}</p>
