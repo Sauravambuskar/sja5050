@@ -34,7 +34,6 @@ import {
   MoreHorizontal,
   PlusCircle,
   FileText,
-  LogIn,
   Search,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -66,6 +65,8 @@ const fetchUsers = async (
   kycStatus: string,
   accountStatus: string
 ) => {
+  console.log('Fetching users with params:', { page, searchTerm, kycStatus, accountStatus });
+  
   const { data, error, count } = await supabase
     .rpc(
       "get_all_users_details",
@@ -80,8 +81,11 @@ const fetchUsers = async (
     );
 
   if (error) {
+    console.error('Error fetching users:', error);
     throw new Error(error.message);
   }
+  
+  console.log('Fetched users:', { data, count });
   return { users: data as AdminUserView[], count: count ?? 0 };
 };
 
@@ -118,6 +122,7 @@ const UserManagement = () => {
     isLoading,
     isError,
     error,
+    isFetching,
   } = useQuery({
     queryKey: [
       "adminUsers",
@@ -129,9 +134,13 @@ const UserManagement = () => {
     queryFn: () =>
       fetchUsers(page, debouncedSearchTerm, kycStatus === "all" ? "" : kycStatus, accountStatus === "all" ? "" : accountStatus),
     placeholderData: keepPreviousData,
+    staleTime: 0, // Ensure data is always fresh
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    retry: 3, // Add retry logic
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
-  const { users, count } = queryData || { users: [], count: 0 };
+  const { users = [], count = 0 } = queryData || {};
   const totalPages = Math.ceil(count / PAGE_SIZE);
 
   const updateSearchParams = (newParams: Record<string, string>) => {
@@ -179,19 +188,8 @@ const UserManagement = () => {
     setIsEditUserOpen(true);
   };
 
-  // The 'signInWithId' method does not exist in the Supabase client library.
-  // Impersonation requires a secure server-side implementation (e.g., an Edge Function).
-  // This feature is temporarily disabled to resolve compilation errors.
   const impersonateUser = async (userId: string) => {
     toast.error("Impersonation feature is currently disabled.");
-    // toast.loading("Attempting to log in as user...");
-    // const { data, error } = await supabase.auth.signInWithId(userId);
-    // if (error) {
-    //   toast.error(`Failed to impersonate user: ${error.message}`);
-    // } else if (data.session) {
-    //   toast.success("Successfully logged in as user. Redirecting...");
-    //   window.location.href = "/";
-    // }
   };
 
   const isUserSuspended = (user: AdminUserView) => {
@@ -207,13 +205,12 @@ const UserManagement = () => {
 
     const suspend = !isUserSuspended(userToSuspend);
     const action = suspend ? "Suspending" : "Unsuspending";
-    const duration = suspend ? "876000h" : "0s"; // 100 years for suspend, 0s for unsuspend
 
     toast.loading(`${action} user...`);
 
     const { error } = await supabase.auth.admin.updateUserById(
       userToSuspend.id,
-      { ban_duration: duration }
+      { ban_duration: suspend ? "876000h" : "0s" }
     );
 
     if (error) {
@@ -289,7 +286,7 @@ const UserManagement = () => {
       </div>
 
       <div className="space-y-4 md:hidden">
-        {isLoading && !users ? (
+        {isLoading || isFetching ? (
           [...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-48 w-full rounded-lg" />
           ))
@@ -299,9 +296,16 @@ const UserManagement = () => {
               <p className="text-center text-destructive">
                 Error fetching users: {error.message}
               </p>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["adminUsers"] })} 
+                className="mt-4 mx-auto"
+                variant="outline"
+              >
+                Retry
+              </Button>
             </CardContent>
           </Card>
-        ) : users && users.length > 0 ? (
+        ) : users && Array.isArray(users) && users.length > 0 ? (
           users.map((user) => (
             <Card
               key={user.id}
@@ -335,10 +339,6 @@ const UserManagement = () => {
                       <DropdownMenuItem onClick={() => handleEditUser(user)}>
                         Edit User
                       </DropdownMenuItem>
-                      {/* <DropdownMenuItem onClick={() => impersonateUser(user.id)}>
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Login as User
-                      </DropdownMenuItem> */}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-red-600"
@@ -400,6 +400,11 @@ const UserManagement = () => {
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-muted-foreground">No users found.</p>
+              {debouncedSearchTerm && (
+                <p className="text-center text-sm text-muted-foreground mt-2">
+                  Try adjusting your search terms or filters.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -409,7 +414,7 @@ const UserManagement = () => {
         <DataTable
           columns={memoizedColumns}
           data={users || []}
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
           error={error as Error | null}
         />
       </div>
