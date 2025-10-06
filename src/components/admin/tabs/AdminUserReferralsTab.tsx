@@ -32,6 +32,12 @@ const fetchReferrals = async (userId: string) => {
   return data as Referral[];
 };
 
+const fetchReferralCode = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_my_referral_code', { p_user_id: userId });
+  if (error) throw new Error(error.message);
+  return data as string;
+};
+
 export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferralsTabProps) => {
   const [activeTab, setActiveTab] = useState("direct");
 
@@ -43,6 +49,11 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
   const { data: referrals, isLoading: isReferralsLoading } = useQuery({
     queryKey: ['adminReferrals', userId],
     queryFn: () => fetchReferrals(userId),
+  });
+
+  const { data: referralCode, isLoading: isReferralCodeLoading } = useQuery({
+    queryKey: ['adminReferralCode', userId],
+    queryFn: () => fetchReferralCode(userId),
   });
 
   return (
@@ -80,10 +91,10 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isReferralsLoading ? (
+            {isReferralCodeLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold">{referrals?.[0]?.referral_code || 'N/A'}</div>
+              <div className="text-2xl font-bold">{referralCode || 'N/A'}</div>
             )}
           </CardContent>
         </Card>

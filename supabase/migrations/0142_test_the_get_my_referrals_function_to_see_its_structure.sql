@@ -1,0 +1,1 @@
+SELECT * FROM public.get_my_referrals() LIMIT 1;
