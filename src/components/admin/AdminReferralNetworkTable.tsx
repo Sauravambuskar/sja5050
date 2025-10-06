@@ -39,8 +39,8 @@ export const AdminReferralNetworkTable = ({ userId, onViewUser }: AdminReferralN
           <TableRow>
             <TableHead>Sr. No.</TableHead>
             <TableHead>DOJ</TableHead>
-            <TableHead>Distributor ID</TableHead>
-            <TableHead>Distributor Name</TableHead>
+            <TableHead>Client ID</TableHead>
+            <TableHead>Client Name</TableHead>
             <TableHead>Sponsor ID</TableHead>
             <TableHead>Sponsor Name</TableHead>
             <TableHead>City</TableHead>

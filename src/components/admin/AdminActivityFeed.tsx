@@ -10,7 +10,7 @@ type ActivityFeedItem = {
   event_type: string;
   user_id: string;
   user_name: string;
-  timestamp: string;
+  event_timestamp: string;
   details: any;
 };
 
@@ -25,14 +25,14 @@ const fetchActivityFeed = async (): Promise<ActivityFeedItem[]> => {
           event_type: 'new_user',
           user_id: 'mock-1',
           user_name: 'John Doe',
-          timestamp: new Date().toISOString(),
+          event_timestamp: new Date().toISOString(),
           details: {}
         },
         {
           event_type: 'new_investment',
           user_id: 'mock-2',
           user_name: 'Jane Smith',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          event_timestamp: new Date(Date.now() - 3600000).toISOString(),
           details: { amount: 10000, plan_name: 'Premium Plan' }
         }
       ];
@@ -88,7 +88,7 @@ export const AdminActivityFeed = () => {
                   <div className="flex-grow">
                     <p className="text-sm">{config.text(item)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(item.event_timestamp), { addSuffix: true })}
                     </p>
                   </div>
                 </button>
