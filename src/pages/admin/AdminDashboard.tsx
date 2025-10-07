@@ -7,29 +7,18 @@ import { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
 import { HighValueTransactions } from "@/components/admin/HighValueTransactions";
 import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
 import { useNavigate } from "react-router-dom";
+import { AdminDashboardStats } from "@/types/database";
 
-type AdminStats = {
-  total_users: number;
-  aum: number;
-  pending_kyc: number;
-  pending_withdrawals_count: number;
-  pending_deposits_count: number;
-  pending_deposits_value: number;
-  pending_investments_count: number;
-  pending_investments_value: number;
-  monthly_payout_projection: number;
-  pending_cancellations_count: number;
-};
-
-const fetchAdminStats = async (): Promise<AdminStats> => {
+const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
   if (error) throw new Error(error.message);
-  return data;
+  // The data is returned as an array with one object
+  return data[0];
 };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: stats, isLoading } = useQuery<AdminStats>({
+  const { data: stats, isLoading } = useQuery<AdminDashboardStats>({
     queryKey: ['adminStats'],
     queryFn: fetchAdminStats,
   });

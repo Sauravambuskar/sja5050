@@ -18,22 +18,23 @@ interface Referral {
   full_name: string;
   join_date: string;
   kyc_status: string;
+  has_invested: boolean;
 }
 
 const fetchReferralStats = async (userId: string) => {
-  const { data, error } = await supabase.rpc('get_my_commission_stats', { p_user_id: userId });
+  const { data, error } = await supabase.rpc('get_user_commission_stats_for_admin', { p_user_id: userId });
   if (error) throw new Error(error.message);
   return data;
 };
 
 const fetchReferrals = async (userId: string) => {
-  const { data, error } = await supabase.rpc('get_my_referrals', { p_user_id: userId });
+  const { data, error } = await supabase.rpc('get_user_referrals_for_admin', { p_user_id: userId });
   if (error) throw new Error(error.message);
   return data as Referral[];
 };
 
 const fetchReferralCode = async (userId: string) => {
-  const { data, error } = await supabase.rpc('get_my_referral_code', { p_user_id: userId });
+  const { data, error } = await supabase.rpc('get_user_referral_code_for_admin', { p_user_id: userId });
   if (error) throw new Error(error.message);
   return data as string;
 };
