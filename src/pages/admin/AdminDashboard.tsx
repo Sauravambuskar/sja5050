@@ -12,16 +12,48 @@ import { AdminDashboardStats } from "@/types/database";
 const fetchAdminStats = async (): Promise<AdminDashboardStats> => {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
   if (error) throw new Error(error.message);
-  // The data is returned as an array with one object
-  return data[0];
+  
+  console.log('Raw stats data from RPC:', data);
+  
+  // Handle both array and object responses
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0];
+  } else if (data && typeof data === 'object') {
+    return data;
+  }
+  
+  // Return default values if no data
+  return {
+    total_users: 0,
+    aum: 0,
+    pending_kyc: 0,
+    pending_withdrawals_count: 0,
+    pending_withdrawals_value: 0,
+    pending_deposits_count: 0,
+    pending_deposits_value: 0,
+    pending_investments_count: 0,
+    pending_investments_value: 0,
+    pending_investment_withdrawals_count: 0,
+    monthly_payout_projection: 0,
+    pending_cancellations_count: 0,
+    total_active_investments_count: 0,
+    total_matured_investments_count: 0,
+    total_investment_amount_ever: 0,
+    open_tickets_count: 0
+  };
 };
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: stats, isLoading } = useQuery<AdminDashboardStats>({
+  const { data: stats, isLoading, error } = useQuery<AdminDashboardStats>({
     queryKey: ['adminStats'],
     queryFn: fetchAdminStats,
   });
+
+  // Debug logging
+  console.log('Admin Dashboard Stats:', stats);
+  console.log('Is Loading:', isLoading);
+  console.log('Error:', error);
 
   const handleViewUser = (userId: string) => {
     navigate(`/admin/user-management?user=${userId}`);
