@@ -51,6 +51,7 @@ import {
   GitPullRequest,
   Headset,
   LogOut,
+  BookOpen,
 } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,7 @@ const adminNavItems: NavItem[] = [
   { to: "/admin/support-desk", icon: Headset, label: "Support", countKey: 'support' },
   { to: "/admin/commission-rules", icon: Percent, label: "Commissions" },
   { to: "/admin/reporting", icon: BarChart3, label: "Analytics" },
+  { to: "/admin/ledger", icon: BookOpen, label: "Ledger" },
   { to: "/admin/payout-reports", icon: FileSpreadsheet, label: "Payouts" },
   { to: "/admin/master-reports", icon: Database, label: "Master Reports" },
   { to: "/admin/faq-management", icon: HelpCircle, label: "FAQ" },

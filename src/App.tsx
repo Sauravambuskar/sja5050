@@ -61,6 +61,7 @@ import AdminLogin from "@/pages/admin/AdminLogin";
 import DashboardLoader from "@/pages/DashboardLoader"; // Import DashboardLoader
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import AdminLedger from "@/pages/admin/Ledger";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,7 @@ const MainRouter = () => (
             <Route path="faq-management" element={<FaqManagement />} />
             <Route path="audit-log" element={<AuditLog />} />
             <Route path="system-management" element={<SystemManagement />} />
+            <Route path="ledger" element={<AdminLedger />} />
           </Route>
         </Route>
       </Route>
