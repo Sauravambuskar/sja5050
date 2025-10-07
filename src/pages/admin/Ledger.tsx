@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Download, Loader2, FileSpreadsheet } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarIcon, Download, Loader2, FileSpreadsheet, MoreHorizontal } from "lucide-react";
 import { cn, exportToCsv, exportToPdf } from "@/lib/utils";
 import { format, startOfMonth } from "date-fns";
 import { toast } from "sonner";
@@ -14,8 +15,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { ManagePayoutDialog } from "@/components/admin/ManagePayoutDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type LedgerItem = {
+export type LedgerItem = {
   user_id: string;
   user_name: string;
   investment_id: string;
@@ -28,6 +31,10 @@ type LedgerItem = {
   bank_account_holder_name: string;
   bank_account_number: string;
   bank_ifsc_code: string;
+  payout_status: string;
+  payout_remarks: string | null;
+  paid_amount: number | null;
+  payment_date: string | null;
 };
 
 const fetchLedgerData = async (month: Date): Promise<LedgerItem[]> => {
@@ -44,30 +51,19 @@ const AdminLedger = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [month, setMonth] = useState<Date | undefined>(new Date());
-  const [reportData, setReportData] = useState<LedgerItem[]>([]);
+  const [month, setMonth] = useState<Date>(new Date());
+  const [selectedPayout, setSelectedPayout] = useState<LedgerItem | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: fetchLedgerData,
-    onSuccess: (data) => {
-      setReportData(data);
-      if (data.length === 0) {
-        toast.info("No active investments found for the selected month.");
-      } else {
-        toast.success(`Ledger generated with ${data.length} records.`);
-      }
-    },
-    onError: (error) => {
-      toast.error(`Failed to generate ledger: ${error.message}`);
-    },
+  const { data: reportData = [], isLoading, isFetching } = useQuery<LedgerItem[]>({
+    queryKey: ['adminLedger', month],
+    queryFn: () => fetchLedgerData(month),
+    enabled: !!month,
   });
 
-  const handleGenerateReport = () => {
-    if (!month) {
-      toast.error("Please select a month.");
-      return;
-    }
-    mutation.mutate(month);
+  const handleManagePayout = (item: LedgerItem) => {
+    setSelectedPayout(item);
+    setIsDialogOpen(true);
   };
 
   const handleExport = (formatType: 'csv' | 'pdf') => {
@@ -78,15 +74,22 @@ const AdminLedger = () => {
     const filename = `ledger_report_${format(month!, 'yyyy-MM')}`;
     const title = `SJA Foundation Ledger - ${format(month!, 'MMMM yyyy')}`;
 
+    const exportableData = reportData.map(item => ({
+      ...item,
+      paid_amount: item.paid_amount ?? 0,
+      payment_date: item.payment_date ? format(new Date(item.payment_date), 'PPpp') : 'N/A'
+    }));
+
     if (formatType === 'csv') {
-      exportToCsv(`${filename}.csv`, reportData);
+      exportToCsv(`${filename}.csv`, exportableData);
     } else {
-      const headers = ["Client", "Investment", "Monthly Payout", "Accrued", "Bank Details"];
-      const body = reportData.map(item => [
+      const headers = ["Client", "Investment", "Accrued", "Status", "Paid Amount", "Bank Details"];
+      const body = exportableData.map(item => [
         item.user_name,
         `₹${item.investment_amount.toLocaleString('en-IN')}`,
-        `₹${item.monthly_payout.toLocaleString('en-IN')}`,
         `₹${item.accrued_in_period.toLocaleString('en-IN')}`,
+        item.payout_status,
+        `₹${item.paid_amount.toLocaleString('en-IN')}`,
         `${item.bank_account_holder_name}\n${item.bank_account_number}\n${item.bank_ifsc_code}`,
       ]);
       exportToPdf(`${filename}.pdf`, title, headers, body, user?.user_metadata?.full_name || "Admin");
@@ -98,52 +101,67 @@ const AdminLedger = () => {
     acc.investment_amount += item.investment_amount;
     acc.monthly_payout += item.monthly_payout;
     acc.accrued_in_period += item.accrued_in_period;
+    acc.paid_amount += item.paid_amount ?? 0;
     return acc;
-  }, { investment_amount: 0, monthly_payout: 0, accrued_in_period: 0 });
+  }, { investment_amount: 0, monthly_payout: 0, accrued_in_period: 0, paid_amount: 0 });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Paid': return <Badge variant="success">Paid</Badge>;
+      case 'Rejected': return <Badge variant="destructive">Rejected</Badge>;
+      default: return <Badge variant="secondary">Pending</Badge>;
+    }
+  };
 
   const renderDesktopView = () => (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Client</TableHead>
-          <TableHead>Investment Amount</TableHead>
-          <TableHead>Monthly Payout</TableHead>
-          <TableHead>Daily Payout</TableHead>
-          <TableHead>Days</TableHead>
-          <TableHead>Accrued This Period</TableHead>
+          <TableHead>Investment</TableHead>
+          <TableHead>Accrued</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead>Bank Details</TableHead>
+          <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {mutation.isPending ? (
+        {isLoading ? (
           [...Array(5)].map((_, i) => (
             <TableRow key={i}>
-              <TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell>
+              <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
             </TableRow>
           ))
         ) : reportData.length > 0 ? (
           reportData.map((item) => (
-            <TableRow key={item.investment_id} onClick={() => navigate(`/admin/user-management?user=${item.user_id}`)} className="cursor-pointer">
+            <TableRow key={item.investment_id}>
               <TableCell>
-                <div className="font-medium">{item.user_name}</div>
+                <div className="font-medium hover:underline cursor-pointer" onClick={() => navigate(`/admin/user-management?user=${item.user_id}`)}>{item.user_name}</div>
                 <div className="text-sm text-muted-foreground">{item.plan_name}</div>
               </TableCell>
-              <TableCell>₹{item.investment_amount.toLocaleString('en-IN')}</TableCell>
-              <TableCell>₹{item.monthly_payout.toLocaleString('en-IN')}</TableCell>
-              <TableCell>₹{item.daily_payout.toLocaleString('en-IN')}</TableCell>
-              <TableCell>{item.days_in_period}</TableCell>
-              <TableCell className="font-semibold">₹{item.accrued_in_period.toLocaleString('en-IN')}</TableCell>
+              <TableCell>
+                <div>₹{item.investment_amount.toLocaleString('en-IN')}</div>
+                <div className="text-xs text-muted-foreground">Monthly: ₹{item.monthly_payout.toLocaleString('en-IN')}</div>
+              </TableCell>
+              <TableCell className="font-semibold">
+                <div>₹{item.accrued_in_period.toLocaleString('en-IN')}</div>
+                <div className="text-xs font-normal text-muted-foreground">for {item.days_in_period} days</div>
+              </TableCell>
+              <TableCell>{getStatusBadge(item.payout_status)}</TableCell>
               <TableCell className="text-xs">
                 <div>{item.bank_account_holder_name}</div>
                 <div className="font-mono">{item.bank_account_number}</div>
                 <div className="font-mono">{item.bank_ifsc_code}</div>
               </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" onClick={() => handleManagePayout(item)}>Manage</Button>
+              </TableCell>
             </TableRow>
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={7} className="h-24 text-center">
-              No report generated. Please select a month and click "Generate Report".
+            <TableCell colSpan={6} className="h-24 text-center">
+              No report data. Please select a month and generate the report.
             </TableCell>
           </TableRow>
         )}
@@ -152,10 +170,9 @@ const AdminLedger = () => {
         <TableRow className="font-bold bg-muted/50">
             <TableCell>Total</TableCell>
             <TableCell>₹{totals.investment_amount.toLocaleString('en-IN')}</TableCell>
-            <TableCell>₹{totals.monthly_payout.toLocaleString('en-IN')}</TableCell>
-            <TableCell colSpan={2}></TableCell>
             <TableCell>₹{totals.accrued_in_period.toLocaleString('en-IN')}</TableCell>
-            <TableCell></TableCell>
+            <TableCell>Paid: ₹{totals.paid_amount.toLocaleString('en-IN')}</TableCell>
+            <TableCell colSpan={2}></TableCell>
         </TableRow>
       </TableFooter>
     </Table>
@@ -163,14 +180,19 @@ const AdminLedger = () => {
 
   const renderMobileView = () => (
     <div className="space-y-4">
-      {mutation.isPending ? (
+      {isLoading ? (
         [...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
       ) : reportData.length > 0 ? (
         reportData.map((item) => (
-          <Card key={item.investment_id} onClick={() => navigate(`/admin/user-management?user=${item.user_id}`)}>
+          <Card key={item.investment_id}>
             <CardHeader>
-                <CardTitle>{item.user_name}</CardTitle>
-                <CardDescription>{item.plan_name}</CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="cursor-pointer hover:underline" onClick={() => navigate(`/admin/user-management?user=${item.user_id}`)}>{item.user_name}</CardTitle>
+                    <CardDescription>{item.plan_name}</CardDescription>
+                  </div>
+                  {getStatusBadge(item.payout_status)}
+                </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Investment</span><span className="font-semibold">₹{item.investment_amount.toLocaleString('en-IN')}</span></div>
@@ -182,11 +204,14 @@ const AdminLedger = () => {
                 <p className="font-mono text-muted-foreground">{item.bank_ifsc_code}</p>
               </div>
             </CardContent>
+            <CardContent>
+              <Button className="w-full" onClick={() => handleManagePayout(item)}>Manage Payout</Button>
+            </CardContent>
           </Card>
         ))
       ) : (
         <div className="text-center text-muted-foreground p-8 border rounded-lg">
-          No report generated.
+          No report data.
         </div>
       )}
     </div>
@@ -226,11 +251,10 @@ const AdminLedger = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={month} onSelect={setMonth} initialFocus captionLayout="dropdown-buttons" fromYear={new Date().getFullYear() - 5} toYear={new Date().getFullYear()} />
+                <Calendar mode="single" selected={month} onSelect={(day) => day && setMonth(day)} initialFocus captionLayout="dropdown-buttons" fromYear={new Date().getFullYear() - 5} toYear={new Date().getFullYear()} />
               </PopoverContent>
             </Popover>
-            <Button onClick={handleGenerateReport} disabled={mutation.isPending}>
-              {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+            <Button onClick={() => {}} disabled={true} className="opacity-0 pointer-events-none">
               Generate Ledger
             </Button>
           </div>
@@ -240,6 +264,7 @@ const AdminLedger = () => {
           </div>
         </CardContent>
       </Card>
+      <ManagePayoutDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} payout={selectedPayout} month={month} />
     </>
   );
 };
