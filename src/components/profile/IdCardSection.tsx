@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { Download, CreditCard, User } from 'lucide-react';
+import { Download, CreditCard, User, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Profile, IdCardSettings } from '@/types/database';
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ const fetchIdCardData = async () => {
 export const IdCardSection = () => {
   const { user } = useAuth();
   const idCardRef = useRef<HTMLDivElement>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
@@ -47,6 +49,46 @@ export const IdCardSection = () => {
       .catch((err) => {
         toast.error(`Download failed: ${err.message}`);
       });
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!idCardRef.current) return;
+    setPdfLoading(true);
+    try {
+      const dataUrl = await toPng(idCardRef.current, { cacheBust: true, pixelRatio: 3 });
+
+      // Load image to get dimensions for accurate aspect ratio
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load image for PDF'));
+      });
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 10;
+      const availableWidth = pageWidth - margin * 2;
+
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+      const drawHeight = (availableWidth * imgHeight) / imgWidth;
+
+      const x = margin;
+      // Center vertically if possible, but keep at least margin
+      const y = Math.max(margin, (pageHeight - drawHeight) / 2);
+
+      doc.addImage(dataUrl, 'PNG', x, y, availableWidth, drawHeight);
+      const filename = `SJA-Member-ID-${data?.profile.member_id}.pdf`;
+      doc.save(filename);
+
+      toast.success('PDF downloaded successfully!');
+    } catch (err: any) {
+      toast.error(`PDF download failed: ${err?.message || err}`);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -139,11 +181,17 @@ export const IdCardSection = () => {
             </div>
           </div>
 
-          {/* Download Button */}
-          <Button onClick={handleDownload} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Download ID Card
-          </Button>
+          {/* Download Buttons */}
+          <div className="flex items-center gap-2">
+            <Button onClick={handleDownload} className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Download ID Card
+            </Button>
+            <Button variant="secondary" onClick={handleDownloadPdf} loading={pdfLoading} className="flex items-center gap-2">
+              <FileDown className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
