@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MyInvestments } from "@/components/dashboard/MyInvestments";
 import PortfolioPie from "@/components/dashboard/PortfolioPie";
+import DailyIncome from "@/components/dashboard/DailyIncome";
 
 interface DashboardProps {
   stats: DashboardStats;
@@ -63,8 +64,6 @@ const Dashboard = ({ stats, extendedStats, transactions, profile }: DashboardPro
   ];
 
   const quickActions = [
-    { title: "Deposit", icon: ArrowDownToLine, link: "/wallet?tab=deposit" },
-    { title: "Withdraw", icon: ArrowUpFromLine, link: "/wallet?tab=withdraw" },
     { title: "Invest", icon: TrendingUp, link: "/investments" },
     { title: "Referrals", icon: Users, link: "/referrals" },
   ];
@@ -171,7 +170,7 @@ const Dashboard = ({ stats, extendedStats, transactions, profile }: DashboardPro
 
       <div className="grid gap-6 md:grid-cols-2">
         <PortfolioPie />
-        {/* You can keep other dashboard widgets here */}
+        <DailyIncome />
       </div>
 
       <div>
