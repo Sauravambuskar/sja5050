@@ -36,6 +36,8 @@ import Agreement from "@/pages/Agreement";
 import Faq from "@/pages/Faq";
 import Support from "@/pages/Support";
 import TicketDetails from "@/pages/TicketDetails";
+import ReceiptPayout from "@/pages/ReceiptPayout";
+import AdminPayoutReceipt from "@/pages/admin/AdminPayoutReceipt";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -92,6 +94,7 @@ const MainRouter = () => (
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/payment-details" element={<PaymentDetails />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/receipts/payout/:investmentId/:payoutMonth" element={<ReceiptPayout />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/agreement" element={<Agreement />} />
@@ -122,6 +125,7 @@ const MainRouter = () => (
             <Route path="audit-log" element={<AuditLog />} />
             <Route path="system-management" element={<SystemManagement />} />
             <Route path="ledger" element={<AdminLedger />} />
+            <Route path="receipts/payout/:investmentId/:payoutMonth" element={<AdminPayoutReceipt />} />
           </Route>
         </Route>
       </Route>
