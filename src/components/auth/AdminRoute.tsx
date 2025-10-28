@@ -4,6 +4,8 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 export const AdminRoute = () => {
   const { isAdmin, isLoading } = useIsAdmin();
+  // Forward parent Outlet context (from PageLayout) to child routes under AdminRoute
+  const parentContext = useOutletContext();
 
   if (isLoading) {
     return (
@@ -18,5 +20,6 @@ export const AdminRoute = () => {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  // Pass the parent context down so usePageLayoutContext() works in nested admin pages
+  return <Outlet context={parentContext} />;
 };
