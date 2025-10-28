@@ -37,7 +37,9 @@ import Faq from "@/pages/Faq";
 import Support from "@/pages/Support";
 import TicketDetails from "@/pages/TicketDetails";
 import ReceiptPayout from "@/pages/ReceiptPayout";
+import PaymentHistory from "@/pages/PaymentHistory";
 import AdminPayoutReceipt from "@/pages/admin/AdminPayoutReceipt";
+import AdminPaymentHistory from "@/pages/admin/PaymentHistory";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -94,6 +96,7 @@ const MainRouter = () => (
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/payment-details" element={<PaymentDetails />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/payments" element={<PaymentHistory />} />
           <Route path="/receipts/payout/:investmentId/:payoutMonth" element={<ReceiptPayout />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/notifications" element={<Notifications />} />
@@ -119,6 +122,7 @@ const MainRouter = () => (
             <Route path="commission-rules" element={<CommissionRules />} />
             <Route path="reporting" element={<Reporting />} />
             <Route path="payout-reports" element={<PayoutReports />} />
+            <Route path="payments" element={<AdminPaymentHistory />} />
             <Route path="financial-reports" element={<FinancialReporting />} />
             <Route path="master-reports" element={<MasterReports />} />
             <Route path="faq-management" element={<FaqManagement />} />
