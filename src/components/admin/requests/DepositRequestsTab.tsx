@@ -46,10 +46,19 @@ const fetchTotalCount = async (status: string | null, search: string | null): Pr
 };
 
 const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string }) => {
-  const { error } = await supabase.rpc('process_deposit_request', {
-    request_id_to_process: requestId,
-    new_status: status,
-    notes: notes,
+  if (status === 'Approved') {
+    const { error } = await supabase.rpc('approve_investment_request', {
+      p_request_id: requestId,
+      p_notes: notes,
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await supabase.rpc('process_investment_request', {
+    p_request_id: requestId,
+    p_new_status: status,
+    p_notes: notes,
   });
   if (error) throw new Error(error.message);
 };
@@ -94,6 +103,8 @@ export const DepositRequestsTab = () => {
       queryClient.invalidateQueries({ queryKey: ['allDepositRequests'] });
       queryClient.invalidateQueries({ queryKey: ['allDepositRequestsCount'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
+      // Ensure investment lists reflect newly approved investments
+      queryClient.invalidateQueries({ queryKey: ['allInvestments'] });
     },
     onError: (error) => toast.error(`Action failed: ${error.message}`),
     onSettled: () => {
