@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownToLine, ArrowUpFromLine, TrendingUp, Users, ArrowRightLeft, Wallet, PiggyBank, Gift, Landmark } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, TrendingUp, Users, ArrowRightLeft, PiggyBank, Gift, Landmark } from "lucide-react";
 import { DashboardStats, Transaction, Profile, ExtendedDashboardStats } from "@/types/database";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -57,7 +57,6 @@ const Dashboard = ({ stats, extendedStats, transactions, profile }: DashboardPro
   };
 
   const summaryStats = [
-    { title: "Wallet Balance", value: stats.walletBalance, icon: Wallet, color: "text-blue-500" },
     { title: "Active Investments", value: stats.totalInvested, icon: PiggyBank, color: "text-green-500" },
     { title: "Investment Returns", value: extendedStats.total_investment_return, icon: Landmark, color: "text-purple-500" },
     { title: "Referral Commission", value: extendedStats.total_referral_commission, icon: Gift, color: "text-pink-500" },
