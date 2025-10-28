@@ -5,13 +5,6 @@ import { Link } from "react-router-dom";
 
 const actions = [
   {
-    title: "Deposit Funds",
-    description: "Add money to your wallet.",
-    icon: ArrowDownToDot,
-    link: "/wallet?tab=deposit",
-    variant: "default" as const,
-  },
-  {
     title: "Browse Plans",
     description: "Explore new investment opportunities.",
     icon: TrendingUp,

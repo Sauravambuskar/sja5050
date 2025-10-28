@@ -89,7 +89,6 @@ interface NavItem {
 const userNavItems: NavItem[] = [
   { to: "/", icon: Home, label: "Dashboard" },
   { to: "/investments", icon: TrendingUp, label: "Investments" },
-  { to: "/wallet", icon: Wallet, label: "Wallet" },
   { to: "/referrals", icon: Users, label: "Referrals" },
   { to: "/reports", icon: BarChart3, label: "Reports" },
   { to: "/payments", icon: Receipt, label: "Payment History" },

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MyInvestments } from "@/components/dashboard/MyInvestments";
+import PortfolioPie from "@/components/dashboard/PortfolioPie";
 
 interface DashboardProps {
   stats: DashboardStats;
@@ -168,6 +169,11 @@ const Dashboard = ({ stats, extendedStats, transactions, profile }: DashboardPro
       </div>
 
       <MyInvestments />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <PortfolioPie />
+        {/* You can keep other dashboard widgets here */}
+      </div>
 
       <div>
         <Card>
