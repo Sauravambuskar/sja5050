@@ -54,6 +54,15 @@ const fetchInvestmentRequestsCount = async (statusFilter: string | null): Promis
 };
 
 const processRequest = async ({ requestId, status, notes }: { requestId: string; status: 'Approved' | 'Rejected'; notes: string }) => {
+  if (status === 'Approved') {
+    const { error } = await supabase.rpc('approve_investment_request', {
+      p_request_id: requestId,
+      p_notes: notes,
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
   const { error } = await supabase.rpc('process_investment_request', {
     p_request_id: requestId,
     p_new_status: status,
