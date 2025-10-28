@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type HistoryItem = {
   plan_name: string;
@@ -68,38 +68,43 @@ export default function PortfolioPie() {
             matured: { label: "Matured", color: config.Matured.color },
             withdrawn: { label: "Withdrawn", color: config.Withdrawn.color },
           }}
-          className="max-w-full"
+          className="w-full h-[260px]"
         >
-          <PieChart>
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value, name) => (
-                    <div className="flex w-full items-center justify-between">
-                      <span className="text-muted-foreground">{name}</span>
-                      <span className="font-mono font-medium">{(value as number).toLocaleString()}</span>
-                    </div>
-                  )}
-                />
-              }
-            />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={90}
-              paddingAngle={4}
-              stroke="var(--border)"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`slice-${index}`} fill={entry.fill.replace("var(--color-", "").includes("active") ? config.Active.color : entry.fill.replace("var(--color-", "").includes("matured") ? config.Matured.color : config.Withdrawn.color} />
-              ))}
-            </Pie>
-            <ChartLegend content={<ChartLegendContent />} />
-          </PieChart>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value, name) => (
+                      <div className="flex w-full items-center justify-between">
+                        <span className="text-muted-foreground">{name}</span>
+                        <span className="font-mono font-medium">{(value as number).toLocaleString()}</span>
+                      </div>
+                    )}
+                  />
+                }
+              />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={90}
+                paddingAngle={4}
+                stroke="var(--border)"
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`slice-${index}`}
+                    fill={config[entry.name as "Active" | "Matured" | "Withdrawn"].color}
+                  />
+                ))}
+              </Pie>
+              <ChartLegend content={<ChartLegendContent />} />
+            </PieChart>
+          </ResponsiveContainer>
         </ChartContainer>
         {isLoading && (
           <div className="mt-4 text-sm text-muted-foreground">Loading chart...</div>
