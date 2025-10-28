@@ -86,12 +86,26 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Payout status updated successfully.");
+    onSuccess: (_data, variables) => {
+      // Refresh all relevant views
       queryClient.invalidateQueries({ queryKey: ["adminLedger"] });
-      // Also refresh Payment History lists on both sides
       queryClient.invalidateQueries({ queryKey: ["adminPayoutHistory"] });
       queryClient.invalidateQueries({ queryKey: ["myPayoutHistory"] });
+
+      // If Paid, surface the receipt link (PDF ready via the receipt page)
+      if (variables.status === "Paid" && payout) {
+        const linkMonth = format(month, "yyyy-MM");
+        const receiptUrl = `/admin/receipts/payout/${payout.investment_id}/${linkMonth}`;
+        toast.success("Payout marked as Paid. Receipt is ready.", {
+          action: {
+            label: "View Receipt",
+            onClick: () => window.open(receiptUrl, "_blank"),
+          },
+        });
+      } else {
+        toast.success("Payout status updated successfully.");
+      }
+
       onOpenChange(false);
     },
     onError: (error) => {
