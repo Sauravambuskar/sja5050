@@ -33,10 +33,18 @@ export const IdCardSection = () => {
   // Helper to produce human-readable error messages
   const getErrorMessage = (err: unknown) => {
     if (err instanceof Error) return err.message;
+    try { return JSON.stringify(err); } catch { return String(err); }
+  };
+
+  // NEW: Ensure external image URLs use HTTPS to avoid mixed content
+  const sanitizeUrl = (url?: string | null) => {
+    if (!url) return undefined;
     try {
-      return JSON.stringify(err);
+      const u = new URL(url, window.location.origin);
+      if (u.protocol === 'http:') u.protocol = 'https:';
+      return u.toString();
     } catch {
-      return String(err);
+      return url.replace(/^http:\/\//, 'https://');
     }
   };
 
@@ -56,6 +64,25 @@ export const IdCardSection = () => {
     );
   };
 
+  // NEW: Robust capture that retries without background to avoid cross-origin taint
+  const captureCardAsPng = async (pixelRatio = 3) => {
+    if (!idCardRef.current) throw new Error('Card not ready');
+    await ensureImagesLoaded();
+
+    try {
+      return await toPng(idCardRef.current, { cacheBust: true, pixelRatio });
+    } catch {
+      const el = idCardRef.current;
+      const prevBg = el.style.backgroundImage;
+      el.style.backgroundImage = 'none';
+      try {
+        return await toPng(el, { cacheBust: true, pixelRatio });
+      } finally {
+        el.style.backgroundImage = prevBg;
+      }
+    }
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
     queryFn: () => fetchIdCardData(),
@@ -64,33 +91,30 @@ export const IdCardSection = () => {
 
   const handleDownload = async () => {
     if (!idCardRef.current) return;
-    await ensureImagesLoaded();
-    toPng(idCardRef.current, { cacheBust: true, pixelRatio: 2 })
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = `SJA-Member-ID-${data?.profile.member_id}.png`;
-        link.href = dataUrl;
-        link.click();
-        toast.success("ID Card downloaded successfully!");
-      })
-      .catch((err) => {
-        toast.error(`Download failed: ${getErrorMessage(err)}`);
-      });
+    try {
+      const dataUrl = await captureCardAsPng(2);
+      const link = document.createElement('a');
+      link.download = `SJA-Member-ID-${data?.profile.member_id}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("ID Card downloaded successfully!");
+    } catch (err) {
+      toast.error(`Download failed: ${getErrorMessage(err)}`);
+    }
   };
 
   const handleDownloadPdf = async () => {
     if (!idCardRef.current) return;
     setPdfLoading(true);
     try {
-      await ensureImagesLoaded();
-      const dataUrl = await toPng(idCardRef.current, { cacheBust: true, pixelRatio: 3 });
+      const dataUrl = await captureCardAsPng(3);
 
       // Load image to get dimensions for accurate aspect ratio
       const img = new Image();
       img.src = dataUrl;
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject(new Event('image-load-error'));
+        img.onerror = () => reject(new Error('Failed to load image for PDF'));
       });
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -126,7 +150,7 @@ export const IdCardSection = () => {
   const referralLink = data?.profile.referral_code ? `${window.location.origin}/register?ref=${data.profile.referral_code}` : "";
 
   const cardStyle = {
-    backgroundImage: data?.settings.background_image_url ? `url(${data.settings.background_image_url})` : 'none',
+    backgroundImage: data?.settings.background_image_url ? `url(${sanitizeUrl(data.settings.background_image_url)})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   };
@@ -160,7 +184,7 @@ export const IdCardSection = () => {
               {/* Header */}
               <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4">
                 {data?.settings.logo_url ? (
-                  <img src={data.settings.logo_url} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
+                  <img src={sanitizeUrl(data.settings.logo_url)} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
                 ) : (
                   <div className="w-10 h-10"></div>
                 )}
@@ -170,7 +194,7 @@ export const IdCardSection = () => {
               {/* Body */}
               <div className="relative bg-card/80 p-4 pb-2">
                 <Avatar className="h-20 w-20 absolute -top-10 left-4 border-2 border-card">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} crossOrigin="anonymous" />
+                  <AvatarImage src={sanitizeUrl(user?.user_metadata?.avatar_url)} crossOrigin="anonymous" />
                   <AvatarFallback className="text-2xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
                 </Avatar>
                 
