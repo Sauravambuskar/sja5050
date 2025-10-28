@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { ManagePayoutDialog } from "@/components/admin/ManagePayoutDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import useLedgerSync from "@/hooks/useLedgerSync";
 
 export type LedgerItem = {
   user_id: string;
@@ -60,6 +61,8 @@ const AdminLedger = () => {
     queryFn: () => fetchLedgerData(month),
     enabled: !!month,
   });
+
+  useLedgerSync();
 
   const handleManagePayout = (item: LedgerItem) => {
     setSelectedPayout(item);

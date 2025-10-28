@@ -13,6 +13,7 @@ import { exportToPdf } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { format, parse } from "date-fns";
 import { showError, showSuccess } from "@/utils/toast";
+import useLedgerSync from "@/hooks/useLedgerSync";
 
 type PayoutRow = {
   investment_id: string;
@@ -31,6 +32,8 @@ const PaymentHistory = () => {
   const [status, setStatus] = useState<string>("All");
   const [month, setMonth] = useState<string>(""); // YYYY-MM
   const [page, setPage] = useState<number>(0);
+
+  useLedgerSync();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["myPayoutHistory", status, month, page],
@@ -155,8 +158,6 @@ const PaymentHistory = () => {
                 <TableRow><TableCell colSpan={5} className="h-20 text-center text-muted-foreground">No payouts found.</TableCell></TableRow>
               ) : (
                 rows.map((row) => {
-                  const monthDate = new Date(row.payout_month as unknown as string);
-                  const yyyymm = format(monthDate, "yyyy-MM");
                   return (
                     <TableRow key={`${row.investment_id}-${row.payout_month}`}>
                       <TableCell>{row.plan_name}</TableCell>
@@ -167,10 +168,10 @@ const PaymentHistory = () => {
                       <TableCell className="text-right">{row.paid_amount != null ? `₹${row.paid_amount.toLocaleString("en-IN")}` : "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/receipts/payout/${row.investment_id}/${yyyymm}`}>
+                          <Link to={`/receipts/payout/${row.investment_id}/${row.payout_month}`}>
                             <Button variant="outline" size="sm">View Receipt</Button>
                           </Link>
-                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, yyyymm)}>
+                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, row.payout_month)}>
                             Download PDF
                           </Button>
                         </div>

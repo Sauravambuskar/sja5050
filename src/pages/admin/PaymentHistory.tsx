@@ -13,6 +13,7 @@ import { exportToPdf } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { format, parse } from "date-fns";
 import { showError, showSuccess } from "@/utils/toast";
+import useLedgerSync from "@/hooks/useLedgerSync";
 
 type AdminPayoutRow = {
   user_id: string;
@@ -36,6 +37,8 @@ const AdminPaymentHistory = () => {
   const [month, setMonth] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState<number>(0);
+
+  useLedgerSync();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["adminPayoutHistory", status, month, search, page],
@@ -169,8 +172,7 @@ const AdminPaymentHistory = () => {
                 <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">No payouts found.</TableCell></TableRow>
               ) : (
                 rows.map((row) => {
-                  const monthDate = new Date(row.payout_month as unknown as string);
-                  const yyyymm = format(monthDate, "yyyy-MM");
+                  const monthDate = parse(row.payout_month, "yyyy-MM", new Date());
                   return (
                     <TableRow key={`${row.investment_id}-${row.payout_month}`}>
                       <TableCell>
@@ -180,17 +182,17 @@ const AdminPaymentHistory = () => {
                         </div>
                       </TableCell>
                       <TableCell>{row.plan_name}</TableCell>
-                      <TableCell>{format(new Date(row.payout_month as unknown as string), "MMM yyyy")}</TableCell>
+                      <TableCell>{format(monthDate, "MMM yyyy")}</TableCell>
                       <TableCell>
                         <Badge variant={row.status === "Paid" ? "success" : "secondary"}>{row.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">{row.paid_amount != null ? `₹${row.paid_amount.toLocaleString("en-IN")}` : "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/admin/receipts/payout/${row.investment_id}/${yyyymm}`}>
+                          <Link to={`/admin/receipts/payout/${row.investment_id}/${format(monthDate, "yyyy-MM")}`}>
                             <Button variant="outline" size="sm">View Receipt</Button>
                           </Link>
-                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, yyyymm)}>
+                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, format(monthDate, "yyyy-MM"))}>
                             Download PDF
                           </Button>
                         </div>
