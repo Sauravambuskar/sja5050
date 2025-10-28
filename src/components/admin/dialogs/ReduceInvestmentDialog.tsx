@@ -94,7 +94,7 @@ export const ReduceInvestmentDialog = ({ investment, userId, isOpen, onOpenChang
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reduce Investment Amount</DialogTitle>
-          <DialogDescription>Manually reduce the principal amount for an active investment. The reduced amount will be credited to the user's wallet.</DialogDescription>
+          <DialogDescription>Manually reduce the principal amount for an active investment. The reduced amount will be processed as a withdrawal and will appear in the user's withdrawal history (no wallet credit).</DialogDescription>
         </DialogHeader>
         <Alert>
           <Info className="h-4 w-4" />

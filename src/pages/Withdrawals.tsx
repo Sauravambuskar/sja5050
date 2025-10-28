@@ -155,7 +155,7 @@ const WithdrawalsPage = () => {
               <CardTitle>Request Investment Withdrawal</CardTitle>
             </div>
             <CardDescription>
-              You can request to withdraw an active investment. This will move the principal amount to your wallet upon approval.
+              You can request to withdraw an active investment. Approved amounts are processed as direct withdrawals (no wallet credit).
             </CardDescription>
           </CardHeader>
           <CardContent>
