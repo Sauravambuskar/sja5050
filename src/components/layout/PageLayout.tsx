@@ -6,8 +6,8 @@ import { UserDetailsSheet } from "../admin/UserDetailsSheet";
 import { useAuth } from "../auth/AuthProvider";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface PageLayoutContextType {
   handleViewUser: (userId: string) => void;
@@ -18,8 +18,7 @@ export const usePageLayoutContext = () => {
 };
 
 export const PageLayout = () => {
-  const { data: profile } = useProfile();
-  const isAdmin = profile?.role === 'admin';
+  const { isAdmin } = useIsAdmin();
   const { isImpersonating } = useAuth();
   const { settings: systemSettings } = useSystemSettings();
 
