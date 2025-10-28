@@ -103,6 +103,7 @@ const adminNavItems: NavItem[] = [
   { to: "/admin/user-management", icon: Users, label: "Users" },
   { to: "/admin/request-management", icon: GitPullRequest, label: "Requests", countKey: 'total' },
   { to: "/admin/investment-management", icon: Briefcase, label: "Investments" },
+  { to: "/admin/investment-request-management", icon: FileCheck, label: "Approve Investment Req" },
   { to: "/admin/kyc-management", icon: ShieldCheck, label: "KYC", countKey: 'kyc' },
   { to: "/admin/support-desk", icon: Headset, label: "Support", countKey: 'support' },
   { to: "/admin/commission-rules", icon: Percent, label: "Commissions" },
