@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -30,14 +30,41 @@ export const IdCardSection = () => {
   const idCardRef = useRef<HTMLDivElement>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
+  // Helper to produce human-readable error messages
+  const getErrorMessage = (err: unknown) => {
+    if (err instanceof Error) return err.message;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  };
+
+  // Ensure all images in the card are loaded before capture
+  const ensureImagesLoaded = async () => {
+    if (!idCardRef.current) return;
+    const imgs = Array.from(idCardRef.current.querySelectorAll('img'));
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) return resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // resolve to avoid hanging; capture may still work
+          })
+      )
+    );
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
     queryFn: () => fetchIdCardData(),
     enabled: !!user,
   });
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!idCardRef.current) return;
+    await ensureImagesLoaded();
     toPng(idCardRef.current, { cacheBust: true, pixelRatio: 2 })
       .then((dataUrl) => {
         const link = document.createElement('a');
@@ -47,7 +74,7 @@ export const IdCardSection = () => {
         toast.success("ID Card downloaded successfully!");
       })
       .catch((err) => {
-        toast.error(`Download failed: ${err.message}`);
+        toast.error(`Download failed: ${getErrorMessage(err)}`);
       });
   };
 
@@ -55,6 +82,7 @@ export const IdCardSection = () => {
     if (!idCardRef.current) return;
     setPdfLoading(true);
     try {
+      await ensureImagesLoaded();
       const dataUrl = await toPng(idCardRef.current, { cacheBust: true, pixelRatio: 3 });
 
       // Load image to get dimensions for accurate aspect ratio
@@ -62,7 +90,7 @@ export const IdCardSection = () => {
       img.src = dataUrl;
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load image for PDF'));
+        img.onerror = () => reject(new Event('image-load-error'));
       });
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -76,7 +104,6 @@ export const IdCardSection = () => {
       const drawHeight = (availableWidth * imgHeight) / imgWidth;
 
       const x = margin;
-      // Center vertically if possible, but keep at least margin
       const y = Math.max(margin, (pageHeight - drawHeight) / 2);
 
       doc.addImage(dataUrl, 'PNG', x, y, availableWidth, drawHeight);
@@ -84,8 +111,8 @@ export const IdCardSection = () => {
       doc.save(filename);
 
       toast.success('PDF downloaded successfully!');
-    } catch (err: any) {
-      toast.error(`PDF download failed: ${err?.message || err}`);
+    } catch (err) {
+      toast.error(`PDF download failed: ${getErrorMessage(err)}`);
     } finally {
       setPdfLoading(false);
     }
@@ -133,7 +160,7 @@ export const IdCardSection = () => {
               {/* Header */}
               <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4">
                 {data?.settings.logo_url ? (
-                  <img src={data.settings.logo_url} alt="Company Logo" className="h-10" />
+                  <img src={data.settings.logo_url} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
                 ) : (
                   <div className="w-10 h-10"></div>
                 )}
@@ -143,7 +170,7 @@ export const IdCardSection = () => {
               {/* Body */}
               <div className="relative bg-card/80 p-4 pb-2">
                 <Avatar className="h-20 w-20 absolute -top-10 left-4 border-2 border-card">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarImage src={user?.user_metadata?.avatar_url} crossOrigin="anonymous" />
                   <AvatarFallback className="text-2xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
                 </Avatar>
                 
