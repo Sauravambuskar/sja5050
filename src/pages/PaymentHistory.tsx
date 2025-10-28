@@ -35,14 +35,14 @@ const PaymentHistory = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["myPayoutHistory", status, month, page],
     queryFn: async (): Promise<PayoutRow[]> => {
-      const monthFilter = month ? format(parse(month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM-01") : null;
-      const statusFilter = status === "All" ? null : status;
-      const { data, error } = await supabase.rpc("get_my_payout_history", {
+      const params: Record<string, any> = {
         page_limit: pageSize,
         page_offset: page * pageSize,
-        status_filter: statusFilter,
-        month_filter: monthFilter,
-      });
+      };
+      if (status !== "All") params.status_filter = status;
+      if (month) params.month_filter = format(parse(month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM-01");
+
+      const { data, error } = await supabase.rpc("get_my_payout_history", params);
       if (error) throw new Error(error.message);
       return (data ?? []) as PayoutRow[];
     },
@@ -155,11 +155,12 @@ const PaymentHistory = () => {
                 <TableRow><TableCell colSpan={5} className="h-20 text-center text-muted-foreground">No payouts found.</TableCell></TableRow>
               ) : (
                 rows.map((row) => {
-                  const yyyymm = format(parse(row.payout_month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM");
+                  const monthDate = new Date(row.payout_month as unknown as string);
+                  const yyyymm = format(monthDate, "yyyy-MM");
                   return (
                     <TableRow key={`${row.investment_id}-${row.payout_month}`}>
                       <TableCell>{row.plan_name}</TableCell>
-                      <TableCell>{format(parse(row.payout_month + "-01", "yyyy-MM-dd", new Date()), "MMM yyyy")}</TableCell>
+                      <TableCell>{format(new Date(row.payout_month as unknown as string), "MMM yyyy")}</TableCell>
                       <TableCell>
                         <Badge variant={row.status === "Paid" ? "success" : "secondary"}>{row.status}</Badge>
                       </TableCell>

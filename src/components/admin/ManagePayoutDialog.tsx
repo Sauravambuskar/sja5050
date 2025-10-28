@@ -88,7 +88,10 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
     },
     onSuccess: () => {
       toast.success("Payout status updated successfully.");
-      queryClient.invalidateQueries({ queryKey: ["adminLedger", month] });
+      queryClient.invalidateQueries({ queryKey: ["adminLedger"] });
+      // Also refresh Payment History lists on both sides
+      queryClient.invalidateQueries({ queryKey: ["adminPayoutHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["myPayoutHistory"] });
       onOpenChange(false);
     },
     onError: (error) => {

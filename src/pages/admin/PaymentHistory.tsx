@@ -40,16 +40,12 @@ const AdminPaymentHistory = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["adminPayoutHistory", status, month, search, page],
     queryFn: async (): Promise<AdminPayoutRow[]> => {
-      const monthFilter = month ? format(parse(month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM-01") : null;
-      const statusFilter = status === "All" ? null : status;
-      const searchText = search || null;
-      const { data, error } = await supabase.rpc("get_admin_payout_history", {
-        p_status_filter: statusFilter,
-        p_month_filter: monthFilter,
-        p_search_text: searchText,
-        p_limit: pageSize,
-        p_offset: page * pageSize,
-      });
+      const params: Record<string, any> = { p_limit: pageSize, p_offset: page * pageSize };
+      if (status !== "All") params.p_status_filter = status;
+      if (month) params.p_month_filter = format(parse(month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM-01");
+      if (search) params.p_search_text = search;
+
+      const { data, error } = await supabase.rpc("get_admin_payout_history", params);
       if (error) throw new Error(error.message);
       return (data ?? []) as AdminPayoutRow[];
     },
@@ -173,7 +169,8 @@ const AdminPaymentHistory = () => {
                 <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">No payouts found.</TableCell></TableRow>
               ) : (
                 rows.map((row) => {
-                  const yyyymm = format(parse(row.payout_month + "-01", "yyyy-MM-dd", new Date()), "yyyy-MM");
+                  const monthDate = new Date(row.payout_month as unknown as string);
+                  const yyyymm = format(monthDate, "yyyy-MM");
                   return (
                     <TableRow key={`${row.investment_id}-${row.payout_month}`}>
                       <TableCell>
@@ -183,7 +180,7 @@ const AdminPaymentHistory = () => {
                         </div>
                       </TableCell>
                       <TableCell>{row.plan_name}</TableCell>
-                      <TableCell>{format(parse(row.payout_month + "-01", "yyyy-MM-dd", new Date()), "MMM yyyy")}</TableCell>
+                      <TableCell>{format(new Date(row.payout_month as unknown as string), "MMM yyyy")}</TableCell>
                       <TableCell>
                         <Badge variant={row.status === "Paid" ? "success" : "secondary"}>{row.status}</Badge>
                       </TableCell>
