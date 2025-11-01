@@ -29,6 +29,8 @@ type Receipt = {
   bank_account_holder_name: string | null;
   bank_account_number: string | null;
   bank_ifsc_code: string | null;
+  platform_fee: number | null;
+  edit_reason: string | null;
 };
 
 const fetchReceipt = async (investmentId: string, payoutMonth: string): Promise<Receipt | null> => {
@@ -63,9 +65,11 @@ const AdminPayoutReceipt = () => {
       ["Monthly Profit", `₹${receipt.monthly_profit.toLocaleString("en-IN")}`],
       ["Payout Month", format(parse(payoutMonth! + "-01", "yyyy-MM-dd", new Date()), "MMMM yyyy")],
       ["Paid Amount", `₹${(receipt.paid_amount ?? 0).toLocaleString("en-IN")}`],
+      ["Platform Fee", `₹${(receipt.platform_fee ?? 0).toLocaleString("en-IN")}`],
       ["Payment Date", receipt.payment_date ? format(new Date(receipt.payment_date), "PPpp") : "—"],
       ["Payment Mode", receipt.payment_mode || "—"],
       ["Remarks", receipt.remarks || "—"],
+      ["Edit Reason", receipt.edit_reason || "—"],
       ["Processed By", receipt.processed_by_email || "—"],
       ["Bank Holder", receipt.bank_account_holder_name || "—"],
       ["Bank Account", receipt.bank_account_number || "—"],
@@ -140,6 +144,16 @@ const AdminPayoutReceipt = () => {
                   <p className="font-medium">{receipt.processed_by_email || "—"}</p>
                   <p className="text-sm text-muted-foreground">Remarks</p>
                   <p className="font-mono">{receipt.remarks || "—"}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Platform Fee</p>
+                      <p className="font-medium">₹{(receipt.platform_fee ?? 0).toLocaleString("en-IN")}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Edit Reason</p>
+                      <p className="font-mono">{receipt.edit_reason || "—"}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

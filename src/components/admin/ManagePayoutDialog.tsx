@@ -39,6 +39,8 @@ const formSchema = z.object({
   paid_amount: z.coerce.number().optional(),
   payment_mode: z.string().optional(),
   remarks: z.string().optional(),
+  platform_fee: z.coerce.number().optional(),
+  edit_reason: z.string().optional(),
 });
 
 interface ManagePayoutDialogProps {
@@ -57,6 +59,8 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
       paid_amount: 0,
       payment_mode: "",
       remarks: "",
+      platform_fee: 0,
+      edit_reason: "",
     },
   });
 
@@ -67,6 +71,8 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
         paid_amount: payout.paid_amount || payout.accrued_in_period,
         payment_mode: "", // This can be fetched if stored
         remarks: payout.payout_remarks || "",
+        platform_fee: 0,
+        edit_reason: "",
       });
     }
   }, [payout, form]);
@@ -82,6 +88,8 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
         p_paid_amount: values.status === 'Paid' ? values.paid_amount : null,
         p_payment_mode: values.payment_mode,
         p_remarks: values.remarks,
+        p_platform_fee: values.status === 'Paid' ? values.platform_fee : null,
+        p_edit_reason: values.status === 'Paid' ? values.edit_reason : null,
       });
 
       if (error) throw error;
@@ -177,6 +185,32 @@ export const ManagePayoutDialog = ({ isOpen, onOpenChange, payout, month }: Mana
                       <FormLabel>Payment Mode</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Bank Transfer, UPI" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="platform_fee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Platform Fee</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Enter platform fee (optional)" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="edit_reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Edit Reason</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Why was this payment edited?" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
