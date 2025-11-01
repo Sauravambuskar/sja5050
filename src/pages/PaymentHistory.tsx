@@ -160,6 +160,8 @@ const PaymentHistory = () => {
                 <TableRow><TableCell colSpan={5} className="h-20 text-center text-muted-foreground">No payouts found.</TableCell></TableRow>
               ) : (
                 rows.map((row) => {
+                  const monthDate = new Date(row.payout_month as unknown as string);
+                  const monthParam = format(monthDate, "yyyy-MM");
                   return (
                     <TableRow key={`${row.investment_id}-${row.payout_month}`}>
                       <TableCell>{row.plan_name}</TableCell>
@@ -170,10 +172,10 @@ const PaymentHistory = () => {
                       <TableCell className="text-right">{row.paid_amount != null ? `₹${row.paid_amount.toLocaleString("en-IN")}` : "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/receipts/payout/${row.investment_id}/${row.payout_month}`}>
+                          <Link to={`/receipts/payout/${row.investment_id}/${monthParam}`}>
                             <Button variant="outline" size="sm">View Receipt</Button>
                           </Link>
-                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, row.payout_month)}>
+                          <Button variant="ghost" size="sm" onClick={() => onDownload(row.investment_id, monthParam)}>
                             Download PDF
                           </Button>
                         </div>

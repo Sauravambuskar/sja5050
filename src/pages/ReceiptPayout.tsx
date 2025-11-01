@@ -34,7 +34,8 @@ type Receipt = {
 };
 
 const fetchReceipt = async (investmentId: string, payoutMonth: string): Promise<Receipt | null> => {
-  const monthDate = parse(payoutMonth + "-01", "yyyy-MM-dd", new Date());
+  const normalized = payoutMonth.length === 7 ? `${payoutMonth}-01` : payoutMonth.substring(0, 10);
+  const monthDate = parse(normalized, "yyyy-MM-dd", new Date());
   const { data, error } = await supabase.rpc("get_my_payout_receipt", {
     p_investment_id: investmentId,
     p_payout_month: format(monthDate, "yyyy-MM-01"),
@@ -63,7 +64,7 @@ const ReceiptPayout = () => {
       ["Plan", receipt.plan_name || "N/A"],
       ["Investment Amount", `₹${receipt.investment_amount.toLocaleString("en-IN")}`],
       ["Monthly Profit", `₹${receipt.monthly_profit.toLocaleString("en-IN")}`],
-      ["Payout Month", format(parse(payoutMonth! + "-01", "yyyy-MM-dd", new Date()), "MMMM yyyy")],
+      ["Payout Month", format(parse((payoutMonth!.length === 7 ? `${payoutMonth}-01` : payoutMonth!.substring(0, 10)), "yyyy-MM-dd", new Date()), "MMMM yyyy")],
       ["Paid Amount", `₹${(receipt.paid_amount ?? 0).toLocaleString("en-IN")}`],
       ["Platform Fee", `₹${(receipt.platform_fee ?? 0).toLocaleString("en-IN")}`],
       ["Payment Date", receipt.payment_date ? format(new Date(receipt.payment_date), "PPpp") : "—"],
@@ -75,7 +76,7 @@ const ReceiptPayout = () => {
       ["Bank Account", receipt.bank_account_number || "—"],
       ["IFSC", receipt.bank_ifsc_code || "—"],
     ];
-    const title = `Payout Receipt - ${format(parse(payoutMonth! + "-01", "yyyy-MM-dd", new Date()), "MMMM yyyy")}`;
+    const title = `Payout Receipt - ${format(parse((payoutMonth!.length === 7 ? `${payoutMonth}-01` : payoutMonth!.substring(0, 10)), "yyyy-MM-dd", new Date()), "MMMM yyyy")}`;
     exportToPdf(`Payout_Receipt_${payoutMonth}.pdf`, title, headers, body, receipt.user_name || "User");
   };
 
