@@ -30,17 +30,20 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           backgroundPosition: 'center',
         }}
       >
-        <div className="lg:hidden absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <div className="lg:hidden absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
         <div className="relative z-10 w-full max-w-md">
           {/* Logo Section */}
           <div className="mb-8 flex justify-center">
             {isLoading ? (
               <Skeleton className="h-16 w-32" />
             ) : (
-              <img 
+              <img
                 src={logoUrl}
-                alt="Company Logo" 
-                className="h-16 w-auto object-contain" 
+                alt="Company Logo"
+                title="Company Logo"
+                loading="lazy"
+                decoding="async"
+                className="h-14 sm:h-16 md:h-20 w-auto max-w-[220px] object-contain drop-shadow-md"
               />
             )}
           </div>

@@ -89,6 +89,13 @@ export const AuthLayoutCustomizer = () => {
       return;
     }
 
+    // Guard against overly large files to keep the logo crisp and fast.
+    // Recommended: <= 512 KB, transparent PNG, ~220x60–80 px, aspect ratio ~3:1–4:1
+    if (file.size > 512 * 1024) {
+      toast.error('Logo is too large (max 512KB). Please optimize your image.');
+      return;
+    }
+
     setIsUploading(true);
     try {
       const publicUrl = await uploadLogo(file);
@@ -119,6 +126,9 @@ export const AuthLayoutCustomizer = () => {
               {/* Logo Upload Section */}
               <div className="space-y-4">
                 <FormLabel>Login Page Logo</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Ideal: transparent PNG, wide format (~220×60–80 px), aspect ratio ~3:1–4:1, under 512KB.
+                </p>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={form.watch('login_page_logo_url') || undefined} />
