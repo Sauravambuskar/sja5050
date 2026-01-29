@@ -30,12 +30,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  MoreHorizontal,
-  PlusCircle,
-  FileText,
-  Search,
-} from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileText, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { DataTable } from "@/components/ui/data-table";
 import { columns } from "@/components/admin/user-management/columns";
@@ -59,14 +54,41 @@ import {
 
 const PAGE_SIZE = 20;
 
+type SortValue =
+  | "newest"
+  | "oldest"
+  | "name_asc"
+  | "name_desc"
+  | "email_asc"
+  | "email_desc";
+
+function parseSort(sort: SortValue) {
+  switch (sort) {
+    case "oldest":
+      return { sort_by: "join_date", sort_dir: "asc" };
+    case "name_asc":
+      return { sort_by: "full_name", sort_dir: "asc" };
+    case "name_desc":
+      return { sort_by: "full_name", sort_dir: "desc" };
+    case "email_asc":
+      return { sort_by: "email", sort_dir: "asc" };
+    case "email_desc":
+      return { sort_by: "email", sort_dir: "desc" };
+    case "newest":
+    default:
+      return { sort_by: "join_date", sort_dir: "desc" };
+  }
+}
+
 const fetchUsers = async (
   page: number,
   searchTerm: string,
   kycStatus: string,
-  accountStatus: string
+  accountStatus: string,
+  sort: SortValue
 ) => {
-  console.log('Fetching users with params:', { page, searchTerm, kycStatus, accountStatus });
-  
+  const { sort_by, sort_dir } = parseSort(sort);
+
   const { data, error, count } = await supabase
     .rpc(
       "get_all_users_details",
@@ -76,16 +98,16 @@ const fetchUsers = async (
         account_status_filter: accountStatus || null,
         page_limit: PAGE_SIZE,
         page_offset: (page - 1) * PAGE_SIZE,
+        sort_by,
+        sort_dir,
       },
       { count: "exact" }
     );
 
   if (error) {
-    console.error('Error fetching users:', error);
     throw new Error(error.message);
   }
-  
-  console.log('Fetched users:', { data, count });
+
   return { users: data as AdminUserView[], count: count ?? 0 };
 };
 
@@ -95,49 +117,36 @@ const UserManagement = () => {
   const queryClient = useQueryClient();
 
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
-  );
-  const [kycStatus, setKycStatus] = useState(
-    searchParams.get("kyc_status") || "all"
-  );
-  const [accountStatus, setAccountStatus] = useState(
-    searchParams.get("account_status") || "all"
-  );
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [kycStatus, setKycStatus] = useState(searchParams.get("kyc_status") || "all");
+  const [accountStatus, setAccountStatus] = useState(searchParams.get("account_status") || "all");
+  const [sort, setSort] = useState<SortValue>((searchParams.get("sort") as SortValue) || "newest");
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
-  const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(
-    null
-  );
+  const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
 
   const sheetUserId = searchParams.get("user");
   const isSheetOpen = !!sheetUserId;
 
-  const {
-    data: queryData,
-    isLoading,
-    isError,
-    error,
-    isFetching,
-  } = useQuery({
-    queryKey: [
-      "adminUsers",
-      page,
-      debouncedSearchTerm,
-      kycStatus,
-      accountStatus,
-    ],
+  const { data: queryData, isLoading, isError, error, isFetching } = useQuery({
+    queryKey: ["adminUsers", page, debouncedSearchTerm, kycStatus, accountStatus, sort],
     queryFn: () =>
-      fetchUsers(page, debouncedSearchTerm, kycStatus === "all" ? "" : kycStatus, accountStatus === "all" ? "" : accountStatus),
+      fetchUsers(
+        page,
+        debouncedSearchTerm,
+        kycStatus === "all" ? "" : kycStatus,
+        accountStatus === "all" ? "" : accountStatus,
+        sort
+      ),
     placeholderData: keepPreviousData,
-    staleTime: 0, // Ensure data is always fresh
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    retry: 3, // Add retry logic
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { users = [], count = 0 } = queryData || {};
@@ -159,13 +168,15 @@ const UserManagement = () => {
     updateSearchParams({ page: newPage.toString() });
   };
 
-  const handleFilterChange = (
-    filter: "kyc_status" | "account_status",
-    value: string
-  ) => {
+  const handleFilterChange = (filter: "kyc_status" | "account_status", value: string) => {
     if (filter === "kyc_status") setKycStatus(value);
     if (filter === "account_status") setAccountStatus(value);
     updateSearchParams({ [filter]: value === "all" ? "" : value, page: "1" });
+  };
+
+  const handleSortChange = (value: SortValue) => {
+    setSort(value);
+    updateSearchParams({ sort: value === "newest" ? "" : value, page: "1" });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,7 +199,7 @@ const UserManagement = () => {
     setIsEditUserOpen(true);
   };
 
-  const impersonateUser = async (userId: string) => {
+  const impersonateUser = async (_userId: string) => {
     toast.error("Impersonation feature is currently disabled.");
   };
 
@@ -208,10 +219,9 @@ const UserManagement = () => {
 
     toast.loading(`${action} user...`);
 
-    const { error } = await supabase.auth.admin.updateUserById(
-      userToSuspend.id,
-      { ban_duration: suspend ? "876000h" : "0s" }
-    );
+    const { error } = await supabase.auth.admin.updateUserById(userToSuspend.id, {
+      ban_duration: suspend ? "876000h" : "0s",
+    });
 
     if (error) {
       toast.error(`Failed to ${action.toLowerCase()} user: ${error.message}`);
@@ -239,9 +249,7 @@ const UserManagement = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">
-            View, manage, and edit user accounts.
-          </p>
+          <p className="text-muted-foreground">View, manage, and edit user accounts.</p>
         </div>
         <Button onClick={() => setIsAddUserOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
@@ -250,7 +258,7 @@ const UserManagement = () => {
       </div>
 
       <div className="bg-card border rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -260,6 +268,7 @@ const UserManagement = () => {
               className="pl-10"
             />
           </div>
+
           <Select value={kycStatus} onValueChange={(v) => handleFilterChange("kyc_status", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by KYC Status" />
@@ -272,6 +281,7 @@ const UserManagement = () => {
               <SelectItem value="Not Submitted">Not Submitted</SelectItem>
             </SelectContent>
           </Select>
+
           <Select value={accountStatus} onValueChange={(v) => handleFilterChange("account_status", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by Account Status" />
@@ -282,22 +292,36 @@ const UserManagement = () => {
               <SelectItem value="Suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={sort} onValueChange={(v) => handleSortChange(v as SortValue)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first (default)</SelectItem>
+              <SelectItem value="oldest">Oldest first</SelectItem>
+              <SelectItem value="name_asc">Name A → Z</SelectItem>
+              <SelectItem value="name_desc">Name Z → A</SelectItem>
+              <SelectItem value="email_asc">Email A → Z</SelectItem>
+              <SelectItem value="email_desc">Email Z → A</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Tip: Default sorting is <span className="font-medium">Newest first</span>, so newly created users show at the top.
+        </p>
       </div>
 
       <div className="space-y-4 md:hidden">
         {isLoading || isFetching ? (
-          [...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full rounded-lg" />
-          ))
+          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)
         ) : isError ? (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-center text-destructive">
-                Error fetching users: {error.message}
-              </p>
-              <Button 
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["adminUsers"] })} 
+              <p className="text-center text-destructive">Error fetching users: {error.message}</p>
+              <Button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["adminUsers"] })}
                 className="mt-4 mx-auto"
                 variant="outline"
               >
@@ -307,10 +331,7 @@ const UserManagement = () => {
           </Card>
         ) : users && Array.isArray(users) && users.length > 0 ? (
           users.map((user) => (
-            <Card
-              key={user.id}
-              className={isUserSuspended(user) ? "bg-muted/50" : ""}
-            >
+            <Card key={user.id} className={isUserSuspended(user) ? "bg-muted/50" : ""}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
@@ -325,25 +346,14 @@ const UserManagement = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleViewUser(user.id)}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          navigate(`/admin/users/${user.id}/payment-details`)
-                        }
-                      >
+                      <DropdownMenuItem onClick={() => handleViewUser(user.id)}>View Details</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}/payment-details`)}>
                         <FileText className="mr-2 h-4 w-4" />
                         Payment Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                        Edit User
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit User</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleSuspendClick(user)}
-                      >
+                      <DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>
                         {isUserSuspended(user) ? "Unsuspend" : "Suspend"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -356,11 +366,7 @@ const UserManagement = () => {
                   {isUserSuspended(user) ? (
                     <Badge variant="destructive">Suspended</Badge>
                   ) : (
-                    <Badge
-                      variant={user.role === "admin" ? "destructive" : "outline"}
-                    >
-                      {user.role}
-                    </Badge>
+                    <Badge variant={user.role === "admin" ? "destructive" : "outline"}>{user.role}</Badge>
                   )}
                 </div>
                 <div className="flex justify-between">
@@ -370,8 +376,8 @@ const UserManagement = () => {
                       user.kyc_status === "Approved"
                         ? "default"
                         : user.kyc_status === "Pending"
-                        ? "outline"
-                        : "secondary"
+                          ? "outline"
+                          : "secondary"
                     }
                   >
                     {user.kyc_status || "Not Submitted"}
@@ -381,17 +387,13 @@ const UserManagement = () => {
                   <span className="text-muted-foreground">Last Login</span>
                   <span>
                     {user.last_sign_in_at
-                      ? formatDistanceToNow(new Date(user.last_sign_in_at), {
-                          addSuffix: true,
-                        })
+                      ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true })
                       : "Never"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Wallet</span>
-                  <span className="font-mono">
-                    ₹{(user.wallet_balance || 0).toLocaleString("en-IN")}
-                  </span>
+                  <span className="font-mono">₹{(user.wallet_balance || 0).toLocaleString("en-IN")}</span>
                 </div>
               </CardContent>
             </Card>
@@ -401,9 +403,7 @@ const UserManagement = () => {
             <CardContent className="pt-6">
               <p className="text-center text-muted-foreground">No users found.</p>
               {debouncedSearchTerm && (
-                <p className="text-center text-sm text-muted-foreground mt-2">
-                  Try adjusting your search terms or filters.
-                </p>
+                <p className="text-center text-sm text-muted-foreground mt-2">Try adjusting your search terms or filters.</p>
               )}
             </CardContent>
           </Card>
@@ -411,42 +411,18 @@ const UserManagement = () => {
       </div>
 
       <div className="hidden md:block">
-        <DataTable
-          columns={memoizedColumns}
-          data={users || []}
-          isLoading={isLoading || isFetching}
-          error={error as Error | null}
-        />
+        <DataTable columns={memoizedColumns} data={users || []} isLoading={isLoading || isFetching} error={error as Error | null} />
       </div>
 
       {totalPages > 1 && (
-        <PaginationControls
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+        <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
 
-      <AddUserDialog
-        isOpen={isAddUserOpen}
-        onOpenChange={setIsAddUserOpen}
-      />
-      <EditUserDialog
-        isOpen={isEditUserOpen}
-        onOpenChange={setIsEditUserOpen}
-        user={selectedUser}
-      />
-      <UserDetailsSheet
-        userId={sheetUserId}
-        isOpen={isSheetOpen}
-        onOpenChange={handleSheetOpenChange}
-        onViewUser={handleViewUser}
-      />
+      <AddUserDialog isOpen={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
+      <EditUserDialog isOpen={isEditUserOpen} onOpenChange={setIsEditUserOpen} user={selectedUser} />
+      <UserDetailsSheet userId={sheetUserId} isOpen={isSheetOpen} onOpenChange={handleSheetOpenChange} onViewUser={handleViewUser} />
 
-      <AlertDialog
-        open={!!userToSuspend}
-        onOpenChange={() => setUserToSuspend(null)}
-      >
+      <AlertDialog open={!!userToSuspend} onOpenChange={() => setUserToSuspend(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -458,9 +434,7 @@ const UserManagement = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSuspendConfirm}>
-              Confirm
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleSuspendConfirm}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
