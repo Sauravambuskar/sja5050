@@ -106,7 +106,14 @@ serve(async (req) => {
 
     // 4) The DB trigger `handle_new_user_setup` creates the basic profile + wallet.
     // Now update the profile with the comprehensive details provided by the admin.
-    const { error: rpcError } = await supabaseAdmin.rpc("admin_update_user_profile", {
+    // IMPORTANT: call using the admin's JWT so auth.uid() is set (audit log + admin check).
+    const supabaseAuthed = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { error: rpcError } = await supabaseAuthed.rpc("admin_update_user_profile", {
       p_user_id: newUserId,
       p_full_name: profileData.full_name,
       p_phone: profileData.phone ?? null,
@@ -162,7 +169,10 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: mode === "invite" ? "User created successfully and invitation sent." : "User created successfully.",
+        message:
+          mode === "invite"
+            ? "User created successfully and invitation sent."
+            : "User created successfully.",
         userId: newUserId,
       }),
       {
