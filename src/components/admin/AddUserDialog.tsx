@@ -34,6 +34,19 @@ function generatePassword(length = 12) {
     .join("");
 }
 
+async function extractEdgeFunctionErrorMessage(err: any) {
+  const fallback = err?.message || "Request failed";
+  const res = err?.context?.response;
+  if (!res) return fallback;
+
+  try {
+    const body = await res.clone().json();
+    return body?.error || body?.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const addUserSchema = z
   .object({
     create_mode: z.enum(["instant", "invite"]).default("instant"),
@@ -91,8 +104,13 @@ const createUser = async (values: AddUserFormValues) => {
       profileData: formattedProfileData,
     },
   });
-  if (error) throw error;
-  if (data.error) throw new Error(data.error);
+
+  if (error) {
+    const msg = await extractEdgeFunctionErrorMessage(error);
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+
   return data as { message: string; userId: string };
 };
 
@@ -113,7 +131,6 @@ export const AddUserDialog = ({ isOpen, onOpenChange }: AddUserDialogProps) => {
     mutationFn: createUser,
     onSuccess: async (_data, variables) => {
       if (variables.create_mode === "instant") {
-        // Convenience: copy password so admin can share it securely.
         try {
           await navigator.clipboard.writeText(variables.password || "");
           toast.success("User created successfully!", { description: "Password copied to clipboard." });
@@ -131,7 +148,7 @@ export const AddUserDialog = ({ isOpen, onOpenChange }: AddUserDialogProps) => {
       form.reset({ create_mode: "instant", password: generatePassword() });
     },
     onError: (error) => {
-      toast.error(`Failed to create user: ${error.message}`);
+      toast.error(error.message);
     },
   });
 

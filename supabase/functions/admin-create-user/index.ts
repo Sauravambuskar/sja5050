@@ -83,7 +83,6 @@ serve(async (req) => {
     let newUserId: string;
 
     if (mode === "invite") {
-      // Invite = sends Supabase invite email, user sets password via email link
       const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
         email,
         {
@@ -93,7 +92,6 @@ serve(async (req) => {
       if (inviteError) throw inviteError;
       newUserId = inviteData.user.id;
     } else {
-      // Instant = admin sets password, email is marked confirmed (no email verification needed)
       const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -104,9 +102,7 @@ serve(async (req) => {
       newUserId = createData.user.id;
     }
 
-    // 4) The DB trigger `handle_new_user_setup` creates the basic profile + wallet.
-    // Now update the profile with the comprehensive details provided by the admin.
-    // IMPORTANT: call using the admin's JWT so auth.uid() is set (audit log + admin check).
+    // 4) Update profile via secure RPC using the admin's JWT (so auth.uid() is set).
     const supabaseAuthed = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -141,9 +137,7 @@ serve(async (req) => {
       if (nomineeError) throw nomineeError;
     }
 
-    // 5) Optional: send a welcome email
-    // - Invite flow already sends a Supabase invite email
-    // - Instant flow does NOT need email verification; by default we don't email passwords
+    // 5) Optional: send a welcome email for invite flow
     if (mode === "invite") {
       await supabaseAdmin.functions.invoke("send-transactional-email", {
         body: {
@@ -181,9 +175,16 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error(`[${FUNCTION_NAME}] error`, { message: error?.message });
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    const msg = String(error?.message || "Unknown error");
+
+    let status = 500;
+    if (msg.toLowerCase().includes("already been registered")) status = 409;
+    if (msg.toLowerCase().includes("missing required")) status = 400;
+
+    console.error(`[${FUNCTION_NAME}] error`, { message: msg, status });
+
+    return new Response(JSON.stringify({ error: msg }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
