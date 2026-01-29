@@ -7,6 +7,7 @@ import { Users, UserPlus, TrendingUp } from "lucide-react";
 import { AdminReferralNetworkTable } from "@/components/admin/AdminReferralNetworkTable";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
 
 interface AdminUserReferralsTabProps {
   userId: string;
@@ -59,6 +60,12 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/admin/referral-management?userId=${userId}`}>Open Referral Tree</Link>
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -101,6 +101,7 @@ const userNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/user-management", icon: Users, label: "Users" },
+  { to: "/admin/referral-management", icon: UserRoundSearch, label: "Referral Mgmt" },
   { to: "/admin/request-management", icon: GitPullRequest, label: "Requests", countKey: 'total' },
   { to: "/admin/investment-management", icon: Briefcase, label: "Investments" },
   { to: "/admin/investment-requests", icon: FileCheck, label: "Approve Investment Req" },

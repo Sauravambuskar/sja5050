@@ -67,6 +67,7 @@ import DashboardLoader from "@/pages/DashboardLoader"; // Import DashboardLoader
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import AdminLedger from "@/pages/admin/Ledger";
+import ReferralManagement from "@/pages/admin/ReferralManagement";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +112,7 @@ const MainRouter = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="user-management" element={<UserManagement />} />
+            <Route path="referral-management" element={<ReferralManagement />} />
             <Route path="users/:userId/payment-details" element={<ClientPaymentDetails />} />
             <Route path="request-management" element={<RequestManagement />} />
             <Route path="wallet-withdrawal-management" element={<WalletWithdrawalManagement />} />
