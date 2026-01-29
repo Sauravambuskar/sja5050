@@ -20,10 +20,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Verify admin
-    const { data: { user: adminUser } } = await supabaseAdmin.auth.getUser(req.headers.get('Authorization')?.replace('Bearer ', ''))
+    const { data: { user: adminUser } } = await supabaseAdmin.auth.getUser(token)
     if (!adminUser) throw new Error("Authentication failed.")
-    const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('role').eq('id', adminUser.id).single()
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', adminUser.id)
+      .single()
+
     if (profileError || profile.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Permission denied.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -34,29 +48,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing required fields: userId, profileData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 1. Update the protected auth.users table using the admin client
+    // 1. Update auth metadata (full name)
     const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       { user_metadata: { full_name: profileData.full_name } }
-    );
-    if (authUpdateError) throw authUpdateError;
+    )
+    if (authUpdateError) throw authUpdateError
 
-    // 2. Call the secure RPC function to update the public profiles table
+    // 2. Update the public profiles table via secure RPC
     const { error: rpcError } = await supabaseAdmin.rpc('admin_update_user_profile', {
       p_user_id: userId,
       p_full_name: profileData.full_name,
-      p_phone: profileData.phone,
-      p_dob: profileData.dob,
-      p_address: profileData.address,
-      p_city: profileData.city,
-      p_state: profileData.state,
-      p_pincode: profileData.pincode,
-      p_bank_account_holder_name: profileData.bank_account_holder_name,
-      p_bank_account_number: profileData.bank_account_number,
-      p_bank_ifsc_code: profileData.bank_ifsc_code,
-      p_nominee_name: profileData.nominee_name,
-      p_nominee_relationship: profileData.nominee_relationship,
-      p_nominee_dob: profileData.nominee_dob,
+      p_phone: profileData.phone ?? null,
+      p_dob: profileData.dob ?? null,
+      p_address: profileData.address ?? null,
+      p_city: profileData.city ?? null,
+      p_state: profileData.state ?? null,
+      p_pincode: profileData.pincode ?? null,
+      p_bank_account_holder_name: profileData.bank_account_holder_name ?? null,
+      p_bank_account_number: profileData.bank_account_number ?? null,
+      p_bank_ifsc_code: profileData.bank_ifsc_code ?? null,
+      p_bank_name: profileData.bank_name ?? null,
     })
 
     if (rpcError) throw rpcError

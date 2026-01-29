@@ -4,19 +4,28 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon, Download } from "lucide-react";
+import { Loader2, Edit, Calendar as CalendarIcon, Link as LinkIcon, Download, KeyRound, Mail } from "lucide-react";
 import { cn, exportToPdf } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { NomineeManager } from "../NomineeManager";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name is required.").max(100),
@@ -33,6 +42,13 @@ const profileSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const authSchema = z.object({
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  password: z.string().min(8, "Password must be at least 8 characters").optional().or(z.literal("")),
+});
+
+type AuthFormValues = z.infer<typeof authSchema>;
 
 const fetchUserProfileForAdmin = async (userId: string): Promise<Profile> => {
   const { data, error } = await supabase.rpc('get_user_profile_for_admin', { user_id_to_fetch: userId });
@@ -57,7 +73,13 @@ interface AdminUserProfileTabProps {
 export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProfileTabProps) => {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [confirmAuthUpdate, setConfirmAuthUpdate] = useState<null | { email?: string; password?: string }>(null);
+
   const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
+  const authForm = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['userProfileForAdmin', userId],
@@ -85,7 +107,6 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
-      if (!userId) throw new Error("User ID is missing.");
       const profileData = { ...values, dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null };
       const { error } = await supabase.functions.invoke('admin-update-profile', { body: { userId, profileData } });
       if (error) throw error;
@@ -100,7 +121,42 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
     onError: (error) => { toast.error(`Update failed: ${error.message}`); },
   });
 
+  const updateAuthMutation = useMutation({
+    mutationFn: async (payload: { email?: string; password?: string }) => {
+      const { data, error } = await supabase.functions.invoke('admin-update-auth-user', {
+        body: {
+          userId,
+          email: payload.email,
+          password: payload.password,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("User login updated");
+      queryClient.invalidateQueries({ queryKey: ['userDetails', userId] });
+      queryClient.invalidateQueries({ queryKey: ['allUsersDetails'] });
+      authForm.reset({ email: "", password: "" });
+    },
+    onError: (error) => toast.error(`Auth update failed: ${error.message}`),
+    onSettled: () => setConfirmAuthUpdate(null),
+  });
+
   const onProfileSubmit = (values: ProfileFormValues) => updateProfileMutation.mutate(values);
+
+  const onAuthSubmit = (values: AuthFormValues) => {
+    const newEmail = values.email?.trim() || undefined;
+    const newPassword = values.password?.trim() || undefined;
+
+    if (!newEmail && !newPassword) {
+      toast.error("Enter a new email and/or password.");
+      return;
+    }
+
+    setConfirmAuthUpdate({ email: newEmail, password: newPassword });
+  };
 
   const handleDownloadProfile = () => {
     if (!profile) {
@@ -137,6 +193,65 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   return (
     <div className="space-y-4">
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" /> Login (Email / Password)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Current Email:</span>
+              <span className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" /> {email || 'N/A'}</span>
+            </div>
+          </div>
+
+          <Form {...authForm}>
+            <form onSubmit={authForm.handleSubmit(onAuthSubmit)} className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={authForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="user@example.com" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={authForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Min 8 characters" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="md:col-span-2">
+                <Button type="submit" disabled={updateAuthMutation.isPending}>
+                  {updateAuthMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Login
+                </Button>
+              </div>
+            </form>
+          </Form>
+
+          <p className="text-xs text-muted-foreground">
+            Note: Updating a password will immediately change the user's login password.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="space-y-1.5">
             <CardTitle>User Profile Details</CardTitle>
@@ -163,13 +278,13 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
                 <FormField control={profileForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={profileForm.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                 <FormField control={profileForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                
+
                 <h4 className="font-semibold pt-4">Bank Details</h4>
                 <FormField control={profileForm.control} name="bank_name" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
                   <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
@@ -178,14 +293,66 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
             </Form>
           ) : (
             <div className="space-y-4">
-              <div><h4 className="font-semibold mb-2">Account Details</h4><DetailRow label="Referral Code" value={profile.referral_code} /><DetailRow label="Referred By">{profile.referrer_id && profile.referrer_full_name ? (<Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>{profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" /></Button>) : (<span>N/A</span>)}</DetailRow></div>
-              <div><h4 className="font-semibold mb-2">Personal Details</h4><DetailRow label="Full Name" value={profile.full_name} /><DetailRow label="Phone" value={profile.phone} /><DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} /><DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} /></div>
-              <div><h4 className="font-semibold mb-2">Bank Details</h4><DetailRow label="Bank Name" value={profile.bank_name} /><DetailRow label="Account Holder" value={profile.bank_account_holder_name} /><DetailRow label="Account Number" value={profile.bank_account_number} /><DetailRow label="IFSC Code" value={profile.bank_ifsc_code} /></div>
+              <div>
+                <h4 className="font-semibold mb-2">Account Details</h4>
+                <DetailRow label="Referral Code" value={profile.referral_code} />
+                <DetailRow label="Referred By">
+                  {profile.referrer_id && profile.referrer_full_name ? (
+                    <Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>
+                      {profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <span>N/A</span>
+                  )}
+                </DetailRow>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Personal Details</h4>
+                <DetailRow label="Full Name" value={profile.full_name} />
+                <DetailRow label="Phone" value={profile.phone} />
+                <DetailRow label="Date of Birth" value={profile.dob ? format(new Date(profile.dob), 'PPP') : null} />
+                <DetailRow label="Address" value={`${profile.address || ''}, ${profile.city || ''}, ${profile.state || ''} - ${profile.pincode || ''}`} />
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Bank Details</h4>
+                <DetailRow label="Bank Name" value={profile.bank_name} />
+                <DetailRow label="Account Holder" value={profile.bank_account_holder_name} />
+                <DetailRow label="Account Number" value={profile.bank_account_number} />
+                <DetailRow label="IFSC Code" value={profile.bank_ifsc_code} />
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
       <NomineeManager userId={userId} />
+
+      <AlertDialog open={!!confirmAuthUpdate} onOpenChange={(open) => !open && setConfirmAuthUpdate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm login update</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to update this user's login.
+              {confirmAuthUpdate?.email && (
+                <div className="mt-2 text-sm"><span className="font-medium">New email:</span> {confirmAuthUpdate.email}</div>
+              )}
+              {confirmAuthUpdate?.password && (
+                <div className="mt-1 text-sm"><span className="font-medium">Password:</span> will be changed</div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmAuthUpdate && updateAuthMutation.mutate(confirmAuthUpdate)}
+              disabled={updateAuthMutation.isPending}
+            >
+              {updateAuthMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
