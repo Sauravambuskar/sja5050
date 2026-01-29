@@ -21,6 +21,7 @@ import UpdatePassword from "@/pages/UpdatePassword";
 import NotFound from "@/pages/NotFound";
 import Maintenance from "@/pages/Maintenance";
 import LoginMfa from "@/pages/LoginMfa";
+import PrivacyPolicy from "@/pages/Privacypolicy";
 
 // User Pages
 import Investments from "@/pages/Investments";
@@ -133,6 +134,9 @@ const MainRouter = () => (
           </Route>
         </Route>
       </Route>
+
+      {/* Public Pages */}
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
       {/* Auth & Fallback */}
       <Route path="/login" element={<Login />} />

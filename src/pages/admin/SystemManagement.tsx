@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, PlayCircle, Send, Cake } from "lucide-react";
+import { Loader2, PlayCircle, Send, Cake, PlugZap } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +42,12 @@ const triggerBirthdayCheck = async () => {
   return data;
 };
 
+const testSupabaseConnection = async () => {
+  const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 const broadcastSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
@@ -76,6 +82,12 @@ const SystemManagement = () => {
     onSettled: () => { setIsConfirmBirthdayOpen(false); },
   });
 
+  const connectionMutation = useMutation({
+    mutationFn: testSupabaseConnection,
+    onSuccess: () => { toast.success("Connected", { description: "Database connection is working." }); },
+    onError: (error) => { toast.error(`Connection test failed: ${error.message}`); },
+  });
+
   const broadcastMutation = useMutation({
     mutationFn: sendBroadcast,
     onSuccess: (data) => {
@@ -104,6 +116,19 @@ const SystemManagement = () => {
           <SplashScreenCustomizer />
         </div>
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Database Connection</CardTitle>
+              <CardDescription>Quick check to confirm Supabase + database connectivity.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => connectionMutation.mutate()} disabled={connectionMutation.isPending}>
+                {connectionMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
+                Test Connection
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>System Jobs</CardTitle>

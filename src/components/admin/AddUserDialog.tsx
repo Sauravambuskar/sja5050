@@ -32,6 +32,7 @@ const addUserSchema = z.object({
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   pincode: z.string().optional().nullable(),
+  bank_name: z.string().optional().nullable(),
   bank_account_holder_name: z.string().optional().nullable(),
   bank_account_number: z.string().optional().nullable(),
   bank_ifsc_code: z.string().optional().nullable(),
@@ -105,6 +106,7 @@ export const AddUserDialog = ({ isOpen, onOpenChange }: AddUserDialogProps) => {
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
               </TabsContent>
               <TabsContent value="bank" className="space-y-4 pt-4">
+                <FormField control={form.control} name="bank_name" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
