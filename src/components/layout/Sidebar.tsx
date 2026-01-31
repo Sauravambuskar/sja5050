@@ -53,11 +53,10 @@ import {
   LogOut,
   BookOpen,
 } from "lucide-react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { useProfile } from "@/hooks/useProfile";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
@@ -71,7 +70,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -102,11 +100,11 @@ const adminNavItems: NavItem[] = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/user-management", icon: Users, label: "Users" },
   { to: "/admin/referral-management", icon: UserRoundSearch, label: "Referral Mgmt" },
-  { to: "/admin/request-management", icon: GitPullRequest, label: "Requests", countKey: 'total' },
+  { to: "/admin/request-management", icon: GitPullRequest, label: "Requests", countKey: "total" },
   { to: "/admin/investment-management", icon: Briefcase, label: "Investments" },
   { to: "/admin/investment-requests", icon: FileCheck, label: "Approve Investment Req" },
-  { to: "/admin/kyc-management", icon: ShieldCheck, label: "KYC", countKey: 'kyc' },
-  { to: "/admin/support-desk", icon: Headset, label: "Support", countKey: 'support' },
+  { to: "/admin/kyc-management", icon: ShieldCheck, label: "KYC", countKey: "kyc" },
+  { to: "/admin/support-desk", icon: Headset, label: "Support", countKey: "support" },
   { to: "/admin/commission-rules", icon: Percent, label: "Commissions" },
   { to: "/admin/reporting", icon: BarChart3, label: "Analytics" },
   { to: "/admin/ledger", icon: BookOpen, label: "Ledger" },
@@ -122,28 +120,46 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { isAdmin } = useIsAdmin();
   const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
-  const { revertImpersonation } = useAuth();
+  const navigate = useNavigate();
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
   const getCount = (key?: string) => {
     if (!key || !isAdmin) return 0;
     return adminCounts?.[key as keyof typeof adminCounts] || 0;
-  }
+  };
+
+  const clearImpersonationTokens = () => {
+    localStorage.removeItem("admin_access_token");
+    localStorage.removeItem("admin_refresh_token");
+  };
 
   const handleLogout = async () => {
     try {
+      // Primary attempt: revoke refresh token
       const { error } = await supabase.auth.signOut();
+
+      // If revocation fails (often due to expired session), still clear local session so user is logged out.
       if (error) {
-        toast.error('Failed to logout. Please try again.');
-      } else {
-        toast.success('Logged out successfully');
-        if (onNavigate) {
-          onNavigate();
-        }
+        console.warn("[logout] signOut failed, falling back to local signout", { message: error.message });
+        await supabase.auth.signOut({ scope: "local" });
       }
-    } catch (error) {
-      toast.error('An error occurred during logout.');
+
+      clearImpersonationTokens();
+      toast.success("Logged out successfully");
+      onNavigate?.();
+      navigate("/login");
+    } catch (err) {
+      console.warn("[logout] unexpected error, forcing local signout", { err });
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // ignore
+      }
+      clearImpersonationTokens();
+      toast.success("Logged out successfully");
+      onNavigate?.();
+      navigate("/login");
     }
   };
 
@@ -151,7 +167,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     <aside className="flex h-full max-h-screen flex-col gap-2 border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <img src="https://i.ibb.co/nNKNZvFP/Untitled-design.png" alt="SJA Logo" className="h-8 w-auto" />
+          <img
+            src="https://i.ibb.co/nNKNZvFP/Untitled-design.png"
+            alt="SJA Logo"
+            className="h-8 w-auto"
+          />
           <span className="">SJA</span>
         </Link>
         {!isAdmin && (
@@ -168,7 +188,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </Link>
         )}
       </div>
-      
+
       <div className="flex-1 overflow-y-auto">
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
           {navItems.map((item) => {
@@ -182,7 +202,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    isActive && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground"
+                    isActive &&
+                      "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground"
                   )
                 }
               >
