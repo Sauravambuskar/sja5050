@@ -74,6 +74,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
+const UI_VERSION_LABEL = "UI v1.0";
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -228,6 +229,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
+        <div className="mt-2 text-xs text-muted-foreground">{UI_VERSION_LABEL}</div>
       </div>
     </aside>
   );
