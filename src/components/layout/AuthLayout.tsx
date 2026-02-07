@@ -2,12 +2,18 @@ import React from 'react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Skeleton } from '../ui/skeleton';
 
+const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
+
 export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const { settings, isLoading } = useSystemSettings();
 
-  const imageUrl1 = settings?.auth_layout_image_url_1 || "https://png.pngtree.com/background/20250107/original/pngtree-hands-holding-money-green-investment-wealth-growth-concept-picture-image_16144123.jpg";
-  const imageUrl2 = settings?.auth_layout_image_url_2 || "https://ideogram.ai/assets/progressive-image/balanced/response/N1ygBDjpR2Gu9OPylgNwoA";
-  const logoUrl = settings?.login_page_logo_url || "https://i.ibb.co/nNKNZvFP/Untitled-design.png";
+  const imageUrl1 =
+    settings?.auth_layout_image_url_1 ||
+    "https://png.pngtree.com/background/20250107/original/pngtree-hands-holding-money-green-investment-wealth-growth-concept-picture-image_16144123.jpg";
+  const imageUrl2 =
+    settings?.auth_layout_image_url_2 ||
+    "https://ideogram.ai/assets/progressive-image/balanced/response/N1ygBDjpR2Gu9OPylgNwoA";
+  const logoUrl = settings?.login_page_logo_url || BRAND_LOGO_URL;
 
   return (
     <div className="light w-full min-h-screen bg-muted lg:grid lg:grid-cols-2">
@@ -22,7 +28,7 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           />
         )}
       </div>
-      <div 
+      <div
         className="flex h-screen items-center justify-center p-6 lg:h-auto lg:bg-transparent"
         style={{
           backgroundImage: `url('${imageUrl2}')`,
@@ -39,8 +45,8 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
             ) : (
               <img
                 src={logoUrl}
-                alt="Company Logo"
-                title="Company Logo"
+                alt="SJA Lands Logo"
+                title="SJA Lands Logo"
                 loading="lazy"
                 decoding="async"
                 className="h-14 sm:h-16 md:h-20 w-auto max-w-[220px] object-contain drop-shadow-md"

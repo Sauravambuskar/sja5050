@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+const BRAND_LOGO_URL = 'https://sjamicrofoundation.com/assets/images/logo-dark.png';
+
 const fetchWelcomeLetterData = async () => {
   const { data: profileData, error: profileError } = await supabase.rpc('get_my_profile');
   if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
@@ -40,11 +42,11 @@ export const WelcomeLetter = () => {
     const welcomeContent = `
 Welcome to SJA Foundation!
 
-Dear ${data.profile.full_name || 'Valued Member'},
+Dear ${data.profile.full_name || 'Valued Member'}, 
 
 We are delighted to have you as a member of our investment community. Your trust in us means everything, and we're committed to helping you achieve your financial goals.
 
-Your membership has been successfully created with Member ID: ${data.profile.member_id || 'N/A'}. You joined us on ${format(new Date(data.joinDate), 'MMMM dd, yyyy')}.
+Your membership has been successfully created with Member ID: ${data.profile.member_id || 'N/A'}. You joined us on ${format(new Date(data.joinDate), 'MMMM dd, yyyy')}. 
 
 As a member, you now have access to our investment plans, referral program, and comprehensive dashboard to track your earnings and investments.
 
@@ -69,15 +71,13 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
       [welcomeContent]
     ];
 
-    const logoUrl = 'https://i.ibb.co/V0ws00DB/SJALAND.png'; // Your provided logo URL
-
     exportToPdf(
       `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
       'Welcome Letter - SJA Foundation',
       headers,
       letterData,
       data.profile.full_name || 'Member',
-      logoUrl // Pass the logo URL
+      BRAND_LOGO_URL
     );
   };
 

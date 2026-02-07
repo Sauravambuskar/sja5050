@@ -73,6 +73,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
+const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
+
 interface SidebarProps {
   onNavigate?: () => void;
 }
@@ -167,11 +169,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     <aside className="flex h-full max-h-screen flex-col gap-2 border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <img
-            src="https://i.ibb.co/nNKNZvFP/Untitled-design.png"
-            alt="SJA Logo"
-            className="h-8 w-auto"
-          />
+          <img src={BRAND_LOGO_URL} alt="SJA Lands Logo" className="h-8 w-auto" />
           <span className="">SJA</span>
         </Link>
         {!isAdmin && (
