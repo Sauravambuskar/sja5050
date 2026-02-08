@@ -22,6 +22,7 @@ import NotFound from "@/pages/NotFound";
 import Maintenance from "@/pages/Maintenance";
 import LoginMfa from "@/pages/LoginMfa";
 import PrivacyPolicy from "@/pages/Privacypolicy";
+import Terms from "@/pages/Terms";
 
 // User Pages
 import Investments from "@/pages/Investments";
@@ -106,7 +107,7 @@ const MainRouter = () => (
           <Route path="/faq" element={<Faq />} />
           <Route path="/support" element={<Support />} />
           <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
-          
+
           {/* Admin Portal Routes */}
           <Route path="/admin" element={<AdminRoute />}>
             <Route index element={<AdminDashboard />} />
@@ -139,6 +140,7 @@ const MainRouter = () => (
 
       {/* Public Pages */}
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Auth & Fallback */}
       <Route path="/login" element={<Login />} />

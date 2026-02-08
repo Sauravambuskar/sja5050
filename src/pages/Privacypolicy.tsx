@@ -1,86 +1,90 @@
-import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const PrivacyPolicy: React.FC = () => {
+export default function PrivacyPolicy() {
   return (
-    <div style={{ padding: "20px", maxWidth: "900px", margin: "0 auto", lineHeight: "1.6" }}>
-      <h1>Privacy Policy</h1>
+    <div className="min-h-screen bg-background px-4 py-10">
+      <div className="mx-auto w-full max-w-3xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Privacy Policy</CardTitle>
+            <p className="text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
+          </CardHeader>
+          <CardContent className="space-y-6 text-sm leading-6">
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Overview</h2>
+              <p>
+                This Privacy Policy explains how we collect, use, and protect information when you use this application.
+              </p>
+            </section>
 
-      <h2>SJA Land and Developers</h2>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Information We Collect</h2>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>
+                  <span className="font-medium">Account information</span> (such as email) used for authentication.
+                </li>
+                <li>
+                  <span className="font-medium">Profile details</span> you provide in the app (for example: name, phone,
+                  address, date of birth).
+                </li>
+                <li>
+                  <span className="font-medium">KYC / verification information</span> if you submit it for compliance or
+                  account verification.
+                </li>
+                <li>
+                  <span className="font-medium">Usage and activity data</span> necessary for app features (such as requests,
+                  transactions, and support tickets).
+                </li>
+              </ul>
+            </section>
 
-      <p>
-        <strong>Developer:</strong> SJA Foundation <br />
-        <strong>App Type:</strong> Android <br />
-        <strong>Effective Date:</strong> 22 December 2025
-      </p>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">How We Use Information</h2>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>To create and manage your account and provide core app functionality.</li>
+                <li>To process requests, payments/transactions (if applicable), and provide support.</li>
+                <li>To improve security, prevent fraud, and maintain system integrity.</li>
+                <li>To communicate important service and account-related updates.</li>
+              </ul>
+            </section>
 
-      <p>
-        SJA Foundation built the <strong>SJA Land and Developers</strong> app as a
-        service-oriented application. This app is provided by SJA Foundation and
-        is intended for use as is.
-      </p>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Sharing of Information</h2>
+              <p>
+                We do not sell your personal information. We may share information only when required to operate the
+                service, comply with law, or protect the rights and safety of users and the platform.
+              </p>
+            </section>
 
-      <p>
-        This page is used to inform users regarding our policies with the
-        collection, use, and disclosure of information if anyone decides to use
-        our Service.
-      </p>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Data Security</h2>
+              <p>
+                We use reasonable safeguards to protect your information. No method of transmission or storage is 100%
+                secure, but we work to protect your data from unauthorized access.
+              </p>
+            </section>
 
-      <h3>Information Collection and Use</h3>
-      <p>
-        The SJA Land and Developers app does <strong>not collect, store, or share</strong>{" "}
-        any personal data such as name, phone number, email address, location, or
-        media files.
-      </p>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Your Choices</h2>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>You can update certain profile information in the app.</li>
+                <li>You can request support for data-related questions using the support section.</li>
+              </ul>
+            </section>
 
-      <p>
-        Login may be required only for internal access or app functionality, but
-        <strong> no personal user data is collected or stored</strong> on our servers.
-      </p>
-
-      <h3>Third-Party Services</h3>
-      <p>
-        The app does <strong>not use any third-party services</strong>, including
-        analytics tools, advertising networks, or external SDKs that collect user
-        data.
-      </p>
-
-      <h3>Data Security</h3>
-      <p>
-        Since the app does not collect or store personal information, there is no
-        risk of misuse of personal data. However, we are committed to maintaining
-        the security and integrity of the app and its features.
-      </p>
-
-      <h3>Children’s Privacy</h3>
-      <p>
-        This app is intended for users <strong>above the age of 14</strong>.
-      </p>
-      <p>
-        We do not knowingly collect any personal information from children under
-        13 years of age.
-      </p>
-
-      <h3>Changes to This Privacy Policy</h3>
-      <p>
-        We may update our Privacy Policy from time to time. Any changes will be
-        posted on this page. Users are advised to review this page periodically
-        for any updates.
-      </p>
-
-      <h3>Contact Us</h3>
-      <p>
-        If you have any questions or suggestions about our Privacy Policy, do not
-        hesitate to contact us at:
-      </p>
-
-      <p>
-        <strong>Email:</strong>{" "}
-        <a href="mailto:it.sainikjankalyan@gmail.com">
-          it.sainikjankalyan@gmail.com
-        </a>
-      </p>
+            <section className="space-y-2">
+              <h2 className="text-base font-semibold">Contact</h2>
+              <p>
+                If you have any questions about this Privacy Policy, contact us at:
+                <br />
+                <a className="underline" href="mailto:it.sainikjankalyan@gmail.com">
+                  it.sainikjankalyan@gmail.com
+                </a>
+              </p>
+            </section>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-};
-
-export default PrivacyPolicy;
+}

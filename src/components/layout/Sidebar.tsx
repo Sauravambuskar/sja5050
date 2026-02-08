@@ -229,7 +229,19 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
-        <div className="mt-2 text-xs text-muted-foreground">{UI_VERSION_LABEL}</div>
+
+        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>{UI_VERSION_LABEL}</span>
+          <div className="flex items-center gap-2">
+            <Link to="/privacy-policy" className="underline" onClick={onNavigate}>
+              Privacy
+            </Link>
+            <span className="opacity-60">•</span>
+            <Link to="/terms" className="underline" onClick={onNavigate}>
+              Terms
+            </Link>
+          </div>
+        </div>
       </div>
     </aside>
   );

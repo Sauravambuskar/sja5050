@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Skeleton } from '../ui/skeleton';
+import { Link } from 'react-router-dom';
 
 const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
 
@@ -53,7 +54,18 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
               />
             )}
           </div>
+
           {children}
+
+          <div className="mt-6 text-center text-xs text-muted-foreground">
+            <Link className="underline" to="/privacy-policy">
+              Privacy Policy
+            </Link>
+            <span className="mx-2">•</span>
+            <Link className="underline" to="/terms">
+              Terms
+            </Link>
+          </div>
         </div>
       </div>
     </div>
