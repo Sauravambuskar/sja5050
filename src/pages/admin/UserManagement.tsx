@@ -217,18 +217,23 @@ const UserManagement = () => {
     const suspend = !isUserSuspended(userToSuspend);
     const action = suspend ? "Suspending" : "Unsuspending";
 
-    toast.loading(`${action} user...`);
+    const toastId = toast.loading(`${action} user...`);
 
-    const { error } = await supabase.auth.admin.updateUserById(userToSuspend.id, {
-      ban_duration: suspend ? "876000h" : "0s",
+    // IMPORTANT: Admin API calls cannot be made from the browser (requires service role).
+    // Use the admin-suspend-user edge function instead.
+    const { data, error } = await supabase.functions.invoke("admin-suspend-user", {
+      body: { userId: userToSuspend.id, suspend },
     });
 
     if (error) {
-      toast.error(`Failed to ${action.toLowerCase()} user: ${error.message}`);
+      toast.error(`Failed to ${action.toLowerCase()} user: ${error.message}`, { id: toastId });
+    } else if ((data as any)?.error) {
+      toast.error(`Failed to ${action.toLowerCase()} user: ${(data as any).error}`, { id: toastId });
     } else {
-      toast.success(`User has been ${action.toLowerCase()}ed.`);
+      toast.success((data as any)?.message || `User has been ${action.toLowerCase()}ed.`, { id: toastId });
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
     }
+
     setUserToSuspend(null);
   };
 
