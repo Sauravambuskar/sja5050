@@ -1,0 +1,1 @@
+select to_regprocedure('public.request_wallet_withdrawal(numeric)') is not null as exists;
