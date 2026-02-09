@@ -102,7 +102,7 @@ export const AdditionalDocuments = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Additional Documents</CardTitle>
+        <CardTitle>Nominee Documets</CardTitle>
         <CardDescription>Upload and manage other relevant documents here.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

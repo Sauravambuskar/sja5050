@@ -40,7 +40,7 @@ const ProfilePage = () => {
         <div className="space-y-6">
           <KycDocuments profile={profile} />
           <Separator className="my-6" />
-          <h2 className="text-xl font-semibold">Additional Documents</h2>
+          <h2 className="text-xl font-semibold">Nominee Documets</h2>
           <p className="text-muted-foreground">Upload any other supporting documents.</p>
           <AdditionalDocuments />
           <Separator className="my-6" />
