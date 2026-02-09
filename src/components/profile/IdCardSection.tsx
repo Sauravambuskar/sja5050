@@ -36,7 +36,7 @@ export const IdCardSection = () => {
     try { return JSON.stringify(err); } catch { return String(err); }
   };
 
-  // NEW: Ensure external image URLs use HTTPS to avoid mixed content
+  // Ensure external image URLs use HTTPS to avoid mixed content
   const sanitizeUrl = (url?: string | null) => {
     if (!url) return undefined;
     try {
@@ -58,13 +58,13 @@ export const IdCardSection = () => {
           new Promise<void>((resolve) => {
             if (img.complete) return resolve();
             img.onload = () => resolve();
-            img.onerror = () => resolve(); // resolve to avoid hanging; capture may still work
+            img.onerror = () => resolve();
           })
       )
     );
   };
 
-  // NEW: Robust capture that retries without background to avoid cross-origin taint
+  // Robust capture that retries to avoid cross-origin taint
   const captureCardAsPng = async (pixelRatio = 3) => {
     if (!idCardRef.current) throw new Error('Card not ready');
     await ensureImagesLoaded();
@@ -73,10 +73,19 @@ export const IdCardSection = () => {
       return await toPng(idCardRef.current, { cacheBust: true, pixelRatio });
     } catch {
       const el = idCardRef.current;
+
+      // Attempt 2: remove background image and try again
       const prevBg = el.style.backgroundImage;
       el.style.backgroundImage = 'none';
       try {
         return await toPng(el, { cacheBust: true, pixelRatio });
+      } catch {
+        // Attempt 3: exclude <img> tags to avoid CORS-tainting issues
+        return await toPng(el, {
+          cacheBust: true,
+          pixelRatio,
+          filter: (node) => !(node instanceof HTMLImageElement),
+        });
       } finally {
         el.style.backgroundImage = prevBg;
       }
@@ -96,7 +105,9 @@ export const IdCardSection = () => {
       const link = document.createElement('a');
       link.download = `SJA-Member-ID-${data?.profile.member_id}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.success("ID Card downloaded successfully!");
     } catch (err) {
       toast.error(`Download failed: ${getErrorMessage(err)}`);

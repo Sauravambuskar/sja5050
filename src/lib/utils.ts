@@ -67,53 +67,68 @@ export function exportToPdf(
   headers: string[],
   data: (string | number)[][],
   userName: string,
-  logoUrl?: string // Added logoUrl parameter
+  logoUrl?: string
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yOffset = 20; // Initial Y offset for content
+  let yOffset = 20;
+
+  const getImageFormat = (url: string) => {
+    const lower = url.toLowerCase();
+    if (lower.endsWith('.png')) return 'PNG' as const;
+    if (lower.endsWith('.webp')) return 'WEBP' as const;
+    return 'JPEG' as const;
+  };
 
   // Add Logo if provided
   if (logoUrl) {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.src = logoUrl;
-    // Ensure image is loaded before adding to PDF
+
     img.onload = () => {
-      const imgWidth = 30; // Desired width for the logo
-      const imgHeight = (img.height * imgWidth) / img.width; // Maintain aspect ratio
-      const xPos = (pageWidth - imgWidth) / 2; // Center the logo
-      doc.addImage(img, 'JPEG', xPos, 10, imgWidth, imgHeight);
-      yOffset = 10 + imgHeight + 10; // Adjust yOffset below the logo with some padding
-      addContent();
+      try {
+        const imgWidth = 30;
+        const imgHeight = (img.height * imgWidth) / img.width;
+        const xPos = (pageWidth - imgWidth) / 2;
+
+        try {
+          doc.addImage(img, getImageFormat(logoUrl), xPos, 10, imgWidth, imgHeight);
+          yOffset = 10 + imgHeight + 10;
+        } catch (err) {
+          // If the image can't be embedded (CORS/format issues), continue without the logo.
+          console.warn('Failed to embed logo image in PDF:', err);
+        }
+      } finally {
+        addContent();
+      }
     };
+
     img.onerror = () => {
-      console.error("Failed to load logo image.");
-      addContent(); // Proceed without logo if it fails to load
+      addContent();
     };
   } else {
     addContent();
   }
 
   function addContent() {
-    // Header
     doc.setFontSize(20);
     doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
-    yOffset += 10; // Add some space after title
+    yOffset += 10;
+
     doc.setFontSize(12);
     doc.text(`Statement for: ${userName}`, 14, yOffset);
     yOffset += 6;
     doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
-    yOffset += 10; // Add space before table
+    yOffset += 10;
 
-    // Table
     autoTable(doc, {
       startY: yOffset,
       head: [headers],
       body: data,
       theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] }, // Blue color for header
-      didDrawPage: function (data) {
-        // Footer on each page
+      headStyles: { fillColor: [37, 99, 235] },
+      didDrawPage: function () {
         const pageCount = (doc as any).internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
@@ -124,13 +139,9 @@ export function exportToPdf(
             doc.internal.pageSize.getHeight() - 10,
             { align: 'right' }
           );
-          doc.text(
-            'SJA Foundation',
-            14,
-            doc.internal.pageSize.getHeight() - 10
-          );
+          doc.text('SJA Foundation', 14, doc.internal.pageSize.getHeight() - 10);
         }
-      }
+      },
     });
 
     doc.save(filename);
