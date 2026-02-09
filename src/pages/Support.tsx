@@ -79,7 +79,7 @@ const Support = () => {
           <p className="text-muted-foreground">
             Create and manage your support requests here. For any support, call{' '}
             <a href="tel:9699346910" className="font-medium text-foreground underline underline-offset-4">
-              9699346910
+              <h1>9699346910</h1>
             </a>
             .
           </p>
