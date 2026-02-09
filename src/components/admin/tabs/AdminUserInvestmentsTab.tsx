@@ -11,6 +11,7 @@ import { useState } from "react";
 import { ReduceInvestmentDialog } from "@/components/admin/dialogs/ReduceInvestmentDialog";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess, showError } from "@/utils/toast";
+import { AddUserInvestmentDialog } from "@/components/admin/dialogs/AddUserInvestmentDialog";
 
 const fetchUserInvestmentHistory = async (userId: string): Promise<AdminUserInvestmentHistoryItem[]> => {
   const { data, error } = await supabase.rpc('get_user_investment_history_for_admin', { user_id_to_fetch: userId });
@@ -22,6 +23,7 @@ export const AdminUserInvestmentsTab = ({ userId }: { userId: string }) => {
   const [selectedInvestment, setSelectedInvestment] = useState<AdminUserInvestmentHistoryItem | null>(null);
   const [isReduceDialogOpen, setIsReduceDialogOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: investments, isLoading: areInvestmentsLoading } = useQuery({
@@ -83,7 +85,10 @@ export const AdminUserInvestmentsTab = ({ userId }: { userId: string }) => {
   return (
     <>
       <Card>
-        <CardHeader><CardTitle>Investment History</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardTitle>Investment History</CardTitle>
+          <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>Add Investment</Button>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -159,6 +164,13 @@ export const AdminUserInvestmentsTab = ({ userId }: { userId: string }) => {
           </Table>
         </CardContent>
       </Card>
+
+      <AddUserInvestmentDialog
+        userId={userId}
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+      />
+
       <ReduceInvestmentDialog
         investment={selectedInvestment}
         userId={userId}
