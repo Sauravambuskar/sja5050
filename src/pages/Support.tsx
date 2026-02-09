@@ -76,7 +76,13 @@ const Support = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Support Center</h1>
-          <p className="text-muted-foreground">Create and manage your support requests here.</p>
+          <p className="text-muted-foreground">
+            Create and manage your support requests here. For any support, call{' '}
+            <a href="tel:9699346910" className="font-medium text-foreground underline underline-offset-4">
+              9699346910
+            </a>
+            .
+          </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" /> Create New Ticket
