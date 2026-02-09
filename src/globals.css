@@ -38,6 +38,16 @@
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
+
+    /* Sidebar theme */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 199 86% 59%; /* #3BB8F1 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 199 86% 59%;
   }
 
   .dark {
@@ -71,6 +81,16 @@
 
     --chart-1: 220 70% 60%;
     --chart-2: 160 60% 55%;
+
+    /* Sidebar theme (dark) */
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 199 86% 59%; /* #3BB8F1 */
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 199 86% 59%;
   }
 
   /* New theme based on the provided image */
