@@ -38,6 +38,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
+import { BulkUploadUsersDialog } from "@/components/admin/BulkUploadUsersDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -134,6 +135,7 @@ const UserManagement = () => {
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
   const [userToDelete, setUserToDelete] = useState<AdminUserView | null>(null);
@@ -299,10 +301,15 @@ const UserManagement = () => {
           <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground">View, manage, and edit user accounts.</p>
         </div>
-        <Button onClick={() => setIsAddUserOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add New User
-        </Button>
+        <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+          <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+            Bulk Upload Users
+          </Button>
+          <Button onClick={() => setIsAddUserOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New User
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card border rounded-lg p-4 mb-6">
@@ -484,6 +491,11 @@ const UserManagement = () => {
 
       <AddUserDialog isOpen={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
       <EditUserDialog isOpen={isEditUserOpen} onOpenChange={setIsEditUserOpen} user={selectedUser} />
+      <BulkUploadUsersDialog
+        isOpen={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        onCompleted={() => queryClient.invalidateQueries({ queryKey: ["adminUsers"] })}
+      />
       <UserDetailsSheet userId={sheetUserId} isOpen={isSheetOpen} onOpenChange={handleSheetOpenChange} onViewUser={handleViewUser} />
 
       <AlertDialog open={!!userToSuspend} onOpenChange={() => setUserToSuspend(null)}>
