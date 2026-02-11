@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreHorizontal, PlusCircle, FileText, Search } from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileText, Search, Trash2 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { DataTable } from "@/components/ui/data-table";
 import { columns } from "@/components/admin/user-management/columns";
@@ -128,6 +128,7 @@ const UserManagement = () => {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserView | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<AdminUserView | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUserView | null>(null);
 
   const sheetUserId = searchParams.get("user");
   const isSheetOpen = !!sheetUserId;
@@ -237,6 +238,40 @@ const UserManagement = () => {
     setUserToSuspend(null);
   };
 
+  const handleDeleteClick = (user: AdminUserView) => {
+    setUserToDelete(user);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    const toastId = toast.loading("Deleting user...");
+
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { userId: userToDelete.id },
+    });
+
+    if (error) {
+      toast.error(`Failed to delete user: ${error.message}`, { id: toastId });
+      return;
+    }
+
+    if ((data as any)?.error) {
+      toast.error(`Failed to delete user: ${(data as any).error}`, { id: toastId });
+      return;
+    }
+
+    toast.success((data as any)?.message || "User deleted.", { id: toastId });
+
+    // Close details sheet if it was open for the deleted user
+    if (sheetUserId === userToDelete.id) {
+      updateSearchParams({ user: "" });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    setUserToDelete(null);
+  };
+
   const memoizedColumns = useMemo(
     () =>
       columns({
@@ -244,6 +279,7 @@ const UserManagement = () => {
         handleEditUser,
         impersonateUser,
         handleSuspendClick,
+        handleDeleteClick,
         navigate,
       }),
     [navigate]
@@ -361,6 +397,10 @@ const UserManagement = () => {
                       <DropdownMenuItem className="text-red-600" onClick={() => handleSuspendClick(user)}>
                         {isUserSuspended(user) ? "Unsuspend" : "Suspend"}
                       </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(user)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete User
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -440,6 +480,26 @@ const UserManagement = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSuspendConfirm}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the user account and remove their related records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

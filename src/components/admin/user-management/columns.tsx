@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, FileText, LogIn } from "lucide-react";
+import { MoreHorizontal, FileText, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const isUserSuspended = (user: AdminUserView) => {
@@ -24,6 +24,7 @@ interface ColumnsProps {
   handleEditUser: (user: AdminUserView) => void;
   impersonateUser: (userId: string) => void;
   handleSuspendClick: (user: AdminUserView) => void;
+  handleDeleteClick: (user: AdminUserView) => void;
   navigate: (path: string) => void;
 }
 
@@ -32,6 +33,7 @@ export const columns = ({
   handleEditUser,
   impersonateUser,
   handleSuspendClick,
+  handleDeleteClick,
   navigate,
 }: ColumnsProps): ColumnDef<AdminUserView>[] => [
   {
@@ -132,19 +134,19 @@ export const columns = ({
               <DropdownMenuItem onClick={() => handleEditUser(user)}>
                 Edit User
               </DropdownMenuItem>
-              {/* The 'signInWithId' method does not exist in the Supabase client library.
-                  Impersonation requires a secure server-side implementation (e.g., an Edge Function).
-                  This feature is temporarily disabled to resolve compilation errors. */}
-              {/* <DropdownMenuItem onClick={() => impersonateUser(user.id)}>
-                <LogIn className="mr-2 h-4 w-4" />
-                Login as User
-              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600"
                 onClick={() => handleSuspendClick(user)}
               >
                 {isUserSuspended(user) ? "Unsuspend" : "Suspend"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDeleteClick(user)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
