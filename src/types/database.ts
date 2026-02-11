@@ -25,6 +25,7 @@ export type AdminUserView = {
   id: string;
   full_name: string | null;
   email: string | undefined;
+  phone: string | null;
   join_date: string;
   kyc_status: string | null;
   wallet_balance: number;

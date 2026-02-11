@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, FileText, Trash2 } from "lucide-react";
+import { MoreHorizontal, FileText, Trash2, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const isUserSuspended = (user: AdminUserView) => {
@@ -45,7 +45,27 @@ export const columns = ({
         <div className="flex flex-col">
           <span className="font-medium">{user.full_name || "N/A"}</span>
           <span className="text-xs text-muted-foreground">{user.email}</span>
+          {user.phone && (
+            <span className="text-xs text-muted-foreground">{user.phone}</span>
+          )}
         </div>
+      );
+    },
+  },
+  {
+    id: "phone",
+    header: "Phone",
+    cell: ({ row }) => {
+      const user = row.original;
+      if (!user.phone) return <span className="text-muted-foreground">—</span>;
+      return (
+        <a
+          className="inline-flex items-center gap-2 font-mono text-sm underline underline-offset-4"
+          href={`tel:${user.phone}`}
+        >
+          <Phone className="h-4 w-4" />
+          {user.phone}
+        </a>
       );
     },
   },

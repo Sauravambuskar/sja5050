@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { AdminUserView } from "@/types/database";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { UserDetailsSheet } from "@/components/admin/UserDetailsSheet";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -51,6 +51,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const PAGE_SIZE = 20;
 
@@ -85,9 +87,13 @@ const fetchUsers = async (
   searchTerm: string,
   kycStatus: string,
   accountStatus: string,
-  sort: SortValue
+  sort: SortValue,
+  showAll: boolean
 ) => {
   const { sort_by, sort_dir } = parseSort(sort);
+
+  const limit = showAll ? 10000 : PAGE_SIZE;
+  const offset = showAll ? 0 : (page - 1) * PAGE_SIZE;
 
   const { data, error, count } = await supabase
     .rpc(
@@ -96,8 +102,8 @@ const fetchUsers = async (
         search_text: searchTerm || null,
         kyc_status_filter: kycStatus || null,
         account_status_filter: accountStatus || null,
-        page_limit: PAGE_SIZE,
-        page_offset: (page - 1) * PAGE_SIZE,
+        page_limit: limit,
+        page_offset: offset,
         sort_by,
         sort_dir,
       },
@@ -116,7 +122,9 @@ const UserManagement = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const page = parseInt(searchParams.get("page") || "1", 10);
+  const showAll = searchParams.get("all") === "1";
+  const page = showAll ? 1 : parseInt(searchParams.get("page") || "1", 10);
+
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [kycStatus, setKycStatus] = useState(searchParams.get("kyc_status") || "all");
   const [accountStatus, setAccountStatus] = useState(searchParams.get("account_status") || "all");
@@ -134,14 +142,15 @@ const UserManagement = () => {
   const isSheetOpen = !!sheetUserId;
 
   const { data: queryData, isLoading, isError, error, isFetching } = useQuery({
-    queryKey: ["adminUsers", page, debouncedSearchTerm, kycStatus, accountStatus, sort],
+    queryKey: ["adminUsers", page, debouncedSearchTerm, kycStatus, accountStatus, sort, showAll],
     queryFn: () =>
       fetchUsers(
         page,
         debouncedSearchTerm,
         kycStatus === "all" ? "" : kycStatus,
         accountStatus === "all" ? "" : accountStatus,
-        sort
+        sort,
+        showAll
       ),
     placeholderData: keepPreviousData,
     staleTime: 0,
@@ -166,6 +175,7 @@ const UserManagement = () => {
   };
 
   const handlePageChange = (newPage: number) => {
+    if (showAll) return;
     updateSearchParams({ page: newPage.toString() });
   };
 
@@ -220,8 +230,6 @@ const UserManagement = () => {
 
     const toastId = toast.loading(`${action} user...`);
 
-    // IMPORTANT: Admin API calls cannot be made from the browser (requires service role).
-    // Use the admin-suspend-user edge function instead.
     const { data, error } = await supabase.functions.invoke("admin-suspend-user", {
       body: { userId: userToSuspend.id, suspend },
     });
@@ -263,7 +271,6 @@ const UserManagement = () => {
 
     toast.success((data as any)?.message || "User deleted.", { id: toastId });
 
-    // Close details sheet if it was open for the deleted user
     if (sheetUserId === userToDelete.id) {
       updateSearchParams({ user: "" });
     }
@@ -299,7 +306,7 @@ const UserManagement = () => {
       </div>
 
       <div className="bg-card border rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -347,6 +354,17 @@ const UserManagement = () => {
               <SelectItem value="email_desc">Email Z → A</SelectItem>
             </SelectContent>
           </Select>
+
+          <div className="flex items-center gap-3 rounded-md border px-3 py-2">
+            <Switch
+              id="show-all-users"
+              checked={showAll}
+              onCheckedChange={(checked) => updateSearchParams({ all: checked ? "1" : "", page: "1" })}
+            />
+            <Label htmlFor="show-all-users" className="cursor-pointer">
+              Show all users
+            </Label>
+          </div>
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
@@ -360,7 +378,7 @@ const UserManagement = () => {
         ) : isError ? (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-center text-destructive">Error fetching users: {error.message}</p>
+              <p className="text-center text-destructive">Error fetching users: {(error as Error).message}</p>
               <Button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["adminUsers"] })}
                 className="mt-4 mx-auto"
@@ -378,6 +396,7 @@ const UserManagement = () => {
                   <div>
                     <CardTitle>{user.full_name || "N/A"}</CardTitle>
                     <CardDescription>{user.email}</CardDescription>
+                    {user.phone && <CardDescription>Phone: {user.phone}</CardDescription>}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -459,7 +478,7 @@ const UserManagement = () => {
         <DataTable columns={memoizedColumns} data={users || []} isLoading={isLoading || isFetching} error={error as Error | null} />
       </div>
 
-      {totalPages > 1 && (
+      {!showAll && totalPages > 1 && (
         <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
 
