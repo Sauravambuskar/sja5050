@@ -55,7 +55,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 type SortValue =
   | "newest"
@@ -310,6 +310,23 @@ const UserManagement = () => {
             Add New User
           </Button>
         </div>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Total users: <span className="font-medium text-foreground">{count.toLocaleString()}</span>
+          {!showAll && (
+            <>
+              {" "}• Per page: <span className="font-medium text-foreground">{PAGE_SIZE}</span>
+            </>
+          )}
+        </p>
+        {!showAll && totalPages > 1 && (
+          <p className="text-sm text-muted-foreground">
+            Page <span className="font-medium text-foreground">{page}</span> of{" "}
+            <span className="font-medium text-foreground">{totalPages}</span>
+          </p>
+        )}
       </div>
 
       <div className="bg-card border rounded-lg p-4 mb-6">
