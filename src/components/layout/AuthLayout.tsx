@@ -3,7 +3,7 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Skeleton } from '../ui/skeleton';
 import { Link } from 'react-router-dom';
 
-const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
+const BRAND_LOGO_URL = "https://i.ibb.co/Jjq5fZbM/sja-pnggg.png";
 
 export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const { settings, isLoading } = useSystemSettings();

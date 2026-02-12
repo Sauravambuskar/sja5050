@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-const BRAND_LOGO_URL = 'https://sjamicrofoundation.com/assets/images/logo-dark.png';
+const BRAND_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
 const fetchWelcomeLetterData = async () => {
   const { data: profileData, error: profileError } = await supabase.rpc('get_my_profile');

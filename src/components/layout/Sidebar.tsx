@@ -74,7 +74,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-const BRAND_LOGO_URL = "https://sjamicrofoundation.com/assets/images/logo-dark.png";
+const BRAND_LOGO_URL = "https://i.ibb.co/Jjq5fZbM/sja-pnggg.png";
 const UI_VERSION_LABEL = "UI v1.0";
 
 interface SidebarProps {
