@@ -57,6 +57,7 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "../ui/skeleton";
@@ -123,7 +124,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { isAdmin } = useIsAdmin();
   const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
+  const { settings, isLoading: isSettingsLoading } = useSystemSettings();
   const navigate = useNavigate();
+
+  const logoUrl = settings?.login_page_logo_url || BRAND_LOGO_URL;
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
@@ -170,7 +174,17 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     <aside className="flex h-full max-h-screen flex-col gap-2 border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <img src={BRAND_LOGO_URL} alt="SJA Lands Logo" className="h-8 w-auto" />
+          {isSettingsLoading ? (
+            <Skeleton className="h-8 w-28" />
+          ) : (
+            <img
+              src={logoUrl}
+              alt="ProSJA Developers Logo"
+              className="h-8 w-auto max-w-[160px] object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+          )}
           <span className="">SJA</span>
         </Link>
         {!isAdmin && (
