@@ -7,10 +7,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, FileText, Gavel, Loader2, ShieldCheck, TrendingUp, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { Separator } from '@/components/ui/separator';
 
 const FALLBACK_AGREEMENT_TEXT = `
 This Investment Agreement ("Agreement") is made and entered into on this day by and between SJA Foundation ("the Company") and the undersigned user ("the Investor").
@@ -24,6 +25,8 @@ This Investment Agreement ("Agreement") is made and entered into on this day by 
 
 By signing below, the Investor acknowledges that they have read, understood, and agree to be bound by the terms and conditions of this Agreement.
 `;
+
+const FALLBACK_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
 const fetchAgreement = async (userId: string) => {
   const { data, error } = await supabase
@@ -62,6 +65,31 @@ const Agreement = () => {
     (settings?.investment_agreement_text && settings.investment_agreement_text.trim()) ||
     FALLBACK_AGREEMENT_TEXT;
 
+  const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
+
+  const highlights = [
+    {
+      icon: TrendingUp,
+      title: 'Investment & Returns',
+      desc: 'Returns depend on the selected plan and are subject to market risks.',
+    },
+    {
+      icon: CalendarDays,
+      title: 'Term & Withdrawals',
+      desc: 'Term is based on the plan. Early withdrawal may include penalties.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Confidentiality',
+      desc: 'Both parties agree to keep non-public information confidential.',
+    },
+    {
+      icon: Gavel,
+      title: 'Legally Binding',
+      desc: 'By signing, you confirm you read and accepted the agreement terms.',
+    },
+  ];
+
   const { data: signedAgreement, isLoading } = useQuery({
     queryKey: ['investmentAgreement', user?.id],
     queryFn: () => fetchAgreement(user!.id),
@@ -71,7 +99,7 @@ const Agreement = () => {
   const mutation = useMutation({
     mutationFn: saveAgreement,
     onSuccess: () => {
-      toast.success("Agreement signed and saved successfully!");
+      toast.success('Agreement signed and saved successfully!');
       queryClient.invalidateQueries({ queryKey: ['investmentAgreement', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['investmentAgreementCheck', user?.id] });
     },
@@ -87,7 +115,7 @@ const Agreement = () => {
   const handleSaveSignature = () => {
     if (!user) return;
     if (sigCanvas.current?.isEmpty()) {
-      toast.error("Please provide your signature.");
+      toast.error('Please provide your signature.');
       return;
     }
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
@@ -96,7 +124,7 @@ const Agreement = () => {
 
   const handleDownloadPdf = () => {
     if (!signedAgreement || !user) {
-      toast.error("Agreement data not available.");
+      toast.error('Agreement data not available.');
       return;
     }
 
@@ -106,12 +134,12 @@ const Agreement = () => {
 
     // Header
     doc.setFontSize(20);
-    doc.text("Investment Bond & Agreement", pageWidth / 2, 20, { align: 'center' });
+    doc.text('Investment Bond & Agreement', pageWidth / 2, 20, { align: 'center' });
 
     // User Info
     doc.setFontSize(10);
     doc.text(`Client: ${user.user_metadata.full_name || user.email}`, margin, 35);
-    doc.text(`Date Signed: ${format(new Date(signedAgreement.signed_at), "PPP p")}`, margin, 40);
+    doc.text(`Date Signed: ${format(new Date(signedAgreement.signed_at), 'PPP p')}`, margin, 40);
 
     // Agreement Text
     doc.setFontSize(10);
@@ -122,7 +150,7 @@ const Agreement = () => {
     const textHeight = doc.getTextDimensions(splitText).h;
     const signatureY = 50 + textHeight + 10;
     doc.setFontSize(12);
-    doc.text("Investor Signature:", margin, signatureY);
+    doc.text('Investor Signature:', margin, signatureY);
     doc.addImage(signedAgreement.signature_data_url, 'PNG', margin, signatureY + 2, 80, 40);
 
     doc.save(`SJA_Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
@@ -153,10 +181,52 @@ const Agreement = () => {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Digital Investment Agreement</CardTitle>
-          <CardDescription>This agreement is legally binding upon signature.</CardDescription>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl border bg-background p-2">
+                <img
+                  src={brandLogoUrl}
+                  alt="Company logo"
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Digital Investment Agreement
+                </CardTitle>
+                <CardDescription>This agreement is legally binding upon signature.</CardDescription>
+              </div>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="space-y-6">
+          {/* Default highlights section (like the Welcome Letter header/points) */}
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <h3 className="font-semibold">Key highlights</h3>
+            <p className="text-sm text-muted-foreground">Quick summary before you sign.</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {highlights.map((h) => {
+                const Icon = h.icon;
+                return (
+                  <div key={h.title} className="flex gap-3 rounded-md border bg-background p-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium leading-none">{h.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{h.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <Separator />
+
           {signedAgreement ? (
             <div className="space-y-6">
               <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
@@ -168,7 +238,7 @@ const Agreement = () => {
                   <img src={signedAgreement.signature_data_url} alt="Your signature" className="h-auto max-h-40" />
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Signed on: {format(new Date(signedAgreement.signed_at), "PPP p")}
+                  Signed on: {format(new Date(signedAgreement.signed_at), 'PPP p')}
                 </p>
               </div>
             </div>
