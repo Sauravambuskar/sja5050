@@ -10,25 +10,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-const BRAND_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
+const FALLBACK_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
 const fetchWelcomeLetterData = async () => {
   const { data: profileData, error: profileError } = await supabase.rpc('get_my_profile');
   if (profileError) throw new Error(`Profile Error: ${profileError.message}`);
-  
+
   const { data: settingsData, error: settingsError } = await supabase.from('system_settings').select('*').single();
   if (settingsError) throw new Error(`Settings Error: ${settingsError.message}`);
-  
-  return { 
-    profile: profileData[0], 
+
+  return {
+    profile: profileData[0],
     companyName: settingsData?.company_bank_details?.bank_name || 'SJA Foundation',
-    joinDate: profileData[0]?.updated_at || new Date().toISOString()
+    joinDate: profileData[0]?.updated_at || new Date().toISOString(),
+    logoUrl: settingsData?.login_page_logo_url || FALLBACK_LOGO_URL,
   };
 };
 
 export const WelcomeLetter = () => {
   const { user } = useAuth();
-  
+
   const { data, isLoading } = useQuery({
     queryKey: ['welcomeLetterData', user?.id],
     queryFn: fetchWelcomeLetterData,
@@ -67,9 +68,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
     `.trim();
 
     const headers = ['Welcome Letter Details'];
-    const letterData = [
-      [welcomeContent]
-    ];
+    const letterData = [[welcomeContent]];
 
     exportToPdf(
       `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
@@ -77,7 +76,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
       headers,
       letterData,
       data.profile.full_name || 'Member',
-      BRAND_LOGO_URL
+      data.logoUrl
     );
   };
 
@@ -132,23 +131,23 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
             <Calendar className="h-5 w-5 text-blue-600" />
             <h3 className="text-lg font-semibold text-blue-900">Your Membership Details</h3>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Member ID</p>
               <p className="text-lg font-bold text-blue-900">{data.profile.member_id || 'N/A'}</p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Join Date</p>
               <p className="text-lg font-bold text-blue-900">{format(new Date(data.joinDate), 'MMMM dd, yyyy')}</p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Email</p>
               <p className="text-lg font-bold text-blue-900">{user?.email || 'N/A'}</p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Phone</p>
               <p className="text-lg font-bold text-blue-900">{data.profile.phone || 'N/A'}</p>
@@ -156,13 +155,15 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
           </div>
         </div>
 
+        <Separator />
+
         {/* Referral Code Section */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 border-2 border-green-200">
           <div className="flex items-center gap-3 mb-4">
             <Gift className="h-5 w-5 text-green-600" />
             <h3 className="text-lg font-semibold text-green-900">Your Referral Code</h3>
           </div>
-          
+
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <p className="text-sm text-gray-600 mb-2">Share this code with friends and family to earn referral commissions:</p>
             <div className="flex items-center gap-3">
@@ -180,7 +181,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
             <TrendingUp className="h-5 w-5 text-blue-600" />
             <h3 className="text-lg font-semibold text-gray-800">Your Member Benefits</h3>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -189,7 +190,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
               <h4 className="font-semibold text-blue-900 mb-2">Investment Plans</h4>
               <p className="text-sm text-blue-700">Access to exclusive investment opportunities</p>
             </div>
-            
+
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Gift className="h-6 w-6 text-white" />
@@ -197,7 +198,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
               <h4 className="font-semibold text-green-900 mb-2">Referral Program</h4>
               <p className="text-sm text-green-700">Earn commissions by referring others</p>
             </div>
-            
+
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <User className="h-6 w-6 text-white" />
@@ -220,7 +221,7 @@ Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
             <p className="text-blue-800">SJA Team</p>
           </div>
         </div>
-        
+
         {/* Download Button */}
         <div className="flex justify-center pt-6 border-t border-gray-200">
           <Button onClick={handleDownloadWelcomeLetter} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">

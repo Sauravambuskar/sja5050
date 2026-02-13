@@ -2,8 +2,7 @@ import React from 'react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Skeleton } from '../ui/skeleton';
 import { Link } from 'react-router-dom';
-
-const BRAND_LOGO_URL = "https://i.ibb.co/Jjq5fZbM/sja-pnggg.png";
+import { AppLogo } from '@/components/branding/AppLogo';
 
 export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const { settings, isLoading } = useSystemSettings();
@@ -14,7 +13,6 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const imageUrl2 =
     settings?.auth_layout_image_url_2 ||
     "https://ideogram.ai/assets/progressive-image/balanced/response/N1ygBDjpR2Gu9OPylgNwoA";
-  const logoUrl = settings?.login_page_logo_url || BRAND_LOGO_URL;
 
   return (
     <div className="light w-full min-h-screen bg-muted lg:grid lg:grid-cols-2">
@@ -41,18 +39,7 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="relative z-10 w-full max-w-md">
           {/* Logo Section */}
           <div className="mb-8 flex justify-center">
-            {isLoading ? (
-              <Skeleton className="h-16 w-32" />
-            ) : (
-              <img
-                src={logoUrl}
-                alt="SJA Lands Logo"
-                title="SJA Lands Logo"
-                loading="lazy"
-                decoding="async"
-                className="h-14 sm:h-16 md:h-20 w-auto max-w-[220px] object-contain drop-shadow-md"
-              />
-            )}
+            <AppLogo className="h-14 sm:h-16 md:h-20 max-w-[220px] drop-shadow-md" alt="App logo" />
           </div>
 
           {children}

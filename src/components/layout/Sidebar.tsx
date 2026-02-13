@@ -73,8 +73,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { AppLogo } from "@/components/branding/AppLogo";
 
-const BRAND_LOGO_URL = "https://i.ibb.co/Jjq5fZbM/sja-pnggg.png";
 const UI_VERSION_LABEL = "UI v1.0";
 
 interface SidebarProps {
@@ -124,10 +124,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const { isAdmin } = useIsAdmin();
   const { count: unreadNotifications } = useUnreadNotifications();
   const { data: adminCounts } = useAdminActionCounts();
-  const { settings, isLoading: isSettingsLoading } = useSystemSettings();
+  const { isLoading: isSettingsLoading } = useSystemSettings();
   const navigate = useNavigate();
-
-  const logoUrl = settings?.login_page_logo_url || BRAND_LOGO_URL;
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
@@ -177,13 +175,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           {isSettingsLoading ? (
             <Skeleton className="h-8 w-28" />
           ) : (
-            <img
-              src={logoUrl}
-              alt="ProSJA Developers Logo"
-              className="h-8 w-auto max-w-[160px] object-contain"
-              loading="lazy"
-              decoding="async"
-            />
+            <AppLogo alt="App logo" />
           )}
           <span className="">SJA</span>
         </Link>

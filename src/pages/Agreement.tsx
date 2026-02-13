@@ -26,6 +26,7 @@ This Investment Agreement ("Agreement") is made and entered into on this day by 
 By signing below, the Investor acknowledges that they have read, understood, and agree to be bound by the terms and conditions of this Agreement.
 `;
 
+// Uses the global app logo configured by admin (system_settings.login_page_logo_url)
 const FALLBACK_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
 const fetchAgreement = async (userId: string) => {
