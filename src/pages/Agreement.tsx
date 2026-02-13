@@ -123,36 +123,192 @@ const Agreement = () => {
     mutation.mutate({ userId: user.id, signatureDataUrl, agreementText });
   };
 
-  const handleDownloadPdf = () => {
+  const loadImageAsDataUrl = async (url: string) => {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image')); 
+        reader.readAsDataURL(blob);
+      });
+      return dataUrl;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDownloadPdf = async () => {
     if (!signedAgreement || !user) {
       toast.error('Agreement data not available.');
       return;
     }
 
-    const doc = new jsPDF();
+    const primary = { r: 37, g: 99, b: 235 }; // blue-600
+    const muted = { r: 241, g: 245, b: 249 }; // slate-100
+    const border = { r: 226, g: 232, b: 240 }; // slate-200
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
 
-    // Header
-    doc.setFontSize(20);
-    doc.text('Investment Bond & Agreement', pageWidth / 2, 20, { align: 'center' });
+    const addHeader = async (pageTitle: string) => {
+      // Header bar
+      doc.setFillColor(primary.r, primary.g, primary.b);
+      doc.rect(0, 0, pageWidth, 24, 'F');
 
-    // User Info
-    doc.setFontSize(10);
-    doc.text(`Client: ${user.user_metadata.full_name || user.email}`, margin, 35);
-    doc.text(`Date Signed: ${format(new Date(signedAgreement.signed_at), 'PPP p')}`, margin, 40);
+      // Logo (best-effort)
+      const logoDataUrl = await loadImageAsDataUrl(brandLogoUrl);
+      if (logoDataUrl) {
+        try {
+          doc.addImage(logoDataUrl, 'PNG', margin, 5, 18, 14);
+        } catch {
+          // ignore logo failures
+        }
+      }
 
-    // Agreement Text
-    doc.setFontSize(10);
-    const splitText = doc.splitTextToSize(signedAgreement.agreement_text, pageWidth - margin * 2);
-    doc.text(splitText, margin, 50);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.text(pageTitle, pageWidth / 2, 15, { align: 'center' });
 
-    // Signature
-    const textHeight = doc.getTextDimensions(splitText).h;
-    const signatureY = 50 + textHeight + 10;
-    doc.setFontSize(12);
-    doc.text('Investor Signature:', margin, signatureY);
-    doc.addImage(signedAgreement.signature_data_url, 'PNG', margin, signatureY + 2, 80, 40);
+      doc.setFontSize(9);
+      doc.text('SJA Foundation', pageWidth - margin, 15, { align: 'right' });
+
+      // Reset
+      doc.setTextColor(17, 24, 39);
+    };
+
+    const addFooter = (pageNum: number, totalPages: number) => {
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        `Page ${pageNum} of ${totalPages}`,
+        pageWidth - margin,
+        pageHeight - 8,
+        { align: 'right' }
+      );
+      doc.text(`Generated: ${format(new Date(), 'PPP p')}`, margin, pageHeight - 8);
+      doc.setTextColor(17, 24, 39);
+    };
+
+    await addHeader('Investment Agreement');
+
+    // Content starts after header
+    let y = 30;
+
+    // Summary box
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.setFillColor(muted.r, muted.g, muted.b);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 2, 2, 'FD');
+
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Agreement Summary', margin + 4, y + 8);
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+
+    const clientName = (user.user_metadata.full_name as string | undefined) || user.email || 'Client';
+    const signedAt = signedAgreement.signed_at ? format(new Date(signedAgreement.signed_at), 'PPP p') : 'N/A';
+
+    doc.text(`Client: ${clientName}`, margin + 4, y + 15);
+    doc.text(`Email: ${user.email || 'N/A'}`, margin + 4, y + 20);
+    doc.text(`Signed at: ${signedAt}`, margin + 4, y + 25);
+
+    // Highlights (2 columns)
+    y += 36;
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Key Points', margin, y);
+
+    y += 4;
+    const colGap = 6;
+    const colW = (pageWidth - margin * 2 - colGap) / 2;
+    const boxH = 14;
+
+    highlights.forEach((h, idx) => {
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const x = margin + col * (colW + colGap);
+      const yy = y + row * (boxH + 4);
+
+      doc.setDrawColor(border.r, border.g, border.b);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(x, yy, colW, boxH, 2, 2, 'FD');
+
+      doc.setFontSize(9.5);
+      doc.setTextColor(37, 99, 235);
+      doc.text(h.title, x + 3, yy + 5);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      const descLines = doc.splitTextToSize(h.desc, colW - 6);
+      doc.text(descLines, x + 3, yy + 9);
+    });
+
+    y += 2 * (boxH + 4) + 8;
+
+    // Agreement body
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Full Agreement', margin, y);
+    y += 6;
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+
+    const textLines = doc.splitTextToSize(signedAgreement.agreement_text, pageWidth - margin * 2);
+    const lineH = 5;
+
+    const ensureSpace = async (requiredHeight: number) => {
+      if (y + requiredHeight <= pageHeight - 18) return;
+      doc.addPage();
+      await addHeader('Investment Agreement');
+      y = 30;
+    };
+
+    for (const line of textLines) {
+      await ensureSpace(lineH);
+      doc.text(String(line), margin, y);
+      y += lineH;
+    }
+
+    // Signature section
+    y += 4;
+    await ensureSpace(55);
+
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Signature', margin, y);
+    y += 6;
+
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, 'FD');
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text('Investor Signature:', margin + 4, y + 8);
+
+    try {
+      doc.addImage(signedAgreement.signature_data_url, 'PNG', margin + 4, y + 12, 70, 24);
+    } catch {
+      doc.setTextColor(148, 163, 184);
+      doc.text('(Signature image not available)', margin + 4, y + 20);
+      doc.setTextColor(51, 65, 85);
+    }
+
+    doc.text(`Signed at: ${signedAt}`, margin + 80, y + 18);
+
+    // Footer on all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(i, totalPages);
+    }
 
     doc.save(`SJA_Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
   };
