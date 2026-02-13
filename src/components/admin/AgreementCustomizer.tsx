@@ -30,10 +30,9 @@ const fetchSettings = async (): Promise<SystemSettings> => {
 };
 
 const updateAgreement = async (values: AgreementFormValues) => {
-  const { error } = await supabase
-    .from("system_settings")
-    .update({ investment_agreement_text: values.investment_agreement_text })
-    .eq("id", 1);
+  const { error } = await supabase.rpc("admin_update_investment_agreement_template", {
+    p_text: values.investment_agreement_text,
+  });
   if (error) throw error;
 };
 
