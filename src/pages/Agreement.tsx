@@ -10,8 +10,9 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
-const AGREEMENT_TEXT = `
+const FALLBACK_AGREEMENT_TEXT = `
 This Investment Agreement ("Agreement") is made and entered into on this day by and between SJA Foundation ("the Company") and the undersigned user ("the Investor").
 
 1.  **Investment:** The Investor agrees to invest funds into the plans offered by the Company. The Company agrees to manage these funds according to the terms of the selected investment plan.
@@ -34,11 +35,19 @@ const fetchAgreement = async (userId: string) => {
   return data;
 };
 
-const saveAgreement = async ({ userId, signatureDataUrl }: { userId: string; signatureDataUrl: string }) => {
+const saveAgreement = async ({
+  userId,
+  signatureDataUrl,
+  agreementText,
+}: {
+  userId: string;
+  signatureDataUrl: string;
+  agreementText: string;
+}) => {
   const { error } = await supabase.from('investment_agreements').upsert({
     user_id: userId,
     signature_data_url: signatureDataUrl,
-    agreement_text: AGREEMENT_TEXT,
+    agreement_text: agreementText,
   });
   if (error) throw error;
 };
@@ -47,6 +56,11 @@ const Agreement = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const { settings } = useSystemSettings();
+
+  const agreementText =
+    (settings?.investment_agreement_text && settings.investment_agreement_text.trim()) ||
+    FALLBACK_AGREEMENT_TEXT;
 
   const { data: signedAgreement, isLoading } = useQuery({
     queryKey: ['investmentAgreement', user?.id],
@@ -77,7 +91,7 @@ const Agreement = () => {
       return;
     }
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
-    mutation.mutate({ userId: user.id, signatureDataUrl });
+    mutation.mutate({ userId: user.id, signatureDataUrl, agreementText });
   };
 
   const handleDownloadPdf = () => {
@@ -93,7 +107,7 @@ const Agreement = () => {
     // Header
     doc.setFontSize(20);
     doc.text("Investment Bond & Agreement", pageWidth / 2, 20, { align: 'center' });
-    
+
     // User Info
     doc.setFontSize(10);
     doc.text(`Client: ${user.user_metadata.full_name || user.email}`, margin, 35);
@@ -115,7 +129,11 @@ const Agreement = () => {
   };
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -157,7 +175,7 @@ const Agreement = () => {
           ) : (
             <div className="space-y-6">
               <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
-                {AGREEMENT_TEXT}
+                {agreementText}
               </div>
               <div>
                 <label className="text-sm font-medium">Please Sign in the Box Below</label>
@@ -168,7 +186,9 @@ const Agreement = () => {
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign & Submit Agreement
                 </Button>
-                <Button variant="outline" onClick={clearSignature}>Clear</Button>
+                <Button variant="outline" onClick={clearSignature}>
+                  Clear
+                </Button>
               </div>
             </div>
           )}
