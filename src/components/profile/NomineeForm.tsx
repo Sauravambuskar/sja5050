@@ -19,8 +19,8 @@ import { format } from 'date-fns';
 import { Loader2, PlusCircle, Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { useProfile } from '@/hooks/useProfile';
 import { NomineePhotoUploader } from '@/components/nominees/NomineePhotoUploader';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const nomineeSchema = z.object({
   full_name: z.string().min(2, "Name is required"),
@@ -33,11 +33,13 @@ type NomineeFormValues = z.infer<typeof nomineeSchema>;
 
 export const NomineeForm = () => {
   const queryClient = useQueryClient();
-  const { data: profile } = useProfile();
+  const { user } = useAuth();
+
+  // IMPORTANT: Use the authenticated user id (matches auth.uid()) to satisfy RLS policies.
+  const userId = user?.id;
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingNominee, setEditingNominee] = useState<Nominee | null>(null);
-
-  const userId = profile?.id;
 
   const { data: nominees, isLoading } = useQuery({
     queryKey: ['myNominees', userId],
