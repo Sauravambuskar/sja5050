@@ -28,6 +28,7 @@ import { CompanyBankDetails } from "@/components/admin/CompanyBankDetails";
 import { AuthLayoutCustomizer } from "@/components/admin/AuthLayoutCustomizer";
 import { SplashScreenCustomizer } from "@/components/admin/SplashScreenCustomizer";
 import { AgreementCustomizer } from "@/components/admin/AgreementCustomizer";
+import { AgreementAssetsManager } from "@/components/admin/AgreementAssetsManager";
 
 const triggerMaturityProcessing = async () => {
   const { data, error } = await supabase.functions.invoke('admin-trigger-maturities');
@@ -116,6 +117,7 @@ const SystemManagement = () => {
           <AuthLayoutCustomizer />
           <SplashScreenCustomizer />
           <AgreementCustomizer />
+          <AgreementAssetsManager />
         </div>
         <div className="space-y-6">
           <Card>

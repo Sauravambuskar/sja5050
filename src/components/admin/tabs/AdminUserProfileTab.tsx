@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { NomineeManager } from "../NomineeManager";
+import { UserAgreementManager } from "@/components/admin/UserAgreementManager";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -326,6 +327,8 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
       </Card>
 
       <NomineeManager userId={userId} />
+
+      <UserAgreementManager userId={userId} />
 
       <AlertDialog open={!!confirmAuthUpdate} onOpenChange={(open) => !open && setConfirmAuthUpdate(null)}>
         <AlertDialogContent>

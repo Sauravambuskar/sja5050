@@ -436,6 +436,9 @@ export type SystemSettings = {
   login_page_logo_url: string | null;
   splash_screen_url: string | null;
   investment_agreement_text?: string | null;
+  agreement_first_party_name?: string | null;
+  agreement_stamp_path?: string | null;
+  agreement_company_signature_path?: string | null;
 };
 
 export type Faq = {
@@ -598,4 +601,23 @@ export type Wallet = {
   is_locked: boolean;
   locked_until: string | null;
   transaction_history: Transaction[];
+};
+
+export type InvestmentAgreement = {
+  id: string;
+  user_id: string;
+  agreement_text: string;
+  signature_data_url: string;
+  signed_at: string | null;
+
+  user_investment_id: string | null;
+  invested_amount: number | null;
+  investment_date: string | null;
+  first_party_name: string | null;
+  second_party_name: string | null;
+  status: 'user_signed' | 'finalized' | string;
+  company_signature_path: string | null;
+  stamp_path: string | null;
+  pdf_path: string | null;
+  admin_signed_at: string | null;
 };
