@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { Loader2, PlusCircle, Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { NomineePhotoUploader } from '@/components/nominees/NomineePhotoUploader';
 
 const nomineeSchema = z.object({
   full_name: z.string().min(2, "Name is required"),
@@ -127,6 +128,7 @@ export const NomineeManager = ({ userId }: NomineeManagerProps) => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Photo</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead>Relationship</TableHead>
                   <TableHead>Date of Birth</TableHead>
@@ -137,6 +139,15 @@ export const NomineeManager = ({ userId }: NomineeManagerProps) => {
                 {nominees && nominees.length > 0 ? (
                   nominees.map((nominee) => (
                     <TableRow key={nominee.id}>
+                      <TableCell className="min-w-[260px]">
+                        <NomineePhotoUploader
+                          userId={userId}
+                          nomineeId={nominee.id}
+                          nomineeName={nominee.full_name}
+                          photoPath={nominee.photo_path}
+                          onUpdated={() => queryClient.invalidateQueries({ queryKey: ['nominees', userId] })}
+                        />
+                      </TableCell>
                       <TableCell>{nominee.full_name}</TableCell>
                       <TableCell>{nominee.relationship}</TableCell>
                       <TableCell>{nominee.dob ? format(new Date(nominee.dob), 'PPP') : 'N/A'}</TableCell>
@@ -158,7 +169,7 @@ export const NomineeManager = ({ userId }: NomineeManagerProps) => {
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow><TableCell colSpan={4} className="text-center">No nominees added yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center">No nominees added yet.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

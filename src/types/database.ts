@@ -18,6 +18,7 @@ export type Nominee = {
   relationship: string;
   dob: string | null;
   blood_group: string | null;
+  photo_path?: string | null;
   created_at: string;
 };
 
