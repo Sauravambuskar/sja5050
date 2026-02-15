@@ -155,6 +155,7 @@ export const NomineeForm = () => {
                           nomineeId={nominee.id}
                           nomineeName={nominee.full_name}
                           photoPath={nominee.photo_path}
+                          layout="large"
                           onUpdated={() => queryClient.invalidateQueries({ queryKey: ['myNominees', userId] })}
                         />
                       </TableCell>
