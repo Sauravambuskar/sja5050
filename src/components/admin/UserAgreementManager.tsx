@@ -47,6 +47,11 @@ async function blobToDataUrl(blob: Blob) {
   });
 }
 
+function imageFormatFromDataUrl(dataUrl: string): "PNG" | "JPEG" {
+  if (dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg")) return "JPEG";
+  return "PNG";
+}
+
 export function UserAgreementManager({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const adminSigCanvas = useRef<SignatureCanvas>(null);
@@ -112,49 +117,103 @@ export function UserAgreementManager({ userId }: { userId: string }) {
       // Generate a final PDF (simple and stable)
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 14;
 
+      // Header (simple text + divider)
       doc.setFontSize(16);
-      doc.text("Investment Agreement (Final)", pageWidth / 2, 18, { align: "center" });
+      doc.text("Investment Agreement", margin, 18);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Final (Admin signed)", margin, 24);
+      doc.setTextColor(17, 24, 39);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, 28, pageWidth - margin, 28);
 
       doc.setFontSize(10);
       doc.text(`First Party: ${agreement.first_party_name || assets.first_party_name || ""}`,
         margin,
-        28
+        36
       );
-      doc.text(`Second Party: ${agreement.second_party_name || ""}`, margin, 34);
+      doc.text(`Second Party: ${agreement.second_party_name || ""}`, margin, 42);
       doc.text(
         `Invested Amount: INR ${(agreement.invested_amount ?? 0).toLocaleString("en-IN")}`,
         margin,
-        40
+        48
       );
 
       doc.setFontSize(10);
       const textLines = doc.splitTextToSize(agreement.agreement_text, pageWidth - margin * 2);
-      doc.text(textLines, margin, 50);
+      doc.text(textLines, margin, 58);
 
       // Footer signatures area (page 1)
-      const yBase = 250;
+      // Keep everything inside the page (avoid cutting stamp off)
+      const boxTop = pageHeight - 62; // 235 on A4
       doc.setDrawColor(226, 232, 240);
-      doc.rect(margin, yBase - 12, pageWidth - margin * 2, 48);
+      doc.rect(margin, boxTop, pageWidth - margin * 2, 52);
 
-      doc.setFontSize(10);
-      doc.text("Investor Signature", margin + 4, yBase - 4);
+      const colW = (pageWidth - margin * 2) / 3;
+      const sigY = boxTop + 12;
+      const sigH = 18;
+      const sigW = colW - 8;
+
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Investor Signature", margin + 4, boxTop + 6);
+      doc.text("Company Signature", margin + colW + 4, boxTop + 6);
+      doc.text("Admin Signature", margin + colW * 2 + 4, boxTop + 6);
+      doc.setTextColor(17, 24, 39);
+
       try {
-        doc.addImage(agreement.signature_data_url, "PNG", margin + 4, yBase, 55, 18);
+        doc.addImage(
+          agreement.signature_data_url,
+          imageFormatFromDataUrl(agreement.signature_data_url),
+          margin + 4,
+          sigY,
+          sigW,
+          sigH
+        );
       } catch {
         // ignore
       }
 
-      doc.text("Company Signature", margin + 70, yBase - 4);
-      doc.addImage(compSigDataUrl, "PNG", margin + 70, yBase, 55, 18);
+      try {
+        doc.addImage(
+          compSigDataUrl,
+          imageFormatFromDataUrl(compSigDataUrl),
+          margin + colW + 4,
+          sigY,
+          sigW,
+          sigH
+        );
+      } catch {
+        // ignore
+      }
 
-      doc.text("Admin Signature", margin + 136, yBase - 4);
-      doc.addImage(adminSigDataUrl, "PNG", margin + 136, yBase, 55, 18);
+      try {
+        doc.addImage(
+          adminSigDataUrl,
+          imageFormatFromDataUrl(adminSigDataUrl),
+          margin + colW * 2 + 4,
+          sigY,
+          sigW,
+          sigH
+        );
+      } catch {
+        // ignore
+      }
 
-      // Stamp
-      doc.text("Stamp", margin + 4, yBase + 28);
-      doc.addImage(stampDataUrl, "PNG", margin + 4, yBase + 30, 30, 18);
+      // Stamp (bottom-left inside the box)
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Stamp", margin + 4, boxTop + 36);
+      doc.setTextColor(17, 24, 39);
+
+      try {
+        doc.addImage(stampDataUrl, imageFormatFromDataUrl(stampDataUrl), margin + 4, boxTop + 38, 32, 12);
+      } catch {
+        // ignore
+      }
 
       const pdfBlob = doc.output("blob");
 

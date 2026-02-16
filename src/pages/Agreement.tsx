@@ -161,30 +161,12 @@ const Agreement = () => {
     });
   };
 
-  const loadImageAsDataUrl = async (url: string) => {
-    try {
-      const res = await fetch(url, { mode: 'cors' });
-      if (!res.ok) return null;
-      const blob = await res.blob();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read image'));
-        reader.readAsDataURL(blob);
-      });
-      return dataUrl;
-    } catch {
-      return null;
-    }
-  };
-
   const handleDownloadPdf = async () => {
     if (!agreementRow || !user) {
       toast.error('Agreement data not available.');
       return;
     }
 
-    const primary = { r: 37, g: 99, b: 235 }; // blue-600
     const muted = { r: 241, g: 245, b: 249 }; // slate-100
     const border = { r: 226, g: 232, b: 240 }; // slate-200
 
@@ -193,23 +175,45 @@ const Agreement = () => {
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 14;
 
-    const addHeader = async (pageTitle: string) => {
-      doc.setFillColor(primary.r, primary.g, primary.b);
-      doc.rect(0, 0, pageWidth, 24, 'F');
+    const loadImageAsDataUrl = async (url: string) => {
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error('Failed to read image'));
+          reader.readAsDataURL(blob);
+        });
+        return dataUrl;
+      } catch {
+        return null;
+      }
+    };
 
+    const imageFormatFromDataUrl = (dataUrl: string): 'PNG' | 'JPEG' => {
+      if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
+      return 'PNG';
+    };
+
+    const addHeader = async (pageTitle: string) => {
+      // Simple header: logo + text + divider (no blue bar)
       const logoDataUrl = await loadImageAsDataUrl(brandLogoUrl);
       if (logoDataUrl) {
         try {
-          doc.addImage(logoDataUrl, 'PNG', margin, 5, 18, 14);
+          doc.addImage(logoDataUrl, imageFormatFromDataUrl(logoDataUrl), margin, 6, 16, 16);
         } catch {
           // ignore
         }
       }
 
-      doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
-      doc.text(pageTitle, pageWidth / 2, 15, { align: 'center' });
       doc.setTextColor(17, 24, 39);
+      doc.text(pageTitle, margin + 20, 16);
+
+      doc.setDrawColor(border.r, border.g, border.b);
+      doc.line(margin, 24, pageWidth - margin, 24);
     };
 
     const addFooter = (pageNum: number, totalPages: number) => {
@@ -248,10 +252,11 @@ const Agreement = () => {
     doc.text('Agreement', margin, y);
     y += 6;
 
-    doc.setFontSize(9.5);
+    doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
 
-    const textLines = doc.splitTextToSize(agreementRow.agreement_text, pageWidth - margin * 2);
+    // Better-aligned body: wrap and justify-like by using consistent line height and paragraph breaks
+    const paragraphs = String(agreementRow.agreement_text || '').split(/\n\s*\n/);
     const lineH = 5;
 
     const ensureSpace = async (requiredHeight: number) => {
@@ -261,13 +266,19 @@ const Agreement = () => {
       y = 30;
     };
 
-    for (const line of textLines) {
-      await ensureSpace(lineH);
-      doc.text(String(line), margin, y);
-      y += lineH;
+    for (const para of paragraphs) {
+      const cleaned = para.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!cleaned) continue;
+      const lines = doc.splitTextToSize(cleaned, pageWidth - margin * 2);
+      for (const line of lines) {
+        await ensureSpace(lineH);
+        doc.text(String(line), margin, y);
+        y += lineH;
+      }
+      y += 3;
     }
 
-    y += 6;
+    y += 4;
     await ensureSpace(55);
 
     doc.setFontSize(11);
@@ -284,7 +295,16 @@ const Agreement = () => {
     doc.text(`Signed at: ${signedAt}`, margin + 4, y + 8);
 
     try {
-      doc.addImage(agreementRow.signature_data_url, 'PNG', margin + 4, y + 12, 70, 24);
+      doc.addImage(
+        agreementRow.signature_data_url,
+        agreementRow.signature_data_url?.startsWith('data:image/jpeg') || agreementRow.signature_data_url?.startsWith('data:image/jpg')
+          ? 'JPEG'
+          : 'PNG',
+        margin + 4,
+        y + 12,
+        70,
+        24
+      );
     } catch {
       doc.setTextColor(148, 163, 184);
       doc.text('(Signature image not available)', margin + 4, y + 22);
