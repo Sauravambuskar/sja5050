@@ -52,6 +52,72 @@ function imageFormatFromDataUrl(dataUrl: string): "PNG" | "JPEG" {
   return "PNG";
 }
 
+function renderAgreementBody(params: {
+  doc: jsPDF;
+  text: string;
+  startY: number;
+  margin: number;
+  pageWidth: number;
+  pageHeight: number;
+  addHeader: () => void;
+}) {
+  const { doc, text, startY, margin, pageWidth, pageHeight, addHeader } = params;
+  let y = startY;
+  const maxWidth = pageWidth - margin * 2;
+  const lineH = 5;
+
+  const ensureSpace = (required: number) => {
+    if (y + required <= pageHeight - 18) return;
+    doc.addPage();
+    addHeader();
+    y = 30;
+  };
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+
+  const paragraphs = String(text || "").split(/\n\s*\n/);
+  for (const paraRaw of paragraphs) {
+    const trimmed = paraRaw.trim();
+    if (!trimmed) continue;
+
+    const listMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (listMatch) {
+      const num = `${listMatch[1]}.`;
+      const content = listMatch[2].replace(/\s+/g, " ").trim();
+
+      const numW = doc.getTextWidth(num + " ");
+      const indentX = margin + Math.min(10, Math.max(6, numW));
+      const available = pageWidth - margin - indentX;
+
+      const lines = doc.splitTextToSize(content, available);
+      ensureSpace(lineH);
+      doc.text(num, margin, y);
+      doc.text(String(lines[0] ?? ""), indentX, y);
+      y += lineH;
+      for (let i = 1; i < lines.length; i++) {
+        ensureSpace(lineH);
+        doc.text(String(lines[i]), indentX, y);
+        y += lineH;
+      }
+      y += 1.5;
+      continue;
+    }
+
+    const cleaned = trimmed.replace(/\n/g, " ").replace(/\s+/g, " ");
+    const lines = doc.splitTextToSize(cleaned, maxWidth);
+    for (const line of lines) {
+      ensureSpace(lineH);
+      doc.text(String(line), margin, y);
+      y += lineH;
+    }
+    y += 3;
+  }
+
+  return y;
+}
+
 export function UserAgreementManager({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const adminSigCanvas = useRef<SignatureCanvas>(null);
@@ -116,25 +182,35 @@ export function UserAgreementManager({ userId }: { userId: string }) {
 
       // Generate a final PDF (simple and stable)
       const doc = new jsPDF({ unit: "mm", format: "a4" });
+      doc.setFont("helvetica", "normal");
+
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 14;
 
-      // Header (simple text + divider)
-      doc.setFontSize(16);
-      doc.text("Investment Agreement", margin, 18);
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text("Final (Admin signed)", margin, 24);
-      doc.setTextColor(17, 24, 39);
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margin, 28, pageWidth - margin, 28);
+      const addHeader = () => {
+        // Header (simple text + divider)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39);
+        doc.text("Investment Agreement", margin, 18);
 
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        doc.text("Final (Admin signed)", margin, 24);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margin, 28, pageWidth - margin, 28);
+
+        doc.setTextColor(17, 24, 39);
+      };
+
+      addHeader();
+
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`First Party: ${agreement.first_party_name || assets.first_party_name || ""}`,
-        margin,
-        36
-      );
+      doc.text(`First Party: ${agreement.first_party_name || assets.first_party_name || ""}`, margin, 36);
       doc.text(`Second Party: ${agreement.second_party_name || ""}`, margin, 42);
       doc.text(
         `Invested Amount: INR ${(agreement.invested_amount ?? 0).toLocaleString("en-IN")}`,
@@ -142,15 +218,29 @@ export function UserAgreementManager({ userId }: { userId: string }) {
         48
       );
 
-      doc.setFontSize(10);
-      const textLines = doc.splitTextToSize(agreement.agreement_text, pageWidth - margin * 2);
-      doc.text(textLines, margin, 58);
+      // Body (with page breaks + better alignment)
+      let y = 58;
+      y = renderAgreementBody({
+        doc,
+        text: agreement.agreement_text,
+        startY: y,
+        margin,
+        pageWidth,
+        pageHeight,
+        addHeader,
+      });
 
-      // Footer signatures area (page 1)
-      // Keep everything inside the page (avoid cutting stamp off)
-      const boxTop = pageHeight - 62; // 235 on A4
+      // Signatures on the LAST page
+      const boxH = 52;
+      const boxTop = pageHeight - 62;
+      if (y > boxTop - 8) {
+        doc.addPage();
+        addHeader();
+      }
+
+      doc.setPage(doc.getNumberOfPages());
       doc.setDrawColor(226, 232, 240);
-      doc.rect(margin, boxTop, pageWidth - margin * 2, 52);
+      doc.rect(margin, boxTop, pageWidth - margin * 2, boxH);
 
       const colW = (pageWidth - margin * 2) / 3;
       const sigY = boxTop + 12;

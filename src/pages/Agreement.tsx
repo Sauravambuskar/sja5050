@@ -171,6 +171,9 @@ const Agreement = () => {
     const border = { r: 226, g: 232, b: 240 }; // slate-200
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    // Consistent PDF typography
+    doc.setFont('helvetica', 'normal');
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 14;
@@ -208,20 +211,88 @@ const Agreement = () => {
         }
       }
 
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor(17, 24, 39);
       doc.text(pageTitle, margin + 20, 16);
 
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Digitally signed agreement', margin + 20, 21);
+
       doc.setDrawColor(border.r, border.g, border.b);
       doc.line(margin, 24, pageWidth - margin, 24);
+      doc.setTextColor(17, 24, 39);
     };
 
     const addFooter = (pageNum: number, totalPages: number) => {
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100, 116, 139);
       doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
       doc.text(`Generated: ${format(new Date(), 'PPP p')}`, margin, pageHeight - 8);
       doc.setTextColor(17, 24, 39);
+    };
+
+    const ensureSpace = async (y: number, requiredHeight: number) => {
+      if (y + requiredHeight <= pageHeight - 18) return y;
+      doc.addPage();
+      await addHeader('Investment Agreement');
+      return 30;
+    };
+
+    const renderAgreementBody = async (text: string, startY: number) => {
+      let y = startY;
+      const maxWidth = pageWidth - margin * 2;
+      const lineH = 5;
+
+      // Preserve paragraphs + handle numbered points with hanging indent
+      const paragraphs = String(text || '').split(/\n\s*\n/);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+
+      for (const paraRaw of paragraphs) {
+        const para = paraRaw.replace(/\s+$/g, '');
+        const trimmed = para.trim();
+        if (!trimmed) continue;
+
+        const listMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+        if (listMatch) {
+          const num = `${listMatch[1]}.`;
+          const content = listMatch[2].replace(/\s+/g, ' ').trim();
+
+          const numW = doc.getTextWidth(num + ' ');
+          const indentX = margin + Math.min(10, Math.max(6, numW));
+          const available = pageWidth - margin - indentX;
+
+          const lines = doc.splitTextToSize(content, available);
+          y = await ensureSpace(y, lineH);
+          doc.text(num, margin, y);
+          doc.text(String(lines[0] ?? ''), indentX, y);
+          y += lineH;
+
+          for (let i = 1; i < lines.length; i++) {
+            y = await ensureSpace(y, lineH);
+            doc.text(String(lines[i]), indentX, y);
+            y += lineH;
+          }
+          y += 1.5;
+          continue;
+        }
+
+        const cleaned = trimmed.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        const lines = doc.splitTextToSize(cleaned, maxWidth);
+        for (const line of lines) {
+          y = await ensureSpace(y, lineH);
+          doc.text(String(line), margin, y);
+          y += lineH;
+        }
+        y += 3;
+      }
+
+      return y;
     };
 
     await addHeader('Investment Agreement');
@@ -232,10 +303,12 @@ const Agreement = () => {
     doc.setFillColor(muted.r, muted.g, muted.b);
     doc.roundedRect(margin, y, pageWidth - margin * 2, 34, 2, 2, 'FD');
 
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement Details', margin + 4, y + 8);
 
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
 
@@ -247,40 +320,18 @@ const Agreement = () => {
 
     y += 44;
 
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement', margin, y);
-    y += 6;
+    y += 7;
 
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
+    y = await renderAgreementBody(agreementRow.agreement_text, y);
 
-    // Better-aligned body: wrap and justify-like by using consistent line height and paragraph breaks
-    const paragraphs = String(agreementRow.agreement_text || '').split(/\n\s*\n/);
-    const lineH = 5;
+    y += 2;
+    y = await ensureSpace(y, 55);
 
-    const ensureSpace = async (requiredHeight: number) => {
-      if (y + requiredHeight <= pageHeight - 18) return;
-      doc.addPage();
-      await addHeader('Investment Agreement');
-      y = 30;
-    };
-
-    for (const para of paragraphs) {
-      const cleaned = para.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-      if (!cleaned) continue;
-      const lines = doc.splitTextToSize(cleaned, pageWidth - margin * 2);
-      for (const line of lines) {
-        await ensureSpace(lineH);
-        doc.text(String(line), margin, y);
-        y += lineH;
-      }
-      y += 3;
-    }
-
-    y += 4;
-    await ensureSpace(55);
-
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text('Investor Signature', margin, y);
@@ -290,6 +341,7 @@ const Agreement = () => {
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, 'FD');
 
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     doc.text(`Signed at: ${signedAt}`, margin + 4, y + 8);
