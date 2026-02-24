@@ -29,6 +29,9 @@ export const IdCardSection = () => {
   const { user } = useAuth();
   const idCardRef = useRef<HTMLDivElement>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [embeddedAvatarUrl, setEmbeddedAvatarUrl] = useState<string | undefined>(undefined);
+  const [embeddedLogoUrl, setEmbeddedLogoUrl] = useState<string | undefined>(undefined);
+  const [embeddedBgUrl, setEmbeddedBgUrl] = useState<string | undefined>(undefined);
 
   // Helper to produce human-readable error messages
   const getErrorMessage = (err: unknown) => {
@@ -48,6 +51,23 @@ export const IdCardSection = () => {
     }
   };
 
+  const urlToDataUrl = async (url?: string) => {
+    if (!url) return undefined;
+    try {
+      const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) return undefined;
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image'));
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+
   // Ensure all images in the card are loaded before capture
   const ensureImagesLoaded = async () => {
     if (!idCardRef.current) return;
@@ -64,7 +84,8 @@ export const IdCardSection = () => {
     );
   };
 
-  // Robust capture that retries to avoid cross-origin taint
+  // Robust capture that retries without dropping the user's photo.
+  // If images are cross-origin without proper CORS, capture will fail; we surface that error.
   const captureCardAsPng = async (pixelRatio = 3) => {
     if (!idCardRef.current) throw new Error('Card not ready');
     await ensureImagesLoaded();
@@ -79,13 +100,6 @@ export const IdCardSection = () => {
       el.style.backgroundImage = 'none';
       try {
         return await toPng(el, { cacheBust: true, pixelRatio });
-      } catch {
-        // Attempt 3: exclude <img> tags to avoid CORS-tainting issues
-        return await toPng(el, {
-          cacheBust: true,
-          pixelRatio,
-          filter: (node) => !(node instanceof HTMLImageElement),
-        });
       } finally {
         el.style.backgroundImage = prevBg;
       }
@@ -97,6 +111,35 @@ export const IdCardSection = () => {
     queryFn: () => fetchIdCardData(),
     enabled: !!user,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const avatarUrl = sanitizeUrl(user?.user_metadata?.avatar_url);
+      const logoUrl = sanitizeUrl(data?.settings.logo_url);
+      const bgUrl = sanitizeUrl(data?.settings.background_image_url);
+
+      const [avatarDataUrl, logoDataUrl, bgDataUrl] = await Promise.all([
+        urlToDataUrl(avatarUrl),
+        urlToDataUrl(logoUrl),
+        urlToDataUrl(bgUrl),
+      ]);
+
+      if (cancelled) return;
+
+      // Prefer embedded data URLs so html-to-image can reliably render them into PNG/PDF
+      setEmbeddedAvatarUrl(avatarDataUrl || avatarUrl);
+      setEmbeddedLogoUrl(logoDataUrl || logoUrl);
+      setEmbeddedBgUrl(bgDataUrl || bgUrl);
+    };
+
+    if (user && data) run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, data]);
 
   const handleDownload = async () => {
     if (!idCardRef.current) return;
@@ -161,7 +204,7 @@ export const IdCardSection = () => {
   const referralLink = data?.profile.referral_code ? `${window.location.origin}/register?ref=${data.profile.referral_code}` : "";
 
   const cardStyle = {
-    backgroundImage: data?.settings.background_image_url ? `url(${sanitizeUrl(data.settings.background_image_url)})` : 'none',
+    backgroundImage: embeddedBgUrl ? `url(${embeddedBgUrl})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   };
@@ -194,8 +237,8 @@ export const IdCardSection = () => {
             <div className="relative z-10">
               {/* Header */}
               <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4">
-                {data?.settings.logo_url ? (
-                  <img src={sanitizeUrl(data.settings.logo_url)} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
+                {embeddedLogoUrl ? (
+                  <img src={embeddedLogoUrl} alt="Company Logo" className="h-10" />
                 ) : (
                   <div className="w-10 h-10"></div>
                 )}
@@ -205,7 +248,7 @@ export const IdCardSection = () => {
               {/* Body */}
               <div className="relative bg-card/80 p-4 pb-2">
                 <Avatar className="h-20 w-20 absolute -top-10 left-4 border-2 border-card">
-                  <AvatarImage src={sanitizeUrl(user?.user_metadata?.avatar_url)} crossOrigin="anonymous" />
+                  <AvatarImage src={embeddedAvatarUrl} />
                   <AvatarFallback className="text-2xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
                 </Avatar>
                 

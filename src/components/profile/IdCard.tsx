@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,71 @@ export const IdCard = () => {
   const { user } = useAuth();
   const idCardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [embeddedAvatarUrl, setEmbeddedAvatarUrl] = useState<string | undefined>(undefined);
+  const [embeddedLogoUrl, setEmbeddedLogoUrl] = useState<string | undefined>(undefined);
+  const [embeddedBgUrl, setEmbeddedBgUrl] = useState<string | undefined>(undefined);
 
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
     queryFn: fetchIdCardData,
     enabled: !!user,
   });
+
+  const sanitizeUrl = (url?: string | null) => {
+    if (!url) return undefined;
+    try {
+      const u = new URL(url, window.location.origin);
+      if (u.protocol === 'http:') u.protocol = 'https:';
+      return u.toString();
+    } catch {
+      return url.replace(/^http:\/\//, 'https://');
+    }
+  };
+
+  const urlToDataUrl = async (url?: string) => {
+    if (!url) return undefined;
+    try {
+      const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) return undefined;
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image'));
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const avatarUrl = sanitizeUrl(user?.user_metadata?.avatar_url);
+      const logoUrl = sanitizeUrl(data?.settings.logo_url);
+      const bgUrl = sanitizeUrl(data?.settings.background_image_url);
+
+      const [avatarDataUrl, logoDataUrl, bgDataUrl] = await Promise.all([
+        urlToDataUrl(avatarUrl),
+        urlToDataUrl(logoUrl),
+        urlToDataUrl(bgUrl),
+      ]);
+
+      if (cancelled) return;
+
+      setEmbeddedAvatarUrl(avatarDataUrl || avatarUrl);
+      setEmbeddedLogoUrl(logoDataUrl || logoUrl);
+      setEmbeddedBgUrl(bgDataUrl || bgUrl);
+    };
+
+    if (user && data) run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, data]);
 
   const handleDownloadPdf = async () => {
     if (!idCardRef.current) {
@@ -88,7 +147,7 @@ export const IdCard = () => {
   const referralLink = data?.profile.referral_code ? `${window.location.origin}/register?ref=${data.profile.referral_code}` : "";
 
   const cardStyle = {
-    backgroundImage: data?.settings.background_image_url ? `url(${data.settings.background_image_url})` : 'none',
+    backgroundImage: embeddedBgUrl ? `url(${embeddedBgUrl})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   };
@@ -103,8 +162,8 @@ export const IdCard = () => {
           <div className="relative z-10">
             {/* Header */}
             <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6">
-              {data?.settings.logo_url ? (
-                <img src={data.settings.logo_url} alt="Company Logo" className="h-14" />
+              {embeddedLogoUrl ? (
+                <img src={embeddedLogoUrl} alt="Company Logo" className="h-14" />
               ) : (
                 <div className="w-14 h-14"></div>
               )}
@@ -114,7 +173,7 @@ export const IdCard = () => {
             {/* Body */}
             <div className="relative bg-card/80 p-6 pb-4">
               <Avatar className="h-28 w-28 absolute -top-14 left-6 border-4 border-card">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarImage src={embeddedAvatarUrl} />
                 <AvatarFallback className="text-4xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
               </Avatar>
               
