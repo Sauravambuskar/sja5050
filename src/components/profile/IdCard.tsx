@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
@@ -31,6 +32,7 @@ export const IdCard = () => {
   const [embeddedAvatarUrl, setEmbeddedAvatarUrl] = useState<string | undefined>(undefined);
   const [embeddedLogoUrl, setEmbeddedLogoUrl] = useState<string | undefined>(undefined);
   const [embeddedBgUrl, setEmbeddedBgUrl] = useState<string | undefined>(undefined);
+  const [embeddedQrUrl, setEmbeddedQrUrl] = useState<string | undefined>(undefined);
 
   const { data, isLoading } = useQuery({
     queryKey: ['idCardData', user?.id],
@@ -73,6 +75,59 @@ export const IdCard = () => {
     }
   };
 
+  // Ensure all images in the card are loaded before capture
+  const ensureImagesLoaded = async () => {
+    if (!idCardRef.current) return;
+    const imgs = Array.from(idCardRef.current.querySelectorAll('img'));
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) return resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+          })
+      )
+    );
+  };
+
+  const captureCardAsPng = async (pixelRatio = 2) => {
+    if (!idCardRef.current) throw new Error('Card not ready');
+    await ensureImagesLoaded();
+
+    const baseOpts = {
+      pixelRatio,
+      backgroundColor: '#ffffff',
+      fetchRequestInit: { cache: 'no-store' } as RequestInit,
+      filter: (node: Node) => {
+        if (!(node instanceof HTMLElement)) return true;
+        return node.getAttribute('data-export-ignore') !== 'true';
+      },
+    };
+
+    try {
+      return await toPng(idCardRef.current, baseOpts);
+    } catch {
+      const el = idCardRef.current;
+      const prevBg = el.style.backgroundImage;
+      el.style.backgroundImage = 'none';
+      try {
+        return await toPng(el, baseOpts);
+      } finally {
+        el.style.backgroundImage = prevBg;
+      }
+    }
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const referralLink = data?.profile.referral_code
+    ? `${window.location.origin}/register?ref=${data.profile.referral_code}`
+    : "";
+
   useEffect(() => {
     let cancelled = false;
 
@@ -81,10 +136,18 @@ export const IdCard = () => {
       const logoUrl = sanitizeUrl(data?.settings.logo_url);
       const bgUrl = sanitizeUrl(data?.settings.background_image_url);
 
-      const [avatarDataUrl, logoDataUrl, bgDataUrl] = await Promise.all([
+      const [avatarDataUrl, logoDataUrl, bgDataUrl, qrDataUrl] = await Promise.all([
         urlToDataUrl(avatarUrl),
         urlToDataUrl(logoUrl),
         urlToDataUrl(bgUrl),
+        referralLink
+          ? QRCode.toDataURL(referralLink, {
+              margin: 0,
+              width: 256,
+              errorCorrectionLevel: 'M',
+              color: { dark: '#000000', light: '#ffffff' },
+            }).catch(() => undefined)
+          : Promise.resolve(undefined),
       ]);
 
       if (cancelled) return;
@@ -92,6 +155,7 @@ export const IdCard = () => {
       setEmbeddedAvatarUrl(avatarDataUrl || (isLikelyCorsSafeFallback(avatarUrl) ? avatarUrl : undefined));
       setEmbeddedLogoUrl(logoDataUrl);
       setEmbeddedBgUrl(bgDataUrl);
+      setEmbeddedQrUrl(qrDataUrl);
     };
 
     if (user && data) run();
@@ -99,7 +163,7 @@ export const IdCard = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, data]);
+  }, [user, data, referralLink]);
 
   const handleDownloadPdf = async () => {
     if (!idCardRef.current) {
@@ -115,25 +179,18 @@ export const IdCard = () => {
     setIsDownloading(true);
 
     try {
-      const element = idCardRef.current;
-      const dataUrl = await toPng(element, {
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        fetchRequestInit: { cache: 'no-store' } as RequestInit,
-      });
+      const dataUrl = await captureCardAsPng(2);
 
-      // Standard credit card dimensions in mm
       const cardWidthMM = 85.6;
       const cardHeightMM = 53.98;
 
-      // Create a new PDF document with a size slightly larger than the card
       const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: [cardWidthMM + 10, cardHeightMM + 10]
       });
 
-      const margin = 5; // 5mm margin
+      const margin = 5;
       doc.addImage(dataUrl, 'PNG', margin, margin, cardWidthMM, cardHeightMM);
       doc.save(`SJA-Member-ID-${data.profile.member_id}.pdf`);
 
@@ -152,13 +209,6 @@ export const IdCard = () => {
     }
   };
 
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return "U";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
-  const referralLink = data?.profile.referral_code ? `${window.location.origin}/register?ref=${data.profile.referral_code}` : "";
-
   const cardStyle = {
     backgroundImage: embeddedBgUrl ? `url(${embeddedBgUrl})` : 'none',
     backgroundSize: 'cover',
@@ -171,7 +221,9 @@ export const IdCard = () => {
         <Skeleton className="h-[280px] w-full max-w-[380px] rounded-xl" />
       ) : (
         <div ref={idCardRef} className="w-full max-w-[380px] mx-auto rounded-xl bg-card shadow-lg overflow-hidden font-sans relative" style={cardStyle}>
-          {data?.settings.background_image_url && <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>}
+          {data?.settings.background_image_url && (
+            <div data-export-ignore="true" className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+          )}
           <div className="relative z-10">
             {/* Header */}
             <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6">
@@ -182,17 +234,19 @@ export const IdCard = () => {
               )}
               <h1 className="text-2xl font-bold text-white text-right leading-tight">{data?.settings.company_name}</h1>
             </div>
-            
+
             {/* Body */}
             <div className="relative bg-card/80 p-6 pb-4">
               <Avatar className="h-28 w-28 absolute -top-14 left-6 border-4 border-card">
                 <AvatarImage src={embeddedAvatarUrl} crossOrigin="anonymous" />
                 <AvatarFallback className="text-4xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
               </Avatar>
-              
+
               <div className="mt-14">
                 <h2 className="text-3xl font-bold text-primary">{data?.profile.full_name}</h2>
-                <p className="text-sm text-muted-foreground">Member ID: <span className="font-semibold text-foreground">{data?.profile.member_id}</span></p>
+                <p className="text-sm text-muted-foreground">
+                  Member ID: <span className="font-semibold text-foreground">{data?.profile.member_id}</span>
+                </p>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -210,17 +264,26 @@ export const IdCard = () => {
                 </div>
                 <div className="flex items-center gap-2 truncate">
                   <ShieldCheck className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span>KYC: <Badge variant={data?.profile.kyc_status === 'Approved' ? 'default' : 'secondary'}>{data?.profile.kyc_status}</Badge></span>
+                  <span>
+                    KYC:{' '}
+                    <Badge variant={data?.profile.kyc_status === 'Approved' ? 'default' : 'secondary'}>
+                      {data?.profile.kyc_status}
+                    </Badge>
+                  </span>
                 </div>
               </div>
-              
+
               <div className="mt-4 flex justify-between items-end">
                 <div>
                   <p className="text-xs text-muted-foreground">Member Since</p>
                   <p className="font-semibold">{user?.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'N/A'}</p>
                 </div>
-                <div className="bg-white p-1.5 rounded-md shadow-md">
-                  {referralLink && <QRCodeCanvas value={referralLink} size={72} />}
+                <div data-qr="true" className="bg-white p-1.5 rounded-md shadow-md">
+                  {embeddedQrUrl ? (
+                    <img src={embeddedQrUrl} alt="Referral QR" className="h-[72px] w-[72px]" />
+                  ) : (
+                    referralLink && <QRCodeCanvas value={referralLink} size={72} />
+                  )}
                 </div>
               </div>
             </div>
@@ -233,7 +296,7 @@ export const IdCard = () => {
         </div>
       )}
       <Button onClick={handleDownloadPdf} disabled={isLoading || isDownloading}>
-        <Download className="mr-2 h-4 w-4" /> 
+        <Download className="mr-2 h-4 w-4" />
         {isDownloading ? 'Downloading PDF...' : 'Download ID Card (PDF)'}
       </Button>
     </div>
