@@ -92,69 +92,99 @@ export const IdCard = () => {
     );
   };
 
-  const captureCardAsPng = async (pixelRatio = 2) => {
-    if (!idCardRef.current) throw new Error('Card not ready');
-    await ensureImagesLoaded();
+  const prepareForCapture = async () => {
+    if (!idCardRef.current) return () => {};
+    const el = idCardRef.current;
+    const prevScrollY = window.scrollY;
 
-    const isLikelyBlank = async (dataUrl: string) => {
-      try {
-        const img = new Image();
-        img.src = dataUrl;
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error('Failed to load generated image'));
-        });
-
-        const w = Math.max(1, img.naturalWidth);
-        const h = Math.max(1, img.naturalHeight);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.min(260, w);
-        canvas.height = Math.min(180, h);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return false;
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        let nonWhite = 0;
-        const step = 16;
-        for (let i = 0; i < data.length; i += step) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          if (r < 245 || g < 245 || b < 245) nonWhite++;
-          if (nonWhite > 25) return false;
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
-    const baseOpts = {
-      pixelRatio,
-      backgroundColor: '#ffffff',
-      fetchRequestInit: { cache: 'no-store' } as RequestInit,
-      filter: (node: Node) => {
-        if (!(node instanceof HTMLElement)) return true;
-        return node.getAttribute('data-export-ignore') !== 'true';
-      },
-    };
+    // html-to-image/html2canvas are more reliable when the node is in the viewport.
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     try {
-      const dataUrl = await toPng(idCardRef.current, baseOpts);
-      if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
-      return dataUrl;
+      // Ensure webfonts are ready before rasterizing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (document as any).fonts?.ready;
     } catch {
-      const canvas = await html2canvas(idCardRef.current, {
+      // ignore
+    }
+
+    await ensureImagesLoaded();
+
+    return () => {
+      window.scrollTo({ top: prevScrollY });
+    };
+  };
+
+  const captureCardAsPng = async (pixelRatio = 2) => {
+    if (!idCardRef.current) throw new Error('Card not ready');
+
+    const restore = await prepareForCapture();
+    try {
+      const isLikelyBlank = async (dataUrl: string) => {
+        try {
+          const img = new Image();
+          img.src = dataUrl;
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('Failed to load generated image'));
+          });
+
+          const w = Math.max(1, img.naturalWidth);
+          const h = Math.max(1, img.naturalHeight);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(260, w);
+          canvas.height = Math.min(180, h);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return false;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          let nonWhite = 0;
+          const step = 16;
+          for (let i = 0; i < data.length; i += step) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            if (r < 245 || g < 245 || b < 245) nonWhite++;
+            if (nonWhite > 25) return false;
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const baseOpts = {
+        pixelRatio,
         backgroundColor: '#ffffff',
-        scale: Math.max(2, pixelRatio),
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
-      });
-      return canvas.toDataURL('image/png');
+        fetchRequestInit: { cache: 'no-store' } as RequestInit,
+        filter: (node: Node) => {
+          if (!(node instanceof HTMLElement)) return true;
+          return node.getAttribute('data-export-ignore') !== 'true';
+        },
+      };
+
+      try {
+        const dataUrl = await toPng(idCardRef.current, baseOpts);
+        if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
+        return dataUrl;
+      } catch {
+        const canvas = await html2canvas(idCardRef.current, {
+          backgroundColor: '#ffffff',
+          scale: Math.max(2, pixelRatio),
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          scrollX: 0,
+          scrollY: -window.scrollY,
+          ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
+        });
+        return canvas.toDataURL('image/png');
+      }
+    } finally {
+      restore?.();
     }
   };
 
@@ -220,17 +250,46 @@ export const IdCard = () => {
     try {
       const dataUrl = await captureCardAsPng(2);
 
+      // Load the image so we can preserve aspect ratio inside the PDF
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load generated image'));
+      });
+
+      // Standard credit card dimensions in mm
       const cardWidthMM = 85.6;
       const cardHeightMM = 53.98;
+      const margin = 5;
 
+      // Create a PDF slightly larger than the card (keeps a clean border)
       const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [cardWidthMM + 10, cardHeightMM + 10]
+        format: [cardWidthMM + margin * 2, cardHeightMM + margin * 2],
       });
 
-      const margin = 5;
-      doc.addImage(dataUrl, 'PNG', margin, margin, cardWidthMM, cardHeightMM);
+      const availableW = cardWidthMM;
+      const availableH = cardHeightMM;
+      const imgRatio = img.width / img.height;
+      const boxRatio = availableW / availableH;
+
+      let drawW = availableW;
+      let drawH = availableH;
+
+      if (imgRatio > boxRatio) {
+        drawW = availableW;
+        drawH = availableW / imgRatio;
+      } else {
+        drawH = availableH;
+        drawW = availableH * imgRatio;
+      }
+
+      const x = margin + (availableW - drawW) / 2;
+      const y = margin + (availableH - drawH) / 2;
+
+      doc.addImage(dataUrl, 'PNG', x, y, drawW, drawH);
       doc.save(`SJA-Member-ID-${data.profile.member_id}.pdf`);
 
       toast.success("ID Card downloaded as PDF!");
@@ -265,13 +324,15 @@ export const IdCard = () => {
           )}
           <div className="relative z-10">
             {/* Header */}
-            <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6">
+            <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6 min-w-0">
               {embeddedLogoUrl ? (
-                <img src={embeddedLogoUrl} alt="Company Logo" className="h-14" crossOrigin="anonymous" />
+                <img src={embeddedLogoUrl} alt="Company Logo" className="h-14 shrink-0" crossOrigin="anonymous" />
               ) : (
-                <div className="w-14 h-14"></div>
+                <div className="w-14 h-14 shrink-0"></div>
               )}
-              <h1 className="text-2xl font-bold text-white text-right leading-tight">{data?.settings.company_name}</h1>
+              <h1 className="text-2xl font-bold text-white text-right leading-tight min-w-0 max-w-[220px] truncate">
+                {data?.settings.company_name}
+              </h1>
             </div>
 
             {/* Body */}
@@ -312,12 +373,12 @@ export const IdCard = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-between items-end">
-                <div>
+              <div className="mt-4 flex justify-between items-end gap-4">
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Member Since</p>
-                  <p className="font-semibold">{user?.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'N/A'}</p>
+                  <p className="font-semibold truncate">{user?.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'N/A'}</p>
                 </div>
-                <div data-qr="true" className="bg-white p-1.5 rounded-md shadow-md">
+                <div data-qr="true" className="bg-white p-1.5 rounded-md shadow-md shrink-0">
                   {embeddedQrUrl ? (
                     <img src={embeddedQrUrl} alt="Referral QR" className="h-[72px] w-[72px]" />
                   ) : (

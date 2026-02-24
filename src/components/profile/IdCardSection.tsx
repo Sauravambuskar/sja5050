@@ -101,73 +101,98 @@ export const IdCardSection = () => {
     );
   };
 
-  const captureCardAsPng = async (pixelRatio = 3) => {
-    if (!idCardRef.current) throw new Error('Card not ready');
-    await ensureImagesLoaded();
+  const prepareForCapture = async () => {
+    if (!idCardRef.current) return () => {};
+    const el = idCardRef.current;
+    const prevScrollY = window.scrollY;
 
-    const isLikelyBlank = async (dataUrl: string) => {
-      try {
-        const img = new Image();
-        img.src = dataUrl;
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error('Failed to load generated image'));
-        });
-
-        const w = Math.max(1, img.naturalWidth);
-        const h = Math.max(1, img.naturalHeight);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.min(240, w);
-        canvas.height = Math.min(160, h);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return false;
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        // Sample pixels; treat as blank if almost all pixels are white-ish
-        let nonWhite = 0;
-        const step = 16; // sample every 4px (RGBA)
-        for (let i = 0; i < data.length; i += step) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          // consider non-white if any channel is below 245
-          if (r < 245 || g < 245 || b < 245) nonWhite++;
-          if (nonWhite > 25) return false;
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
-    // Primary: html-to-image
-    const baseOpts = {
-      pixelRatio,
-      backgroundColor: '#ffffff',
-      fetchRequestInit: { cache: 'no-store' } as RequestInit,
-      filter: (node: Node) => {
-        if (!(node instanceof HTMLElement)) return true;
-        return node.getAttribute('data-export-ignore') !== 'true';
-      },
-    };
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     try {
-      const dataUrl = await toPng(idCardRef.current, baseOpts);
-      if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
-      return dataUrl;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (document as any).fonts?.ready;
     } catch {
-      // Fallback: html2canvas (more reliable for some browsers)
-      const canvas = await html2canvas(idCardRef.current, {
+      // ignore
+    }
+
+    await ensureImagesLoaded();
+
+    return () => {
+      window.scrollTo({ top: prevScrollY });
+    };
+  };
+
+  const captureCardAsPng = async (pixelRatio = 3) => {
+    if (!idCardRef.current) throw new Error('Card not ready');
+
+    const restore = await prepareForCapture();
+    try {
+      const isLikelyBlank = async (dataUrl: string) => {
+        try {
+          const img = new Image();
+          img.src = dataUrl;
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('Failed to load generated image'));
+          });
+
+          const w = Math.max(1, img.naturalWidth);
+          const h = Math.max(1, img.naturalHeight);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(240, w);
+          canvas.height = Math.min(160, h);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return false;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          let nonWhite = 0;
+          const step = 16;
+          for (let i = 0; i < data.length; i += step) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            if (r < 245 || g < 245 || b < 245) nonWhite++;
+            if (nonWhite > 25) return false;
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // Primary: html-to-image
+      const baseOpts = {
+        pixelRatio,
         backgroundColor: '#ffffff',
-        scale: Math.max(2, pixelRatio),
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
-      });
-      return canvas.toDataURL('image/png');
+        fetchRequestInit: { cache: 'no-store' } as RequestInit,
+        filter: (node: Node) => {
+          if (!(node instanceof HTMLElement)) return true;
+          return node.getAttribute('data-export-ignore') !== 'true';
+        },
+      };
+
+      try {
+        const dataUrl = await toPng(idCardRef.current, baseOpts);
+        if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
+        return dataUrl;
+      } catch {
+        const canvas = await html2canvas(idCardRef.current, {
+          backgroundColor: '#ffffff',
+          scale: Math.max(2, pixelRatio),
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          scrollX: 0,
+          scrollY: -window.scrollY,
+          ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
+        });
+        return canvas.toDataURL('image/png');
+      }
+    } finally {
+      restore?.();
     }
   };
 
@@ -310,13 +335,15 @@ export const IdCardSection = () => {
             )}
             <div className="relative z-10">
               {/* Header */}
-              <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4">
+              <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4 min-w-0">
                 {embeddedLogoUrl ? (
-                  <img src={embeddedLogoUrl} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
+                  <img src={embeddedLogoUrl} alt="Company Logo" className="h-10 shrink-0" crossOrigin="anonymous" />
                 ) : (
-                  <div className="w-10 h-10"></div>
+                  <div className="w-10 h-10 shrink-0"></div>
                 )}
-                <h1 className="text-lg font-bold text-white text-right leading-tight">{data?.settings.company_name}</h1>
+                <h1 className="text-lg font-bold text-white text-right leading-tight min-w-0 max-w-[170px] truncate">
+                  {data?.settings.company_name}
+                </h1>
               </div>
 
               {/* Body */}
@@ -350,12 +377,12 @@ export const IdCardSection = () => {
                   </div>
                 </div>
 
-                <div className="mt-2 flex justify-between items-end">
-                  <div>
+                <div className="mt-2 flex justify-between items-end gap-3">
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Member Since</p>
-                    <p className="font-semibold text-xs">{user?.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'N/A'}</p>
+                    <p className="font-semibold text-xs truncate">{user?.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'N/A'}</p>
                   </div>
-                  <div data-qr="true" className="bg-white p-1 rounded shadow-sm">
+                  <div data-qr="true" className="bg-white p-1 rounded shadow-sm shrink-0">
                     {embeddedQrUrl ? (
                       <img src={embeddedQrUrl} alt="Referral QR" className="h-12 w-12" />
                     ) : (
