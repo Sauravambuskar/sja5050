@@ -2,75 +2,80 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import {
-  // createBrowserRouter,
-  // RouterProvider,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { Loader2 } from "lucide-react";
 
 // Layouts
 import { PageLayout } from "@/components/layout/PageLayout";
 
-// Core Pages
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import ForgotPassword from "@/pages/ForgotPassword";
-import UpdatePassword from "@/pages/UpdatePassword";
-import NotFound from "@/pages/NotFound";
-import Maintenance from "@/pages/Maintenance";
-import LoginMfa from "@/pages/LoginMfa";
-import PrivacyPolicy from "@/pages/Privacypolicy";
-import Terms from "@/pages/Terms";
-
-// User Pages
-import Investments from "@/pages/Investments";
-import Withdrawals from "@/pages/Withdrawals";
-import Wallet from "@/pages/Wallet";
-import Profile from "@/pages/Profile";
-import Referrals from "@/pages/Referrals";
-import PaymentDetails from "@/pages/PaymentDetails";
-import Reports from "@/pages/Reports";
-import Notes from "@/pages/Notes";
-import Notifications from "@/pages/Notifications";
-import Agreement from "@/pages/Agreement";
-import Faq from "@/pages/Faq";
-import Support from "@/pages/Support";
-import TicketDetails from "@/pages/TicketDetails";
-import ReceiptPayout from "@/pages/ReceiptPayout";
-import PaymentHistory from "@/pages/PaymentHistory";
-import AdminPayoutReceipt from "@/pages/admin/AdminPayoutReceipt";
-import AdminPaymentHistory from "@/pages/admin/PaymentHistory";
-
-// Admin Pages
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import UserManagement from "@/pages/admin/UserManagement";
-import KycManagement from "@/pages/admin/KycManagement";
-import RequestManagement from "@/pages/admin/RequestManagement";
-import InvestmentRequestManagement from "@/pages/admin/InvestmentRequestManagement";
-import WalletWithdrawalManagement from "@/pages/admin/WalletWithdrawalManagement";
-import InvestmentManagement from "@/pages/admin/InvestmentManagement";
-import CommissionRules from "@/pages/admin/CommissionRules";
-import SystemManagement from "@/pages/admin/SystemManagement";
-import Reporting from "@/pages/admin/Reporting";
-import PayoutReports from "@/pages/admin/PayoutReports";
-import FinancialReporting from "@/pages/admin/FinancialReporting";
-import FaqManagement from "@/pages/admin/FaqManagement";
-import SupportDesk from "@/pages/admin/SupportDesk";
-import AdminTicketDetails from "@/pages/admin/AdminTicketDetails";
-import ClientPaymentDetails from "@/pages/admin/ClientPaymentDetails";
-import MasterReports from "@/pages/admin/MasterReports";
-import InvestmentCancellationManagement from "@/pages/admin/InvestmentCancellationManagement";
-import AuditLog from "@/pages/admin/AuditLog";
-import AdminLogin from "@/pages/admin/AdminLogin";
-import DashboardLoader from "@/pages/DashboardLoader"; // Import DashboardLoader
+// Auth guards (keep eager)
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-import AdminLedger from "@/pages/admin/Ledger";
-import ReferralManagement from "@/pages/admin/ReferralManagement";
+
+// Lazily loaded pages (code-splitting)
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/Register"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Maintenance = lazy(() => import("@/pages/Maintenance"));
+const LoginMfa = lazy(() => import("@/pages/LoginMfa"));
+const PrivacyPolicy = lazy(() => import("@/pages/Privacypolicy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+
+// User pages
+const DashboardLoader = lazy(() => import("@/pages/DashboardLoader"));
+const Investments = lazy(() => import("@/pages/Investments"));
+const Withdrawals = lazy(() => import("@/pages/Withdrawals"));
+const Wallet = lazy(() => import("@/pages/Wallet"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Referrals = lazy(() => import("@/pages/Referrals"));
+const PaymentDetails = lazy(() => import("@/pages/PaymentDetails"));
+const Reports = lazy(() => import("@/pages/Reports"));
+const Notes = lazy(() => import("@/pages/Notes"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const Agreement = lazy(() => import("@/pages/Agreement"));
+const Faq = lazy(() => import("@/pages/Faq"));
+const Support = lazy(() => import("@/pages/Support"));
+const TicketDetails = lazy(() => import("@/pages/TicketDetails"));
+const ReceiptPayout = lazy(() => import("@/pages/ReceiptPayout"));
+const PaymentHistory = lazy(() => import("@/pages/PaymentHistory"));
+
+// Admin pages
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const UserManagement = lazy(() => import("@/pages/admin/UserManagement"));
+const KycManagement = lazy(() => import("@/pages/admin/KycManagement"));
+const RequestManagement = lazy(() => import("@/pages/admin/RequestManagement"));
+const InvestmentRequestManagement = lazy(() => import("@/pages/admin/InvestmentRequestManagement"));
+const WalletWithdrawalManagement = lazy(() => import("@/pages/admin/WalletWithdrawalManagement"));
+const InvestmentManagement = lazy(() => import("@/pages/admin/InvestmentManagement"));
+const CommissionRules = lazy(() => import("@/pages/admin/CommissionRules"));
+const SystemManagement = lazy(() => import("@/pages/admin/SystemManagement"));
+const Reporting = lazy(() => import("@/pages/admin/Reporting"));
+const PayoutReports = lazy(() => import("@/pages/admin/PayoutReports"));
+const FinancialReporting = lazy(() => import("@/pages/admin/FinancialReporting"));
+const FaqManagement = lazy(() => import("@/pages/admin/FaqManagement"));
+const SupportDesk = lazy(() => import("@/pages/admin/SupportDesk"));
+const AdminTicketDetails = lazy(() => import("@/pages/admin/AdminTicketDetails"));
+const ClientPaymentDetails = lazy(() => import("@/pages/admin/ClientPaymentDetails"));
+const MasterReports = lazy(() => import("@/pages/admin/MasterReports"));
+const InvestmentCancellationManagement = lazy(() => import("@/pages/admin/InvestmentCancellationManagement"));
+const AuditLog = lazy(() => import("@/pages/admin/AuditLog"));
+const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
+const AdminLedger = lazy(() => import("@/pages/admin/Ledger"));
+const ReferralManagement = lazy(() => import("@/pages/admin/ReferralManagement"));
+const AdminPayoutReceipt = lazy(() => import("@/pages/admin/AdminPayoutReceipt"));
+const AdminPaymentHistory = lazy(() => import("@/pages/admin/PaymentHistory"));
 
 const queryClient = new QueryClient();
+
+const RouteLoading = () => (
+  <div className="flex min-h-[60vh] items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin" />
+  </div>
+);
 
 const App = () => (
   <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -86,7 +91,7 @@ const App = () => (
 );
 
 const MainRouter = () => (
-  <>
+  <Suspense fallback={<RouteLoading />}>
     <Routes>
       <Route element={<ProtectedRoute />}>
         <Route element={<PageLayout />}>
@@ -152,7 +157,7 @@ const MainRouter = () => (
       <Route path="/maintenance" element={<Maintenance />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
-  </>
+  </Suspense>
 );
 
 export default App;
