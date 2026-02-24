@@ -14,6 +14,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import html2canvas from 'html2canvas';
 
 const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
@@ -95,6 +96,41 @@ export const IdCard = () => {
     if (!idCardRef.current) throw new Error('Card not ready');
     await ensureImagesLoaded();
 
+    const isLikelyBlank = async (dataUrl: string) => {
+      try {
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load generated image'));
+        });
+
+        const w = Math.max(1, img.naturalWidth);
+        const h = Math.max(1, img.naturalHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(260, w);
+        canvas.height = Math.min(180, h);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let nonWhite = 0;
+        const step = 16;
+        for (let i = 0; i < data.length; i += step) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (r < 245 || g < 245 || b < 245) nonWhite++;
+          if (nonWhite > 25) return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     const baseOpts = {
       pixelRatio,
       backgroundColor: '#ffffff',
@@ -106,16 +142,19 @@ export const IdCard = () => {
     };
 
     try {
-      return await toPng(idCardRef.current, baseOpts);
+      const dataUrl = await toPng(idCardRef.current, baseOpts);
+      if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
+      return dataUrl;
     } catch {
-      const el = idCardRef.current;
-      const prevBg = el.style.backgroundImage;
-      el.style.backgroundImage = 'none';
-      try {
-        return await toPng(el, baseOpts);
-      } finally {
-        el.style.backgroundImage = prevBg;
-      }
+      const canvas = await html2canvas(idCardRef.current, {
+        backgroundColor: '#ffffff',
+        scale: Math.max(2, pixelRatio),
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
+      });
+      return canvas.toDataURL('image/png');
     }
   };
 
