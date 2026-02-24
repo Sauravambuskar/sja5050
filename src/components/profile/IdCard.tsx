@@ -49,6 +49,13 @@ export const IdCard = () => {
     }
   };
 
+  const isLikelyCorsSafeFallback = (url?: string) => {
+    if (!url) return false;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return true;
+    if (url.includes('.supabase.co/storage/')) return true;
+    return false;
+  };
+
   const urlToDataUrl = async (url?: string) => {
     if (!url) return undefined;
     try {
@@ -82,9 +89,9 @@ export const IdCard = () => {
 
       if (cancelled) return;
 
-      setEmbeddedAvatarUrl(avatarDataUrl || avatarUrl);
-      setEmbeddedLogoUrl(logoDataUrl || logoUrl);
-      setEmbeddedBgUrl(bgDataUrl || bgUrl);
+      setEmbeddedAvatarUrl(avatarDataUrl || (isLikelyCorsSafeFallback(avatarUrl) ? avatarUrl : undefined));
+      setEmbeddedLogoUrl(logoDataUrl);
+      setEmbeddedBgUrl(bgDataUrl);
     };
 
     if (user && data) run();
@@ -110,9 +117,9 @@ export const IdCard = () => {
     try {
       const element = idCardRef.current;
       const dataUrl = await toPng(element, {
-        cacheBust: true,
-        pixelRatio: 2, // Use higher resolution for better PDF quality
+        pixelRatio: 2,
         backgroundColor: '#ffffff',
+        fetchRequestInit: { cache: 'no-store' } as RequestInit,
       });
 
       // Standard credit card dimensions in mm
@@ -132,8 +139,14 @@ export const IdCard = () => {
 
       toast.success("ID Card downloaded as PDF!");
     } catch (err) {
-      console.error('PDF Download error:', err);
-      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card PDF'}`);
+      if (err instanceof Event) {
+        toast.error(
+          'Download failed because one of the images (photo/logo/background) could not be loaded for export. Please use images hosted on Supabase Storage (or any CORS-enabled URL), then try again.'
+        );
+      } else {
+        console.error('PDF Download error:', err);
+        toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card PDF'}`);
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -163,7 +176,7 @@ export const IdCard = () => {
             {/* Header */}
             <div style={{ backgroundColor: data?.settings.accent_color }} className="h-24 relative flex items-center justify-between px-6">
               {embeddedLogoUrl ? (
-                <img src={embeddedLogoUrl} alt="Company Logo" className="h-14" />
+                <img src={embeddedLogoUrl} alt="Company Logo" className="h-14" crossOrigin="anonymous" />
               ) : (
                 <div className="w-14 h-14"></div>
               )}
@@ -173,7 +186,7 @@ export const IdCard = () => {
             {/* Body */}
             <div className="relative bg-card/80 p-6 pb-4">
               <Avatar className="h-28 w-28 absolute -top-14 left-6 border-4 border-card">
-                <AvatarImage src={embeddedAvatarUrl} />
+                <AvatarImage src={embeddedAvatarUrl} crossOrigin="anonymous" />
                 <AvatarFallback className="text-4xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
               </Avatar>
               

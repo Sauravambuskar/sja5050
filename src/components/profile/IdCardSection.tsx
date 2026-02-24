@@ -36,7 +36,14 @@ export const IdCardSection = () => {
   // Helper to produce human-readable error messages
   const getErrorMessage = (err: unknown) => {
     if (err instanceof Error) return err.message;
-    try { return JSON.stringify(err); } catch { return String(err); }
+    if (err instanceof Event) {
+      return 'Download failed because one of the images (photo/logo/background) could not be loaded for export. Please use images hosted on Supabase Storage (or any CORS-enabled URL), then try again.';
+    }
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
   };
 
   // Ensure external image URLs use HTTPS to avoid mixed content
@@ -49,6 +56,14 @@ export const IdCardSection = () => {
     } catch {
       return url.replace(/^http:\/\//, 'https://');
     }
+  };
+
+  const isLikelyCorsSafeFallback = (url?: string) => {
+    if (!url) return false;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return true;
+    // Supabase public storage URLs are typically CORS-enabled
+    if (url.includes('.supabase.co/storage/')) return true;
+    return false;
   };
 
   const urlToDataUrl = async (url?: string) => {
@@ -85,13 +100,19 @@ export const IdCardSection = () => {
   };
 
   // Robust capture that retries without dropping the user's photo.
-  // If images are cross-origin without proper CORS, capture will fail; we surface that error.
   const captureCardAsPng = async (pixelRatio = 3) => {
     if (!idCardRef.current) throw new Error('Card not ready');
     await ensureImagesLoaded();
 
+    const baseOpts = {
+      pixelRatio,
+      backgroundColor: '#ffffff',
+      // Avoid cacheBust (can break signed URLs); request fresh copies via fetch
+      fetchRequestInit: { cache: 'no-store' } as RequestInit,
+    };
+
     try {
-      return await toPng(idCardRef.current, { cacheBust: true, pixelRatio });
+      return await toPng(idCardRef.current, baseOpts);
     } catch {
       const el = idCardRef.current;
 
@@ -99,7 +120,7 @@ export const IdCardSection = () => {
       const prevBg = el.style.backgroundImage;
       el.style.backgroundImage = 'none';
       try {
-        return await toPng(el, { cacheBust: true, pixelRatio });
+        return await toPng(el, baseOpts);
       } finally {
         el.style.backgroundImage = prevBg;
       }
@@ -128,10 +149,12 @@ export const IdCardSection = () => {
 
       if (cancelled) return;
 
-      // Prefer embedded data URLs so html-to-image can reliably render them into PNG/PDF
-      setEmbeddedAvatarUrl(avatarDataUrl || avatarUrl);
-      setEmbeddedLogoUrl(logoDataUrl || logoUrl);
-      setEmbeddedBgUrl(bgDataUrl || bgUrl);
+      // Avatar: try to embed; if that fails, only fall back to URLs that are likely CORS-safe.
+      setEmbeddedAvatarUrl(avatarDataUrl || (isLikelyCorsSafeFallback(avatarUrl) ? avatarUrl : undefined));
+
+      // Logo/background: do NOT fall back to raw URLs (those often break exports). If embedding fails, omit them.
+      setEmbeddedLogoUrl(logoDataUrl);
+      setEmbeddedBgUrl(bgDataUrl);
     };
 
     if (user && data) run();
@@ -238,7 +261,7 @@ export const IdCardSection = () => {
               {/* Header */}
               <div style={{ backgroundColor: data?.settings.accent_color }} className="h-16 relative flex items-center justify-between px-4">
                 {embeddedLogoUrl ? (
-                  <img src={embeddedLogoUrl} alt="Company Logo" className="h-10" />
+                  <img src={embeddedLogoUrl} alt="Company Logo" className="h-10" crossOrigin="anonymous" />
                 ) : (
                   <div className="w-10 h-10"></div>
                 )}
@@ -248,7 +271,7 @@ export const IdCardSection = () => {
               {/* Body */}
               <div className="relative bg-card/80 p-4 pb-2">
                 <Avatar className="h-20 w-20 absolute -top-10 left-4 border-2 border-card">
-                  <AvatarImage src={embeddedAvatarUrl} />
+                  <AvatarImage src={embeddedAvatarUrl} crossOrigin="anonymous" />
                   <AvatarFallback className="text-2xl">{getInitials(data?.profile.full_name)}</AvatarFallback>
                 </Avatar>
                 
