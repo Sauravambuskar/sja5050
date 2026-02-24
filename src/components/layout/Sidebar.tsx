@@ -144,8 +144,9 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       // Primary attempt: revoke refresh token
       const { error } = await supabase.auth.signOut();
 
-      // If revocation fails (often due to expired session), still clear local session so user is logged out.
-      if (error) {
+      // If there's no session, treat it as already logged out.
+      // If revocation fails for other reasons, still clear local session so user is logged out.
+      if (error && error.message !== "Auth session missing!") {
         console.warn("[logout] signOut failed, falling back to local signout", { message: error.message });
         await supabase.auth.signOut({ scope: "local" });
       }
