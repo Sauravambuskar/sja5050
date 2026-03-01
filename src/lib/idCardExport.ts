@@ -12,6 +12,8 @@ type ExportOptions = {
   qrDataUrl?: string;
 };
 
+// Render at high resolution then export as PNG/PDF.
+// This avoids DOM capture (which caused blank/cropped exports).
 const CARD_W = 856;
 const CARD_H = 540;
 
@@ -43,10 +45,21 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-function fitTextToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, initialPx: number, minPx: number) {
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = clamp(r, 0, Math.min(w, h) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function fitTextToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, initialPx: number, minPx: number, weight = 800) {
   let size = initialPx;
-  for (let i = 0; i < 20; i++) {
-    ctx.font = `700 ${size}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  for (let i = 0; i < 30; i++) {
+    ctx.font = `${weight} ${size}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
     if (ctx.measureText(text).width <= maxWidth) return size;
     size -= 2;
     if (size <= minPx) return minPx;
@@ -75,7 +88,7 @@ function circleAvatar(ctx: CanvasRenderingContext2D, img: HTMLImageElement | nul
     ctx.fillStyle = "#E2E8F0";
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
     ctx.fillStyle = "#0F172A";
-    ctx.font = `800 ${Math.round(r * 0.9)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+    ctx.font = `900 ${Math.round(r * 0.9)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(fallbackText, cx, cy);
@@ -87,7 +100,7 @@ function circleAvatar(ctx: CanvasRenderingContext2D, img: HTMLImageElement | nul
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.closePath();
-  ctx.lineWidth = Math.max(6, Math.round(r * 0.07));
+  ctx.lineWidth = 10;
   ctx.strokeStyle = "#FFFFFF";
   ctx.stroke();
 }
@@ -99,10 +112,6 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
 
-  // Background
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, CARD_W, CARD_H);
-
   const accent = options.settings.accent_color || "#2563eb";
 
   const [bgImg, logoImg, avatarImg, qrImg] = await Promise.all([
@@ -112,25 +121,32 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
     loadImage(options.qrDataUrl),
   ]);
 
+  // Base background
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, CARD_W, CARD_H);
+
   if (bgImg) {
     drawCover(ctx, bgImg, 0, 0, CARD_W, CARD_H);
-    ctx.fillStyle = "rgba(0,0,0,0.12)";
+    // mild overlay so text stays readable
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
     ctx.fillRect(0, 0, CARD_W, CARD_H);
   }
 
-  // Header
-  const headerH = 150;
+  // Layout
+  const pad = 44;
+  const headerH = 140;
+  const footerH = 62;
+  const footerY = CARD_H - footerH;
+
+  // Header bar
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, CARD_W, headerH);
 
-  const pad = 44;
-
-  // Logo
-  const logoBox = 96;
+  // Logo (left)
+  const logoBox = 88;
   const logoX = pad;
-  const logoY = 28;
+  const logoY = (headerH - logoBox) / 2;
   if (logoImg) {
-    // fit into square
     const iw = logoImg.naturalWidth || logoImg.width;
     const ih = logoImg.naturalHeight || logoImg.height;
     const scale = Math.min(logoBox / iw, logoBox / ih);
@@ -139,118 +155,120 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
     ctx.drawImage(logoImg, logoX, logoY + (logoBox - dh) / 2, dw, dh);
   }
 
-  // Company name (right aligned, fit)
-  const company = options.settings.company_name || "";
-  const companyMaxW = CARD_W - pad - (logoImg ? (logoX + logoBox + 24) : (pad + 24));
-  const companyFont = fitTextToWidth(ctx, company, companyMaxW, 52, 30);
+  // Company name (right)
+  const company = (options.settings.company_name || "").trim();
+  const companyRightX = CARD_W - pad;
+  const companyLeftLimit = logoImg ? logoX + logoBox + 24 : pad;
+  const companyMaxW = companyRightX - companyLeftLimit;
+
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `800 ${companyFont}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  ctx.fillText(company, CARD_W - pad, headerH / 2);
+  const companyFont = fitTextToWidth(ctx, company, companyMaxW, 54, 30, 900);
+  ctx.font = `900 ${companyFont}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(company, companyRightX, headerH / 2);
 
-  // Body panel
-  const bodyY = 150;
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.fillRect(0, bodyY, CARD_W, CARD_H - bodyY);
+  // Body panel (white)
+  ctx.fillStyle = "rgba(255,255,255,0.97)";
+  ctx.fillRect(0, headerH, CARD_W, footerY - headerH);
 
-  // Avatar overlaps header/body
-  const avatarR = 92;
+  // Avatar: overlap header/body but DO NOT overlap name
+  const avatarR = 64;
   const avatarCx = pad + avatarR;
-  const avatarCy = headerH - 10;
+  const avatarCy = headerH + 22; // small overlap
   circleAvatar(ctx, avatarImg, avatarCx, avatarCy, avatarR, initials(options.profile.full_name));
 
-  const textX = pad;
-  let y = headerH + 70;
+  // Text content
+  const contentX = pad;
+  let y = headerH + 165; // pushed down to avoid avatar overlap
 
-  // Name
+  // Full name
+  const name = (options.profile.full_name || "").trim();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#1E3A8A";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `800 54px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  const name = options.profile.full_name || "";
-  const maxNameW = CARD_W - pad * 2;
-  // If too long, shrink
-  let nameSize = 54;
-  while (nameSize > 34) {
-    ctx.font = `800 ${nameSize}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-    if (ctx.measureText(name).width <= maxNameW) break;
-    nameSize -= 2;
-  }
-  ctx.fillText(name, textX, y);
-  y += 44;
+  const nameMaxW = CARD_W - pad * 2;
+  const nameSize = fitTextToWidth(ctx, name, nameMaxW, 56, 34, 900);
+  ctx.font = `900 ${nameSize}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(name, contentX, y);
+  y += 46;
 
-  // Member ID
+  // Member ID line
+  const memberId = String(options.profile.member_id || "");
   ctx.fillStyle = "#64748B";
-  ctx.font = `500 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText("Member ID:", textX, y);
+  ctx.font = `600 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText("Member ID:", contentX, y);
   ctx.fillStyle = "#0F172A";
-  ctx.font = `700 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(String(options.profile.member_id || ""), textX + 160, y);
-  y += 56;
+  ctx.font = `800 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(memberId, contentX + 168, y);
+  y += 62;
 
-  // Phone + KYC
+  // Phone + KYC row
   const rowY = y;
-  ctx.fillStyle = "#0F172A";
-  ctx.font = `600 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(String(options.profile.phone || "N/A"), textX + 48, rowY);
 
-  // simple phone dot
+  // phone dot
   ctx.fillStyle = "#64748B";
   ctx.beginPath();
-  ctx.arc(textX + 20, rowY - 10, 10, 0, Math.PI * 2);
+  ctx.arc(contentX + 18, rowY - 10, 9, 0, Math.PI * 2);
   ctx.fill();
 
-  const kyc = String(options.profile.kyc_status || "N/A");
-  const kycBadgeX = CARD_W - pad - 240;
-  const badgeW = 240;
-  const badgeH = 52;
-  const badgeY = rowY - 40;
-  ctx.fillStyle = "#EEF2FF";
-  ctx.beginPath();
-  ctx.roundRect(kycBadgeX, badgeY, badgeW, badgeH, 26);
-  ctx.fill();
-  ctx.fillStyle = "#0F172A";
-  ctx.font = `800 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`KYC: ${kyc}`, kycBadgeX + 20, badgeY + badgeH / 2);
-
-  // Bottom area
-  const bottomY = CARD_H - 140;
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#64748B";
-  ctx.font = `500 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText("Member Since", pad, bottomY);
   ctx.fillStyle = "#0F172A";
   ctx.font = `800 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(options.memberSinceLabel || "N/A", pad, bottomY + 44);
+  ctx.fillText(String(options.profile.phone || "N/A"), contentX + 44, rowY);
 
-  // QR
-  const qrSize = 128;
-  const qrBox = 24;
-  const qrX = CARD_W - pad - qrSize - qrBox;
-  const qrY = bottomY - 20;
+  const kyc = String(options.profile.kyc_status || "N/A");
+  const kycText = `KYC: ${kyc}`;
+  ctx.font = `900 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  const kycTextW = ctx.measureText(kycText).width;
+  const badgePadX = 18;
+  const badgeW = clamp(kycTextW + badgePadX * 2, 180, 320);
+  const badgeH = 52;
+  const badgeX = CARD_W - pad - badgeW;
+  const badgeY = rowY - 42;
+
+  ctx.fillStyle = "#EEF2FF";
+  roundedRectPath(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+  ctx.fill();
+  ctx.fillStyle = "#0F172A";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(kycText, badgeX + badgePadX, badgeY + badgeH / 2);
+
+  // Bottom block (Member since + QR)
+  const bottomLabelY = footerY - 96;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#64748B";
+  ctx.font = `600 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText("Member Since", pad, bottomLabelY);
+
+  ctx.fillStyle = "#0F172A";
+  ctx.font = `900 32px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(options.memberSinceLabel || "N/A", pad, bottomLabelY + 44);
+
+  // QR (above footer, no overlap)
+  const qrSize = 104;
+  const qrBoxPad = 14;
+  const qrX = CARD_W - pad - qrSize;
+  const qrY = footerY - qrSize - 34;
+
   ctx.fillStyle = "#FFFFFF";
-  ctx.beginPath();
-  ctx.roundRect(qrX - qrBox / 2, qrY - qrBox / 2, qrSize + qrBox, qrSize + qrBox, 16);
+  roundedRectPath(ctx, qrX - qrBoxPad, qrY - qrBoxPad, qrSize + qrBoxPad * 2, qrSize + qrBoxPad * 2, 16);
   ctx.fill();
 
   if (qrImg) {
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
   }
 
-  // Footer bar
-  const footerH = 70;
+  // Footer
   ctx.fillStyle = accent;
-  ctx.fillRect(0, CARD_H - footerH, CARD_W, footerH);
+  ctx.fillRect(0, footerY, CARD_W, footerH);
+
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `800 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("sjamicrofoundation.com", CARD_W / 2, CARD_H - footerH / 2);
+  ctx.fillText("sjamicrofoundation.com", CARD_W / 2, footerY + footerH / 2);
 
   return canvas.toDataURL("image/png");
 }
