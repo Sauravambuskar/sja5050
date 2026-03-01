@@ -56,7 +56,9 @@ export const AgreementCustomizer = () => {
     mutationFn: updateAgreement,
     onSuccess: () => {
       toast.success("Agreement template updated.");
+      // Ensure all pages reflect the update
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["investmentAgreementTemplate"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -95,7 +97,7 @@ export const AgreementCustomizer = () => {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Tip: You can use Markdown-like formatting (**bold**, numbered lists). It will be displayed as plain text with formatting symbols.
+                      Supported placeholders: {"{{first_party_name}}"}, {"{{second_party_name}}"}, {"{{agreement_date}}"}, {"{{invested_amount}}"}.
                     </p>
                   </FormItem>
                 )}

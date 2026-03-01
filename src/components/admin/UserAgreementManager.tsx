@@ -20,6 +20,7 @@ import {
   fetchAgreementAssets,
   uploadSignedAgreementPdf,
 } from "@/lib/agreements";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 async function fetchUserAgreement(userId: string): Promise<InvestmentAgreement | null> {
   const { data, error } = await supabase
@@ -189,7 +190,6 @@ export function UserAgreementManager({ userId }: { userId: string }) {
       const margin = 14;
 
       const addHeader = () => {
-        // Header (simple text + divider)
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(17, 24, 39);
@@ -356,7 +356,9 @@ export function UserAgreementManager({ userId }: { userId: string }) {
 
       <CardContent className="space-y-4">
         {isLoading ? (
-          <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
         ) : !agreement ? (
           <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
             User has not signed the agreement yet.
@@ -368,6 +370,22 @@ export function UserAgreementManager({ userId }: { userId: string }) {
               <div className="flex justify-between"><span className="text-muted-foreground">Second Party</span><span className="font-medium">{agreement.second_party_name}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Investment Date</span><span className="font-medium">{agreement.investment_date ?? 'N/A'}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Invested Amount</span><span className="font-medium">INR {(agreement.invested_amount ?? 0).toLocaleString('en-IN')}</span></div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="text-sm font-medium mb-2">Agreement text (stored snapshot)</div>
+              <div className="rounded-md border bg-background">
+                <ScrollArea className="h-64 p-3">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-900">
+                    {agreement.agreement_text}
+                  </div>
+                </ScrollArea>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                This is the exact text that was shown to the user at the time they signed.
+              </p>
             </div>
 
             <Separator />

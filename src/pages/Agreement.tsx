@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SignaturePad from '@/components/profile/SignaturePad';
@@ -13,9 +13,11 @@ import jsPDF from 'jspdf';
 import { Separator } from '@/components/ui/separator';
 import { fetchMyAgreementDynamicFields } from '@/lib/agreements';
 import { InvestmentAgreement } from '@/types/database';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
-// Fixed agreement content template (body). Do NOT include company name in the body; it is shown in the header.
-const AGREEMENT_TEMPLATE = `
+// Fixed agreement content template fallback (body).
+// Admin can override this in System Management.
+const FALLBACK_TEMPLATE = `
 This Agreement is made on {{agreement_date}} between:
 
 First Party: {{first_party_name}}
@@ -32,7 +34,6 @@ WHEREAS, the Second Party has invested an amount of INR {{invested_amount}} with
 IN WITNESS WHEREOF, the parties have signed this Agreement digitally on the date mentioned above.
 `;
 
-// Uses the global app logo configured by admin (system_settings.login_page_logo_url)
 const FALLBACK_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
 const renderTemplate = (template: string, vars: Record<string, string>) => {
@@ -92,6 +93,8 @@ const Agreement = () => {
   const queryClient = useQueryClient();
   const sigCanvas = useRef<SignatureCanvas>(null);
 
+  const { settings, isLoading: isSettingsLoading } = useSystemSettings();
+
   const { data: dynamicFields, isLoading: isDynamicLoading } = useQuery({
     queryKey: ['agreementDynamicFields', user?.id],
     queryFn: fetchMyAgreementDynamicFields,
@@ -104,20 +107,24 @@ const Agreement = () => {
     enabled: !!user,
   });
 
-  const brandLogoUrl = user?.user_metadata?.login_page_logo_url || FALLBACK_LOGO_URL;
+  const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
 
-  const renderedAgreementText = (() => {
-    if (!dynamicFields) return AGREEMENT_TEMPLATE;
+  const templateText = (settings?.investment_agreement_text || '').trim() || FALLBACK_TEMPLATE;
 
-    const vars = {
+  const vars = useMemo(() => {
+    if (!dynamicFields) return null;
+    return {
       first_party_name: dynamicFields.first_party_name,
       second_party_name: dynamicFields.second_party_name,
       agreement_date: format(new Date(dynamicFields.investment_date), 'PPP'),
       invested_amount: dynamicFields.invested_amount.toLocaleString('en-IN'),
     };
+  }, [dynamicFields]);
 
-    return renderTemplate(AGREEMENT_TEMPLATE, vars);
-  })();
+  const renderedAgreementText = useMemo(() => {
+    if (!vars) return templateText;
+    return renderTemplate(templateText, vars);
+  }, [templateText, vars]);
 
   const mutation = useMutation({
     mutationFn: saveAgreement,
@@ -171,7 +178,6 @@ const Agreement = () => {
     const border = { r: 226, g: 232, b: 240 }; // slate-200
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    // Consistent PDF typography
     doc.setFont('helvetica', 'normal');
 
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -201,7 +207,6 @@ const Agreement = () => {
     };
 
     const addHeader = async (pageTitle: string) => {
-      // Simple header: logo + text + divider (no blue bar)
       const logoDataUrl = await loadImageAsDataUrl(brandLogoUrl);
       if (logoDataUrl) {
         try {
@@ -247,7 +252,6 @@ const Agreement = () => {
       const maxWidth = pageWidth - margin * 2;
       const lineH = 5;
 
-      // Preserve paragraphs + handle numbered points with hanging indent
       const paragraphs = String(text || '').split(/\n\s*\n/);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
@@ -315,7 +319,11 @@ const Agreement = () => {
     const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
     doc.text(`First Party: ${agreementRow.first_party_name || ''}`, margin + 4, y + 16);
     doc.text(`Second Party: ${agreementRow.second_party_name || user.email || ''}`, margin + 4, y + 22);
-    doc.text(`Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`, margin + 4, y + 28);
+    doc.text(
+      `Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`,
+      margin + 4,
+      y + 28
+    );
     doc.text(`Invested Amount: INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, margin + 4, y + 34);
 
     y += 44;
@@ -372,7 +380,7 @@ const Agreement = () => {
     doc.save(`Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
   };
 
-  if (isLoading || isDynamicLoading) {
+  if (isLoading || isDynamicLoading || isSettingsLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
