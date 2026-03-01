@@ -56,7 +56,14 @@ function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   ctx.closePath();
 }
 
-function fitTextToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, initialPx: number, minPx: number, weight = 800) {
+function fitTextToWidth(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  initialPx: number,
+  minPx: number,
+  weight = 800,
+) {
   let size = initialPx;
   for (let i = 0; i < 30; i++) {
     ctx.font = `${weight} ${size}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
@@ -71,10 +78,20 @@ function initials(name?: string | null) {
   const n = (name || "").trim();
   if (!n) return "U";
   const parts = n.split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "U";
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("") || "U";
 }
 
-function circleAvatar(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, cx: number, cy: number, r: number, fallbackText: string) {
+function circleAvatar(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | null,
+  cx: number,
+  cy: number,
+  r: number,
+  fallbackText: string,
+) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -134,7 +151,7 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
 
   // Layout
   const pad = 44;
-  const headerH = 140;
+  const headerH = 120;
   const footerH = 62;
   const footerY = CARD_H - footerH;
 
@@ -143,7 +160,7 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillRect(0, 0, CARD_W, headerH);
 
   // Logo (left)
-  const logoBox = 88;
+  const logoBox = 78;
   const logoX = pad;
   const logoY = (headerH - logoBox) / 2;
   if (logoImg) {
@@ -164,7 +181,7 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  const companyFont = fitTextToWidth(ctx, company, companyMaxW, 54, 30, 900);
+  const companyFont = fitTextToWidth(ctx, company, companyMaxW, 50, 28, 900);
   ctx.font = `900 ${companyFont}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   ctx.fillText(company, companyRightX, headerH / 2);
 
@@ -172,15 +189,19 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillStyle = "rgba(255,255,255,0.97)";
   ctx.fillRect(0, headerH, CARD_W, footerY - headerH);
 
-  // Avatar: overlap header/body but DO NOT overlap name
-  const avatarR = 64;
+  // Avatar
+  const avatarR = 56;
   const avatarCx = pad + avatarR;
-  const avatarCy = headerH + 22; // small overlap
+  const avatarCy = headerH + 28;
   circleAvatar(ctx, avatarImg, avatarCx, avatarCy, avatarR, initials(options.profile.full_name));
 
   // Text content
   const contentX = pad;
-  let y = headerH + 165; // pushed down to avoid avatar overlap
+
+  // NOTE: Use fixed y-positions (instead of stacking) so sections never overlap.
+  const nameY = headerH + 140;
+  const memberIdY = nameY + 44;
+  const phoneRowY = memberIdY + 56;
 
   // Full name
   const name = (options.profile.full_name || "").trim();
@@ -188,43 +209,39 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#1E3A8A";
   const nameMaxW = CARD_W - pad * 2;
-  const nameSize = fitTextToWidth(ctx, name, nameMaxW, 56, 34, 900);
+  const nameSize = fitTextToWidth(ctx, name, nameMaxW, 54, 34, 900);
   ctx.font = `900 ${nameSize}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(name, contentX, y);
-  y += 46;
+  ctx.fillText(name, contentX, nameY);
 
   // Member ID line
   const memberId = String(options.profile.member_id || "");
   ctx.fillStyle = "#64748B";
-  ctx.font = `600 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText("Member ID:", contentX, y);
+  ctx.font = `600 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText("Member ID:", contentX, memberIdY);
   ctx.fillStyle = "#0F172A";
-  ctx.font = `800 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(memberId, contentX + 168, y);
-  y += 62;
+  ctx.font = `800 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(memberId, contentX + 160, memberIdY);
 
   // Phone + KYC row
-  const rowY = y;
-
   // phone dot
   ctx.fillStyle = "#64748B";
   ctx.beginPath();
-  ctx.arc(contentX + 18, rowY - 10, 9, 0, Math.PI * 2);
+  ctx.arc(contentX + 18, phoneRowY - 10, 9, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = "#0F172A";
-  ctx.font = `800 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(String(options.profile.phone || "N/A"), contentX + 44, rowY);
+  ctx.font = `800 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(String(options.profile.phone || "N/A"), contentX + 44, phoneRowY);
 
   const kyc = String(options.profile.kyc_status || "N/A");
   const kycText = `KYC: ${kyc}`;
-  ctx.font = `900 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   const kycTextW = ctx.measureText(kycText).width;
   const badgePadX = 18;
   const badgeW = clamp(kycTextW + badgePadX * 2, 180, 320);
-  const badgeH = 52;
+  const badgeH = 48;
   const badgeX = CARD_W - pad - badgeW;
-  const badgeY = rowY - 42;
+  const badgeY = phoneRowY - 36;
 
   ctx.fillStyle = "#EEF2FF";
   roundedRectPath(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
@@ -235,22 +252,22 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillText(kycText, badgeX + badgePadX, badgeY + badgeH / 2);
 
   // Bottom block (Member since + QR)
-  const bottomLabelY = footerY - 96;
+  const bottomLabelY = footerY - 104;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#64748B";
-  ctx.font = `600 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `600 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   ctx.fillText("Member Since", pad, bottomLabelY);
 
   ctx.fillStyle = "#0F172A";
-  ctx.font = `900 32px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(options.memberSinceLabel || "N/A", pad, bottomLabelY + 44);
+  ctx.font = `900 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.fillText(options.memberSinceLabel || "N/A", pad, bottomLabelY + 40);
 
-  // QR (above footer, no overlap)
-  const qrSize = 104;
+  // QR (above footer, aligned with bottom section)
+  const qrSize = 112;
   const qrBoxPad = 14;
   const qrX = CARD_W - pad - qrSize;
-  const qrY = footerY - qrSize - 34;
+  const qrY = footerY - qrSize - 50;
 
   ctx.fillStyle = "#FFFFFF";
   roundedRectPath(ctx, qrX - qrBoxPad, qrY - qrBoxPad, qrSize + qrBoxPad * 2, qrSize + qrBoxPad * 2, 16);
