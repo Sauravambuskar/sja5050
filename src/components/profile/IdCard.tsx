@@ -13,8 +13,8 @@ import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
 import html2canvas from 'html2canvas';
+import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
 
 const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
@@ -210,12 +210,7 @@ export const IdCard = () => {
         urlToDataUrl(logoUrl),
         urlToDataUrl(bgUrl),
         referralLink
-          ? QRCode.toDataURL(referralLink, {
-              margin: 0,
-              width: 256,
-              errorCorrectionLevel: 'M',
-              color: { dark: '#000000', light: '#ffffff' },
-            }).catch(() => undefined)
+          ? generateQrPngDataUrl({ value: referralLink, size: 256, level: 'M' }).catch(() => undefined)
           : Promise.resolve(undefined),
       ]);
 

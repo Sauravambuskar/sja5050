@@ -12,8 +12,8 @@ import { Profile, IdCardSettings } from '@/types/database';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import QRCode from 'qrcode';
 import { renderIdCardToPdfBlob, renderIdCardToPngDataUrl } from '@/lib/idCardExport';
+import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
 
 const fetchIdCardData = async () => {
   const profilePromise = supabase.rpc('get_my_profile');
@@ -94,12 +94,7 @@ export const IdCardSection = () => {
         urlToDataUrl(logoUrl),
         urlToDataUrl(bgUrl),
         referralLink
-          ? QRCode.toDataURL(referralLink, {
-              margin: 0,
-              width: 256,
-              errorCorrectionLevel: 'M',
-              color: { dark: '#000000', light: '#ffffff' },
-            }).catch(() => undefined)
+          ? generateQrPngDataUrl({ value: referralLink, size: 256, level: 'M' }).catch(() => undefined)
           : Promise.resolve(undefined),
       ]);
 
@@ -258,30 +253,34 @@ export const IdCardSection = () => {
                 </div>
 
                 <div className="mt-2 flex justify-between items-end gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Member Since</p>
-                    <p className="font-semibold text-xs truncate">{user?.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'N/A'}</p>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Member Since</p>
+                    <p className="font-semibold text-xs">{user?.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'N/A'}</p>
                   </div>
-                  <div data-qr="true" className="bg-white p-1 rounded shadow-sm shrink-0">
-                    {referralLink && <QRCodeCanvas value={referralLink} size={48} />}
+                  <div className="bg-white p-1 rounded">
+                    {embeddedQrUrl ? (
+                      <img src={embeddedQrUrl} alt="Referral QR" className="h-12 w-12" />
+                    ) : (
+                      referralLink && <QRCodeCanvas value={referralLink} size={48} />
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div style={{ backgroundColor: data?.settings.accent_color }} className="px-4 py-1 text-center text-xs text-white font-semibold">
+              <div style={{ backgroundColor: data?.settings.accent_color }} className="py-2 text-center text-xs text-white font-semibold">
                 sjamicrofoundation.com
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button onClick={handleDownloadPng} disabled={pngLoading || pdfLoading} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              {pngLoading ? 'Preparing...' : 'Download PNG'}
+          <div className="flex w-full flex-col gap-2">
+            <Button onClick={handleDownloadPng} disabled={pngLoading} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              {pngLoading ? 'Generating…' : 'Download PNG'}
             </Button>
-            <Button variant="secondary" onClick={handleDownloadPdf} disabled={pngLoading || pdfLoading} className="flex items-center gap-2">
-              <FileDown className="h-4 w-4" />
-              {pdfLoading ? 'Preparing...' : 'Download PDF'}
+            <Button onClick={handleDownloadPdf} disabled={pdfLoading} variant="outline" className="w-full">
+              <FileDown className="mr-2 h-4 w-4" />
+              {pdfLoading ? 'Generating…' : 'Download PDF'}
             </Button>
           </div>
         </div>
