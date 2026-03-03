@@ -21,6 +21,9 @@ import {
   uploadSignedAgreementPdf,
 } from "@/lib/agreements";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { generateAgreementPdf } from "@/lib/agreementPdfTemplate";
+import { uploadAgreementPdf, createAgreementPdfSignedUrl } from "@/lib/agreementPdfStorage";
 
 async function fetchUserAgreement(userId: string): Promise<InvestmentAgreement | null> {
   const { data, error } = await supabase
@@ -124,6 +127,10 @@ export function UserAgreementManager({ userId }: { userId: string }) {
   const adminSigCanvas = useRef<SignatureCanvas>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
 
+  const { settings } = useSystemSettings();
+  const pdfTemplateUrl = (settings?.agreement_pdf_template_url || "/agreement-templates/PGS_2.pdf").trim();
+  const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
+
   const { data: assets } = useQuery({
     queryKey: ["agreementAssets"],
     queryFn: fetchAgreementAssets,
@@ -152,6 +159,12 @@ export function UserAgreementManager({ userId }: { userId: string }) {
     queryFn: async () => createSignedUrl(SIGNED_AGREEMENTS_BUCKET, agreement!.pdf_path!, 60 * 30),
   });
 
+  const userPdfUrlQuery = useQuery({
+    queryKey: ["agreementPdfSignedUrl", agreement?.user_pdf_path],
+    enabled: !!agreement?.user_pdf_path,
+    queryFn: async () => createAgreementPdfSignedUrl(agreement!.user_pdf_path!, 60 * 30),
+  });
+
   const statusBadge = useMemo(() => {
     if (!agreement) return <Badge variant="outline">Not signed</Badge>;
     if (agreement.status === "finalized") return <Badge>Finalized</Badge>;
@@ -170,6 +183,10 @@ export function UserAgreementManager({ userId }: { userId: string }) {
         throw new Error("Please add admin signature.");
       }
 
+      if (!agreement.filled_fields) {
+        throw new Error("Missing filled fields snapshot. Ask the user to re-sign the agreement.");
+      }
+
       setIsFinalizing(true);
 
       // Fetch assets as data URLs for embedding
@@ -181,150 +198,42 @@ export function UserAgreementManager({ userId }: { userId: string }) {
 
       const adminSigDataUrl = adminSigCanvas.current?.toDataURL("image/png") ?? "";
 
-      // Generate a final PDF (simple and stable)
-      const doc = new jsPDF({ unit: "mm", format: "a4" });
-      doc.setFont("helvetica", "normal");
-
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 14;
-
-      const addHeader = () => {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(17, 24, 39);
-        doc.text("Investment Agreement", margin, 18);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139);
-        doc.text("Final (Admin signed)", margin, 24);
-
-        doc.setDrawColor(226, 232, 240);
-        doc.line(margin, 28, pageWidth - margin, 28);
-
-        doc.setTextColor(17, 24, 39);
-      };
-
-      addHeader();
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`First Party: ${agreement.first_party_name || assets.first_party_name || ""}`, margin, 36);
-      doc.text(`Second Party: ${agreement.second_party_name || ""}`, margin, 42);
-      doc.text(
-        `Invested Amount: INR ${(agreement.invested_amount ?? 0).toLocaleString("en-IN")}`,
-        margin,
-        48
-      );
-
-      // Body (with page breaks + better alignment)
-      let y = 58;
-      y = renderAgreementBody({
-        doc,
-        text: agreement.agreement_text,
-        startY: y,
-        margin,
-        pageWidth,
-        pageHeight,
-        addHeader,
+      // Generate final PDF based on the SAME original template and same filled fields
+      const { pdfBytes, hash } = await generateAgreementPdf({
+        templateUrl: pdfTemplateUrl,
+        fieldMap: pdfFieldMap,
+        textValues: agreement.filled_fields as any,
+        images: {
+          user_signature: { dataUrl: agreement.signature_data_url },
+          company_signature: { dataUrl: compSigDataUrl },
+          admin_signature: { dataUrl: adminSigDataUrl },
+          stamp: { dataUrl: stampDataUrl },
+        },
       });
 
-      // Signatures on the LAST page
-      const boxH = 52;
-      const boxTop = pageHeight - 62;
-      if (y > boxTop - 8) {
-        doc.addPage();
-        addHeader();
-      }
-
-      doc.setPage(doc.getNumberOfPages());
-      doc.setDrawColor(226, 232, 240);
-      doc.rect(margin, boxTop, pageWidth - margin * 2, boxH);
-
-      const colW = (pageWidth - margin * 2) / 3;
-      const sigY = boxTop + 12;
-      const sigH = 18;
-      const sigW = colW - 8;
-
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Investor Signature", margin + 4, boxTop + 6);
-      doc.text("Company Signature", margin + colW + 4, boxTop + 6);
-      doc.text("Admin Signature", margin + colW * 2 + 4, boxTop + 6);
-      doc.setTextColor(17, 24, 39);
-
-      try {
-        doc.addImage(
-          agreement.signature_data_url,
-          imageFormatFromDataUrl(agreement.signature_data_url),
-          margin + 4,
-          sigY,
-          sigW,
-          sigH
-        );
-      } catch {
-        // ignore
-      }
-
-      try {
-        doc.addImage(
-          compSigDataUrl,
-          imageFormatFromDataUrl(compSigDataUrl),
-          margin + colW + 4,
-          sigY,
-          sigW,
-          sigH
-        );
-      } catch {
-        // ignore
-      }
-
-      try {
-        doc.addImage(
-          adminSigDataUrl,
-          imageFormatFromDataUrl(adminSigDataUrl),
-          margin + colW * 2 + 4,
-          sigY,
-          sigW,
-          sigH
-        );
-      } catch {
-        // ignore
-      }
-
-      // Stamp (bottom-left inside the box)
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Stamp", margin + 4, boxTop + 36);
-      doc.setTextColor(17, 24, 39);
-
-      try {
-        doc.addImage(stampDataUrl, imageFormatFromDataUrl(stampDataUrl), margin + 4, boxTop + 38, 32, 12);
-      } catch {
-        // ignore
-      }
-
-      const pdfBlob = doc.output("blob");
-
-      // Upload to signed_agreements
-      const pdfPath = await uploadSignedAgreementPdf({
+      const finalPdfPath = await uploadAgreementPdf({
         userId,
         agreementId: agreement.id,
-        pdfBlob,
+        kind: "final",
+        pdfBytes,
       });
 
       // Update agreement metadata (server-side validated)
-      const { error } = await supabase.rpc("admin_finalize_investment_agreement", {
-        p_user_id: userId,
-        p_company_signature_path: assets.company_signature_path,
-        p_stamp_path: assets.stamp_path,
-        p_pdf_path: pdfPath,
-      });
+      const { error } = await supabase
+        .from("investment_agreements")
+        .update({
+          status: "finalized",
+          admin_signed_at: new Date().toISOString(),
+          pdf_path: finalPdfPath,
+          company_signature_path: assets.company_signature_path,
+          stamp_path: assets.stamp_path,
+          document_hash: hash,
+        })
+        .eq("id", agreement.id);
 
       if (error) throw error;
 
-      return pdfPath;
+      return finalPdfPath;
     },
     onSuccess: () => {
       toast.success("Agreement finalized and PDF stored.");
@@ -335,11 +244,21 @@ export function UserAgreementManager({ userId }: { userId: string }) {
   });
 
   const downloadFinalPdf = async () => {
-    if (!pdfUrlQuery.data) {
+    if (!agreement?.pdf_path) {
       toast.error("Final PDF not available yet.");
       return;
     }
-    window.open(pdfUrlQuery.data, "_blank", "noopener,noreferrer");
+    const url = await createAgreementPdfSignedUrl(agreement.pdf_path, 60 * 30);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const downloadUserPdf = async () => {
+    if (!agreement?.user_pdf_path) {
+      toast.error("User PDF not available yet.");
+      return;
+    }
+    const url = await createAgreementPdfSignedUrl(agreement.user_pdf_path, 60 * 30);
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -366,10 +285,24 @@ export function UserAgreementManager({ userId }: { userId: string }) {
         ) : (
           <>
             <div className="grid gap-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span className="font-medium">{agreement.reference_number || '—'}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">First Party</span><span className="font-medium">{agreement.first_party_name}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Second Party</span><span className="font-medium">{agreement.second_party_name}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Investment Date</span><span className="font-medium">{agreement.investment_date ?? 'N/A'}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Invested Amount</span><span className="font-medium">INR {(agreement.invested_amount ?? 0).toLocaleString('en-IN')}</span></div>
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={downloadUserPdf} disabled={!agreement.user_pdf_path || userPdfUrlQuery.isLoading}>
+                <Download className="mr-2 h-4 w-4" />
+                Download User PDF
+              </Button>
+              <Button type="button" variant="outline" onClick={downloadFinalPdf} disabled={!agreement.pdf_path}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Final PDF
+              </Button>
             </div>
 
             <Separator />
@@ -384,7 +317,7 @@ export function UserAgreementManager({ userId }: { userId: string }) {
                 </ScrollArea>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                This is the exact text that was shown to the user at the time they signed.
+                The PDF template is the official legal document; this text snapshot is kept for audit/history.
               </p>
             </div>
 
@@ -419,16 +352,6 @@ export function UserAgreementManager({ userId }: { userId: string }) {
                   <FileCheck2 className="mr-2 h-4 w-4" />
                 )}
                 Finalize & Store PDF
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={downloadFinalPdf}
-                disabled={!agreement.pdf_path || pdfUrlQuery.isLoading}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Final PDF
               </Button>
             </div>
           </>

@@ -14,6 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { fetchMyAgreementDynamicFields } from '@/lib/agreements';
 import { InvestmentAgreement } from '@/types/database';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { generateAgreementPdf } from '@/lib/agreementPdfTemplate';
+import { uploadAgreementPdf, createAgreementPdfSignedUrl } from '@/lib/agreementPdfStorage';
+import { useProfile } from '@/hooks/useProfile';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -62,6 +65,10 @@ const saveAgreement = async (params: {
   investmentDate: string;
   investedAmount: number;
   userInvestmentId: string | null;
+  filledFields: Record<string, any>;
+  referenceNumber: string;
+  documentHash: string;
+  userPdfPath: string;
 }) => {
   const {
     userId,
@@ -72,6 +79,10 @@ const saveAgreement = async (params: {
     investmentDate,
     investedAmount,
     userInvestmentId,
+    filledFields,
+    referenceNumber,
+    documentHash,
+    userPdfPath,
   } = params;
 
   const { error } = await supabase.from('investment_agreements').upsert({
@@ -84,9 +95,33 @@ const saveAgreement = async (params: {
     invested_amount: investedAmount,
     user_investment_id: userInvestmentId,
     status: 'user_signed',
+    filled_fields: filledFields,
+    reference_number: referenceNumber,
+    document_hash: documentHash,
+    user_pdf_path: userPdfPath,
   });
   if (error) throw error;
 };
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(blob);
+  });
+}
 
 const Agreement = () => {
   const { user } = useAuth();
@@ -94,6 +129,7 @@ const Agreement = () => {
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   const { settings, isLoading: isSettingsLoading } = useSystemSettings();
+  const { data: profile, isLoading: isProfileLoading } = useProfile();
 
   const { data: dynamicFields, isLoading: isDynamicLoading } = useQuery({
     queryKey: ['agreementDynamicFields', user?.id],
@@ -126,6 +162,9 @@ const Agreement = () => {
     return renderTemplate(templateText, vars);
   }, [templateText, vars]);
 
+  const pdfTemplateUrl = (settings?.agreement_pdf_template_url || '/agreement-templates/PGS_2.pdf').trim();
+  const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
+
   const mutation = useMutation({
     mutationFn: saveAgreement,
     onSuccess: () => {
@@ -142,7 +181,7 @@ const Agreement = () => {
     sigCanvas.current?.clear();
   };
 
-  const handleSaveSignature = () => {
+  const handleSaveSignature = async () => {
     if (!user) return;
     if (!dynamicFields) {
       toast.error('Agreement details are still loading. Please try again.');
@@ -154,7 +193,99 @@ const Agreement = () => {
       return;
     }
 
+    // Validate required fields for PDF placeholders
+    const fullName = String(profile?.full_name || '').trim();
+    const address = String(profile?.address || '').trim();
+    const phone = String(profile?.phone || '').trim();
+
+    if (!fullName) {
+      toast.error('Please complete your profile: Full Name is required.');
+      return;
+    }
+    if (!address) {
+      toast.error('Please complete your profile: Address is required.');
+      return;
+    }
+    if (!phone) {
+      toast.error('Please complete your profile: Phone is required.');
+      return;
+    }
+
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
+
+    // Build filled fields snapshot (immutable for this agreement)
+    const referenceNumber = `SJA-AGR-${user.id.slice(0, 6).toUpperCase()}-${Date.now()}`;
+
+    const filledFields = {
+      full_name: fullName,
+      residential_address: address,
+      contact_number: phone,
+      email_address: user.email || '',
+      government_id_details: [profile?.aadhaar_number ? `Aadhaar: ${profile.aadhaar_number}` : '', profile?.pan_number ? `PAN: ${profile.pan_number}` : '']
+        .filter(Boolean)
+        .join(' | '),
+      business_name_if_applicable: '',
+
+      organization_name: 'SJA Foundation (Sariputra Wankhade Foundation)',
+      authorized_signatory_name: dynamicFields.first_party_name,
+      agreement_execution_date: format(new Date(), 'PPP'),
+      unique_agreement_reference_number: referenceNumber,
+      registered_office_address: '',
+      official_contact_details: '',
+    };
+
+    // Generate user-signed PDF from the original template (no clause modifications)
+    let pdfBytes: Uint8Array;
+    let hash: string;
+    try {
+      const out = await generateAgreementPdf({
+        templateUrl: pdfTemplateUrl,
+        fieldMap: pdfFieldMap,
+        textValues: filledFields,
+        images: {
+          user_signature: { dataUrl: signatureDataUrl },
+        },
+      });
+      pdfBytes = out.pdfBytes;
+      hash = out.hash;
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate agreement PDF.');
+      return;
+    }
+
+    // We need an agreement id to store PDFs under a stable path.
+    // If agreement row doesn't exist yet, create it first with minimal data to get id.
+    let agreementId = agreementRow?.id;
+    if (!agreementId) {
+      const { data, error } = await supabase
+        .from('investment_agreements')
+        .insert({
+          user_id: user.id,
+          agreement_text: renderedAgreementText,
+          signature_data_url: signatureDataUrl,
+          first_party_name: dynamicFields.first_party_name,
+          second_party_name: dynamicFields.second_party_name,
+          investment_date: dynamicFields.investment_date,
+          invested_amount: dynamicFields.invested_amount,
+          user_investment_id: dynamicFields.user_investment_id,
+          status: 'user_signed',
+        })
+        .select('id')
+        .single();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      agreementId = (data as any).id;
+    }
+
+    let userPdfPath = '';
+    try {
+      userPdfPath = await uploadAgreementPdf({ userId: user.id, agreementId, kind: 'user', pdfBytes });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to upload agreement PDF.');
+      return;
+    }
 
     mutation.mutate({
       userId: user.id,
@@ -165,6 +296,10 @@ const Agreement = () => {
       investmentDate: dynamicFields.investment_date,
       investedAmount: dynamicFields.invested_amount,
       userInvestmentId: dynamicFields.user_investment_id,
+      filledFields,
+      referenceNumber,
+      documentHash: hash,
+      userPdfPath,
     });
   };
 
@@ -174,6 +309,20 @@ const Agreement = () => {
       return;
     }
 
+    // Prefer template-based PDF if present
+    if (agreementRow.pdf_path) {
+      const url = await createAgreementPdfSignedUrl(agreementRow.pdf_path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    if (agreementRow.user_pdf_path) {
+      const url = await createAgreementPdfSignedUrl(agreementRow.user_pdf_path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // Fallback to text-based PDF
     const muted = { r: 241, g: 245, b: 249 }; // slate-100
     const border = { r: 226, g: 232, b: 240 }; // slate-200
 
@@ -189,13 +338,7 @@ const Agreement = () => {
         const res = await fetch(url, { mode: 'cors' });
         if (!res.ok) return null;
         const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error('Failed to read image'));
-          reader.readAsDataURL(blob);
-        });
-        return dataUrl;
+        return await blobToDataUrl(blob);
       } catch {
         return null;
       }
@@ -380,7 +523,16 @@ const Agreement = () => {
     doc.save(`Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
   };
 
-  if (isLoading || isDynamicLoading || isSettingsLoading) {
+  const downloadUserPdf = async () => {
+    if (!agreementRow?.user_pdf_path) {
+      toast.error('User agreement PDF not available yet.');
+      return;
+    }
+    const url = await createAgreementPdfSignedUrl(agreementRow.user_pdf_path);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  if (isLoading || isDynamicLoading || isSettingsLoading || isProfileLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -396,10 +548,18 @@ const Agreement = () => {
           <p className="text-muted-foreground">Review the agreement and sign digitally.</p>
         </div>
         {agreementRow && (
-          <Button onClick={handleDownloadPdf}>
-            <Download className="mr-2 h-4 w-4" />
-            Download as PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {agreementRow.user_pdf_path && (
+              <Button variant="outline" onClick={downloadUserPdf}>
+                <Download className="mr-2 h-4 w-4" />
+                Download User PDF
+              </Button>
+            )}
+            <Button onClick={handleDownloadPdf}>
+              <Download className="mr-2 h-4 w-4" />
+              Download as PDF
+            </Button>
+          </div>
         )}
       </div>
 
@@ -420,7 +580,7 @@ const Agreement = () => {
                 Agreement Document
               </CardTitle>
               <CardDescription>
-                This document is dynamically generated using your current investment date and invested amount.
+                The official agreement can be generated from the uploaded PDF template (print-ready) and will store the exact filled values.
               </CardDescription>
             </div>
           </div>
@@ -450,11 +610,20 @@ const Agreement = () => {
 
           <Separator />
 
+          {/* Keep the existing text preview as a reference; PDF template is the legal source of truth */}
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
+            {agreementRow ? agreementRow.agreement_text : renderedAgreementText}
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Official PDF template preview</div>
+            <div className="aspect-[3/4] w-full overflow-hidden rounded-md border bg-background">
+              <iframe title="Agreement PDF template" src={pdfTemplateUrl} className="h-full w-full" />
+            </div>
+          </div>
+
           {agreementRow ? (
             <div className="space-y-6">
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
-                {agreementRow.agreement_text}
-              </div>
               <div>
                 <h3 className="font-semibold">Your Signature:</h3>
                 <div className="mt-2 rounded-md border p-4">
@@ -467,15 +636,12 @@ const Agreement = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
-                {renderedAgreementText}
-              </div>
               <div>
                 <label className="text-sm font-medium">Please Sign in the Box Below</label>
                 <SignaturePad ref={sigCanvas} />
               </div>
               <div className="flex gap-4">
-                <Button onClick={handleSaveSignature} disabled={mutation.isPending}>
+                <Button onClick={() => void handleSaveSignature()} disabled={mutation.isPending}>
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign & Submit Agreement
                 </Button>

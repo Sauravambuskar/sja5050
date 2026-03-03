@@ -18,6 +18,8 @@ const fetchSettings = async (): Promise<SystemSettings> => {
       login_page_logo_url: null,
       splash_screen_url: null,
       investment_agreement_text: null,
+      agreement_pdf_template_url: '/agreement-templates/PGS_2.pdf',
+      agreement_pdf_field_map: {},
     };
   }
   return data;

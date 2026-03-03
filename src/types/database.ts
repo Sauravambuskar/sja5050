@@ -439,6 +439,8 @@ export type SystemSettings = {
   agreement_first_party_name?: string | null;
   agreement_stamp_path?: string | null;
   agreement_company_signature_path?: string | null;
+  agreement_pdf_template_url?: string | null;
+  agreement_pdf_field_map?: Record<string, any> | null;
 };
 
 export type Faq = {
@@ -620,4 +622,9 @@ export type InvestmentAgreement = {
   stamp_path: string | null;
   pdf_path: string | null;
   admin_signed_at: string | null;
+
+  user_pdf_path?: string | null;
+  reference_number?: string | null;
+  document_hash?: string | null;
+  filled_fields?: Record<string, any> | null;
 };
