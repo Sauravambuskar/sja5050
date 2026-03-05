@@ -248,7 +248,7 @@ const Agreement = () => {
     'nominee_identification',
   ]);
 
-  const vars = useMemo(() => {
+  const liveVars = useMemo(() => {
     if (!dynamicFields) return null;
 
     const secondPartyName = String(
@@ -298,10 +298,39 @@ const Agreement = () => {
     watchedNomineeId,
   ]);
 
+  // If a user already signed, show the LATEST template text, but fill with the SIGNED snapshot values.
+  const displayVars = useMemo(() => {
+    if (!agreementRow) return liveVars;
+
+    const investDate = agreementRow.investment_date ? new Date(agreementRow.investment_date) : new Date();
+    const filled: any = agreementRow.filled_fields || {};
+
+    const investedAmountNum = Number(agreementRow.invested_amount ?? 0);
+
+    return {
+      first_party_name: String(agreementRow.first_party_name || liveVars?.first_party_name || '').trim(),
+      second_party_name: String(agreementRow.second_party_name || '').trim(),
+      agreement_date: format(investDate, 'PPP'),
+      agreement_day: String(investDate.getDate()),
+      agreement_month: format(investDate, 'MMMM'),
+      agreement_year: String(investDate.getFullYear()),
+      invested_amount: investedAmountNum.toLocaleString('en-IN'),
+      invested_amount_words: String(
+        filled.invested_amount_words || (investedAmountNum ? numberToWordsIN(investedAmountNum) : '')
+      ).trim(),
+      lender_aadhaar: String(filled.lender_aadhaar || '').trim(),
+      lender_pan: String(filled.lender_pan || '').trim(),
+      borrower_aadhaar: '',
+      borrower_pan: '',
+      nominee: String(filled.nominee || '').trim(),
+      nominee_identification: String(filled.nominee_identification || '').trim(),
+    };
+  }, [agreementRow, liveVars]);
+
   const renderedAgreementText = useMemo(() => {
-    if (!vars) return templateText;
-    return renderTemplate(templateText, vars);
-  }, [templateText, vars]);
+    if (!displayVars) return templateText;
+    return renderTemplate(templateText, displayVars);
+  }, [templateText, displayVars]);
 
   const pdfTemplateUrl = (settings?.agreement_pdf_template_url || '/agreement-templates/PGS_2.pdf').trim();
   const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
@@ -672,7 +701,7 @@ const Agreement = () => {
     doc.text('Agreement', margin, y);
     y += 7;
 
-    y = await renderAgreementBody(agreementRow.agreement_text, y);
+    y = await renderAgreementBody(renderedAgreementText, y);
 
     y += 2;
     y = await ensureSpace(y, 55);
@@ -744,22 +773,22 @@ const Agreement = () => {
     );
   }
 
-  const liveValues = vars
+  const liveValues = displayVars
     ? [
-        { key: '{{first_party_name}}', label: 'Borrower name', value: vars.first_party_name },
-        { key: '{{second_party_name}}', label: 'Lender name', value: vars.second_party_name },
-        { key: '{{agreement_day}}', label: 'Agreement day', value: vars.agreement_day },
-        { key: '{{agreement_month}}', label: 'Agreement month', value: vars.agreement_month },
-        { key: '{{agreement_year}}', label: 'Agreement year', value: vars.agreement_year },
-        { key: '{{invested_amount}}', label: 'Investment amount (INR)', value: vars.invested_amount },
-        { key: '{{invested_amount_words}}', label: 'Amount in words', value: vars.invested_amount_words },
-        { key: '{{lender_aadhaar}}', label: 'Lender Aadhaar', value: vars.lender_aadhaar || '(blank)' },
-        { key: '{{lender_pan}}', label: 'Lender PAN', value: vars.lender_pan || '(blank)' },
-        { key: '{{nominee}}', label: 'Nominee', value: vars.nominee || '(blank)' },
+        { key: '{{first_party_name}}', label: 'Borrower name', value: displayVars.first_party_name },
+        { key: '{{second_party_name}}', label: 'Lender name', value: displayVars.second_party_name },
+        { key: '{{agreement_day}}', label: 'Agreement day', value: displayVars.agreement_day },
+        { key: '{{agreement_month}}', label: 'Agreement month', value: displayVars.agreement_month },
+        { key: '{{agreement_year}}', label: 'Agreement year', value: displayVars.agreement_year },
+        { key: '{{invested_amount}}', label: 'Investment amount (INR)', value: displayVars.invested_amount },
+        { key: '{{invested_amount_words}}', label: 'Amount in words', value: displayVars.invested_amount_words },
+        { key: '{{lender_aadhaar}}', label: 'Lender Aadhaar', value: displayVars.lender_aadhaar || '(blank)' },
+        { key: '{{lender_pan}}', label: 'Lender PAN', value: displayVars.lender_pan || '(blank)' },
+        { key: '{{nominee}}', label: 'Nominee', value: displayVars.nominee || '(blank)' },
         {
           key: '{{nominee_identification}}',
           label: 'Nominee identification',
-          value: vars.nominee_identification || '(blank)',
+          value: displayVars.nominee_identification || '(blank)',
         },
       ]
     : [];
@@ -841,12 +870,12 @@ const Agreement = () => {
             </div>
           </div>
 
-          {vars && (
+          {displayVars && (
             <div className="rounded-md border">
               <div className="border-b bg-muted/30 px-4 py-3">
                 <div className="text-sm font-medium">Live placeholder mapping</div>
                 <div className="text-xs text-muted-foreground">
-                  These placeholders are replaced with the live values shown below.
+                  These placeholders are replaced with the values shown below.
                 </div>
               </div>
               <div className="p-4">
@@ -997,7 +1026,7 @@ const Agreement = () => {
           <Separator />
 
           <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
-            {agreementRow ? agreementRow.agreement_text : renderedAgreementText}
+            {renderedAgreementText}
           </div>
 
           {agreementRow ? (
