@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { numberToWordsIN } from '@/lib/numberToWordsIN';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -193,15 +194,43 @@ const Agreement = () => {
 
   const vars = useMemo(() => {
     if (!dynamicFields) return null;
+
     const secondPartyName = String(agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || '').trim();
+
+    const investDate = new Date(dynamicFields.investment_date);
+    const agreement_day = String(investDate.getDate());
+    const agreement_month = format(investDate, 'MMMM');
+    const agreement_year = String(investDate.getFullYear());
+
+    const lender_aadhaar = String(detailsForm.getValues('aadhaar_number') || '').trim();
+    const lender_pan = String(detailsForm.getValues('pan_number') || '').trim();
+    const nominee = String(detailsForm.getValues('nominee_name') || '').trim();
+    const nominee_identification = String(detailsForm.getValues('nominee_identification') || '').trim();
+
+    // Borrower IDs are not stored in user profile; keep blank if not configured.
+    const borrower_aadhaar = '';
+    const borrower_pan = '';
+
+    const invested_amount = dynamicFields.invested_amount.toLocaleString('en-IN');
+    const invested_amount_words = numberToWordsIN(dynamicFields.invested_amount);
 
     return {
       first_party_name: dynamicFields.first_party_name,
       second_party_name: secondPartyName,
-      agreement_date: format(new Date(dynamicFields.investment_date), 'PPP'),
-      invested_amount: dynamicFields.invested_amount.toLocaleString('en-IN'),
+      agreement_date: format(investDate, 'PPP'),
+      agreement_day,
+      agreement_month,
+      agreement_year,
+      invested_amount,
+      invested_amount_words,
+      lender_aadhaar,
+      lender_pan,
+      borrower_aadhaar,
+      borrower_pan,
+      nominee,
+      nominee_identification,
     };
-  }, [dynamicFields, agreementRow?.second_party_name, watchedFullName]);
+  }, [dynamicFields, agreementRow?.second_party_name, watchedFullName, detailsForm]);
 
   const renderedAgreementText = useMemo(() => {
     if (!vars) return templateText;
@@ -270,12 +299,19 @@ const Agreement = () => {
       nominee: details.nominee_name || '',
       nominee_identification: details.nominee_identification || '',
 
+      // These are used for the PDF template placeholders
+      lender_aadhaar: details.aadhaar_number || '',
+      lender_pan: details.pan_number || '',
+
       organization_name: 'SJA Foundation (Sariputra Wankhade Foundation)',
       authorized_signatory_name: dynamicFields.first_party_name,
       agreement_execution_date: format(new Date(), 'PPP'),
       unique_agreement_reference_number: referenceNumber,
       registered_office_address: '',
       official_contact_details: '',
+
+      // Also store readable amount in words for any PDF that has this placeholder
+      invested_amount_words: numberToWordsIN(dynamicFields.invested_amount),
     };
 
     // Generate user-signed PDF from the original template (no clause modifications)
