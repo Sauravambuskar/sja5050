@@ -97,7 +97,7 @@ export const AgreementCustomizer = () => {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Placeholders you can use: {"{{first_party_name}}"}, {"{{second_party_name}}"}, {"{{agreement_date}}"}, {"{{agreement_day}}"}, {"{{agreement_month}}"}, {"{{agreement_year}}"}, {"{{invested_amount}}"}, {"{{invested_amount_words}}"}, {"{{lender_aadhaar}}"}, {"{{lender_pan}}"}, {"{{nominee}}"}, {"{{nominee_identification}}"}.
+                      Placeholders you can use: {"{{first_party_name}}"}, {"{{second_party_name}}"}, {"{{agreement_date}}"}, {"{{agreement_day}}"}, {"{{agreement_month}}"}, {"{{agreement_year}}"}, {"{{invested_amount}}"}, {"{{invested_amount_words}}"}, {"{{lender_aadhaar}}"}, {"{{lender_pan}}"}, {"{{borrower_aadhaar}}"}, {"{{borrower_pan}}"}, {"{{nominee}}"}, {"{{nominee_identification}}"}.
                     </p>
                   </FormItem>
                 )}

@@ -24,6 +24,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { numberToWordsIN } from '@/lib/numberToWordsIN';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -147,7 +156,12 @@ const Agreement = () => {
   const { settings, isLoading: isSettingsLoading } = useSystemSettings();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
 
-  const { data: dynamicFields, isLoading: isDynamicLoading } = useQuery({
+  const {
+    data: dynamicFields,
+    isLoading: isDynamicLoading,
+    isError: isDynamicError,
+    error: dynamicError,
+  } = useQuery({
     queryKey: ['agreementDynamicFields', user?.id],
     queryFn: fetchMyAgreementDynamicFields,
     enabled: !!user,
@@ -158,6 +172,42 @@ const Agreement = () => {
     queryFn: () => fetchAgreement(user!.id),
     enabled: !!user,
   });
+
+  // Keep the agreement live: if profile/investments/system settings change, refresh dynamic fields.
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`agreement-live-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'system_settings' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['systemSettings'] });
+          queryClient.invalidateQueries({ queryKey: ['agreementDynamicFields', user.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+          queryClient.invalidateQueries({ queryKey: ['agreementDynamicFields', user.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_investments', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['agreementDynamicFields', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient, user]);
 
   const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
   const templateText = (settings?.investment_agreement_text || '').trim() || FALLBACK_TEMPLATE;
@@ -191,21 +241,29 @@ const Agreement = () => {
   }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, user?.email]);
 
   const watchedFullName = detailsForm.watch('full_name');
+  const [watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] = detailsForm.watch([
+    'aadhaar_number',
+    'pan_number',
+    'nominee_name',
+    'nominee_identification',
+  ]);
 
   const vars = useMemo(() => {
     if (!dynamicFields) return null;
 
-    const secondPartyName = String(agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || '').trim();
+    const secondPartyName = String(
+      agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || ''
+    ).trim();
 
     const investDate = new Date(dynamicFields.investment_date);
     const agreement_day = String(investDate.getDate());
     const agreement_month = format(investDate, 'MMMM');
     const agreement_year = String(investDate.getFullYear());
 
-    const lender_aadhaar = String(detailsForm.getValues('aadhaar_number') || '').trim();
-    const lender_pan = String(detailsForm.getValues('pan_number') || '').trim();
-    const nominee = String(detailsForm.getValues('nominee_name') || '').trim();
-    const nominee_identification = String(detailsForm.getValues('nominee_identification') || '').trim();
+    const lender_aadhaar = String(watchedAadhaar || '').trim();
+    const lender_pan = String(watchedPan || '').trim();
+    const nominee = String(watchedNominee || '').trim();
+    const nominee_identification = String(watchedNomineeId || '').trim();
 
     // Borrower IDs are not stored in user profile; keep blank if not configured.
     const borrower_aadhaar = '';
@@ -230,7 +288,15 @@ const Agreement = () => {
       nominee,
       nominee_identification,
     };
-  }, [dynamicFields, agreementRow?.second_party_name, watchedFullName, detailsForm]);
+  }, [
+    dynamicFields,
+    agreementRow?.second_party_name,
+    watchedFullName,
+    watchedAadhaar,
+    watchedPan,
+    watchedNominee,
+    watchedNomineeId,
+  ]);
 
   const renderedAgreementText = useMemo(() => {
     if (!vars) return templateText;
@@ -239,6 +305,20 @@ const Agreement = () => {
 
   const pdfTemplateUrl = (settings?.agreement_pdf_template_url || '/agreement-templates/PGS_2.pdf').trim();
   const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
+
+  const missingDynamicRequirements = useMemo(() => {
+    if (!dynamicFields) return [] as string[];
+    const missing: string[] = [];
+    if (!String(dynamicFields.first_party_name || '').trim()) missing.push('Borrower name (First party)');
+    if (!String(dynamicFields.second_party_name || '').trim()) missing.push('Lender name (Second party)');
+
+    const dateOk = !Number.isNaN(new Date(dynamicFields.investment_date).getTime());
+    if (!dateOk) missing.push('Agreement date');
+
+    if (!(Number(dynamicFields.invested_amount) > 0)) missing.push('Investment amount');
+
+    return missing;
+  }, [dynamicFields]);
 
   const mutation = useMutation({
     mutationFn: saveAgreement,
@@ -258,8 +338,14 @@ const Agreement = () => {
 
   const handleSaveSignature = async () => {
     if (!user) return;
+
     if (!dynamicFields) {
       toast.error('Agreement details are still loading. Please try again.');
+      return;
+    }
+
+    if (missingDynamicRequirements.length) {
+      toast.error(`Missing required agreement data: ${missingDynamicRequirements.join(', ')}`);
       return;
     }
 
@@ -649,6 +735,35 @@ const Agreement = () => {
     );
   }
 
+  if (isDynamicError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Unable to load agreement data</AlertTitle>
+        <AlertDescription>{(dynamicError as any)?.message || 'Please try again.'}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const liveValues = vars
+    ? [
+        { key: '{{first_party_name}}', label: 'Borrower name', value: vars.first_party_name },
+        { key: '{{second_party_name}}', label: 'Lender name', value: vars.second_party_name },
+        { key: '{{agreement_day}}', label: 'Agreement day', value: vars.agreement_day },
+        { key: '{{agreement_month}}', label: 'Agreement month', value: vars.agreement_month },
+        { key: '{{agreement_year}}', label: 'Agreement year', value: vars.agreement_year },
+        { key: '{{invested_amount}}', label: 'Investment amount (INR)', value: vars.invested_amount },
+        { key: '{{invested_amount_words}}', label: 'Amount in words', value: vars.invested_amount_words },
+        { key: '{{lender_aadhaar}}', label: 'Lender Aadhaar', value: vars.lender_aadhaar || '(blank)' },
+        { key: '{{lender_pan}}', label: 'Lender PAN', value: vars.lender_pan || '(blank)' },
+        { key: '{{nominee}}', label: 'Nominee', value: vars.nominee || '(blank)' },
+        {
+          key: '{{nominee_identification}}',
+          label: 'Nominee identification',
+          value: vars.nominee_identification || '(blank)',
+        },
+      ]
+    : [];
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -689,13 +804,22 @@ const Agreement = () => {
                 Agreement Document
               </CardTitle>
               <CardDescription>
-                Users only fill their details — the system automatically generates a clean, professional agreement PDF.
+                Values are filled automatically from your profile + latest investment, and update live when data changes.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {missingDynamicRequirements.length > 0 && !agreementRow && (
+            <Alert variant="destructive">
+              <AlertTitle>Missing required agreement data</AlertTitle>
+              <AlertDescription>
+                Please complete the missing items before signing: {missingDynamicRequirements.join(', ')}.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="rounded-md border bg-muted/30 p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -716,6 +840,35 @@ const Agreement = () => {
               </div>
             </div>
           </div>
+
+          {vars && (
+            <div className="rounded-md border">
+              <div className="border-b bg-muted/30 px-4 py-3">
+                <div className="text-sm font-medium">Live placeholder mapping</div>
+                <div className="text-xs text-muted-foreground">
+                  These placeholders are replaced with the live values shown below.
+                </div>
+              </div>
+              <div className="p-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[260px]">Placeholder</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {liveValues.map((row) => (
+                      <TableRow key={row.key}>
+                        <TableCell className="font-mono text-xs">{row.key}</TableCell>
+                        <TableCell className="text-sm">{row.value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
 
           {!agreementRow && (
             <>
@@ -847,13 +1000,6 @@ const Agreement = () => {
             {agreementRow ? agreementRow.agreement_text : renderedAgreementText}
           </div>
 
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Official PDF template preview</div>
-            <div className="aspect-[3/4] w-full overflow-hidden rounded-md border bg-background">
-              <iframe title="Agreement PDF template" src={pdfTemplateUrl} className="h-full w-full" />
-            </div>
-          </div>
-
           {agreementRow ? (
             <div className="space-y-6">
               <div>
@@ -873,7 +1019,10 @@ const Agreement = () => {
                 <SignaturePad ref={sigCanvas} />
               </div>
               <div className="flex gap-4">
-                <Button onClick={() => void handleSaveSignature()} disabled={mutation.isPending}>
+                <Button
+                  onClick={() => void handleSaveSignature()}
+                  disabled={mutation.isPending || missingDynamicRequirements.length > 0}
+                >
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Generate Agreement & Submit
                 </Button>
