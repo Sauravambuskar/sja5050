@@ -104,21 +104,28 @@ const saveAgreement = async (params: {
     userPdfPath,
   } = params;
 
-  const { error } = await supabase.from('investment_agreements').upsert({
-    user_id: userId,
-    signature_data_url: signatureDataUrl,
-    agreement_text: agreementText,
-    first_party_name: firstPartyName,
-    second_party_name: secondPartyName,
-    investment_date: investmentDate,
-    invested_amount: investedAmount,
-    user_investment_id: userInvestmentId,
-    status: 'user_signed',
-    filled_fields: filledFields,
-    reference_number: referenceNumber,
-    document_hash: documentHash,
-    user_pdf_path: userPdfPath,
-  });
+  // IMPORTANT: upsert on user_id (uq_user_agreement) to avoid duplicate key errors
+  const { error } = await supabase
+    .from('investment_agreements')
+    .upsert(
+      {
+        user_id: userId,
+        signature_data_url: signatureDataUrl,
+        agreement_text: agreementText,
+        first_party_name: firstPartyName,
+        second_party_name: secondPartyName,
+        investment_date: investmentDate,
+        invested_amount: investedAmount,
+        user_investment_id: userInvestmentId,
+        status: 'user_signed',
+        filled_fields: filledFields,
+        reference_number: referenceNumber,
+        document_hash: documentHash,
+        user_pdf_path: userPdfPath,
+      },
+      { onConflict: 'user_id' }
+    );
+
   if (error) throw error;
 };
 
@@ -290,29 +297,34 @@ const Agreement = () => {
       return;
     }
 
-    // We need an agreement id to store PDFs under a stable path.
+    // Ensure an agreement row exists and get a stable id for storage paths.
+    // Use upsert on user_id to avoid duplicate key violations.
     let agreementId = agreementRow?.id;
     if (!agreementId) {
-      const { data, error } = await supabase
+      const { data: idRow, error: idErr } = await supabase
         .from('investment_agreements')
-        .insert({
-          user_id: user.id,
-          agreement_text: renderedAgreementText,
-          signature_data_url: signatureDataUrl,
-          first_party_name: dynamicFields.first_party_name,
-          second_party_name: details.full_name,
-          investment_date: dynamicFields.investment_date,
-          invested_amount: dynamicFields.invested_amount,
-          user_investment_id: dynamicFields.user_investment_id,
-          status: 'user_signed',
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            agreement_text: renderedAgreementText,
+            signature_data_url: signatureDataUrl,
+            first_party_name: dynamicFields.first_party_name,
+            second_party_name: details.full_name,
+            investment_date: dynamicFields.investment_date,
+            invested_amount: dynamicFields.invested_amount,
+            user_investment_id: dynamicFields.user_investment_id,
+            status: 'user_signed',
+          },
+          { onConflict: 'user_id' }
+        )
         .select('id')
         .single();
-      if (error) {
-        toast.error(error.message);
+
+      if (idErr) {
+        toast.error(idErr.message);
         return;
       }
-      agreementId = (data as any).id;
+      agreementId = (idRow as any).id;
     }
 
     let userPdfPath = '';
