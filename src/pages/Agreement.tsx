@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SignaturePad from '@/components/profile/SignaturePad';
@@ -17,6 +17,12 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { generateAgreementPdf } from '@/lib/agreementPdfTemplate';
 import { uploadAgreementPdf, createAgreementPdfSignedUrl } from '@/lib/agreementPdfStorage';
 import { useProfile } from '@/hooks/useProfile';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -45,6 +51,19 @@ const renderTemplate = (template: string, vars: Record<string, string>) => {
     return vars[key] ?? '';
   });
 };
+
+const userDetailsSchema = z.object({
+  full_name: z.string().min(2, 'Full name is required.'),
+  residential_address: z.string().min(5, 'Address is required.'),
+  contact_number: z.string().min(8, 'Contact number is required.'),
+  email_address: z.string().email('Valid email is required.').optional().or(z.literal('')),
+  aadhaar_number: z.string().optional().or(z.literal('')),
+  pan_number: z.string().optional().or(z.literal('')),
+  nominee_name: z.string().optional().or(z.literal('')),
+  nominee_identification: z.string().optional().or(z.literal('')),
+});
+
+type UserDetailsFormValues = z.infer<typeof userDetailsSchema>;
 
 const fetchAgreement = async (userId: string): Promise<InvestmentAgreement | null> => {
   const { data, error } = await supabase
@@ -103,17 +122,6 @@ const saveAgreement = async (params: {
   if (error) throw error;
 };
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 async function blobToDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -144,18 +152,49 @@ const Agreement = () => {
   });
 
   const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
-
   const templateText = (settings?.investment_agreement_text || '').trim() || FALLBACK_TEMPLATE;
+
+  const detailsForm = useForm<UserDetailsFormValues>({
+    resolver: zodResolver(userDetailsSchema),
+    defaultValues: {
+      full_name: '',
+      residential_address: '',
+      contact_number: '',
+      email_address: user?.email || '',
+      aadhaar_number: '',
+      pan_number: '',
+      nominee_name: '',
+      nominee_identification: '',
+    },
+  });
+
+  useEffect(() => {
+    if (agreementRow) return; // don't override if already signed
+    detailsForm.reset({
+      full_name: String(profile?.full_name || dynamicFields?.second_party_name || '').trim(),
+      residential_address: String(profile?.address || '').trim(),
+      contact_number: String(profile?.phone || '').trim(),
+      email_address: user?.email || '',
+      aadhaar_number: String(profile?.aadhaar_number || '').trim(),
+      pan_number: String(profile?.pan_number || '').trim(),
+      nominee_name: '',
+      nominee_identification: '',
+    });
+  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, user?.email]);
+
+  const watchedFullName = detailsForm.watch('full_name');
 
   const vars = useMemo(() => {
     if (!dynamicFields) return null;
+    const secondPartyName = String(agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || '').trim();
+
     return {
       first_party_name: dynamicFields.first_party_name,
-      second_party_name: dynamicFields.second_party_name,
+      second_party_name: secondPartyName,
       agreement_date: format(new Date(dynamicFields.investment_date), 'PPP'),
       invested_amount: dynamicFields.invested_amount.toLocaleString('en-IN'),
     };
-  }, [dynamicFields]);
+  }, [dynamicFields, agreementRow?.second_party_name, watchedFullName]);
 
   const renderedAgreementText = useMemo(() => {
     if (!vars) return templateText;
@@ -188,43 +227,41 @@ const Agreement = () => {
       return;
     }
 
+    const detailsValid = await detailsForm.trigger();
+    if (!detailsValid) {
+      toast.error('Please fill the required details.');
+      return;
+    }
+
     if (sigCanvas.current?.isEmpty()) {
       toast.error('Please provide your signature.');
       return;
     }
 
-    // Validate required fields for PDF placeholders
-    const fullName = String(profile?.full_name || '').trim();
-    const address = String(profile?.address || '').trim();
-    const phone = String(profile?.phone || '').trim();
-
-    if (!fullName) {
-      toast.error('Please complete your profile: Full Name is required.');
-      return;
-    }
-    if (!address) {
-      toast.error('Please complete your profile: Address is required.');
-      return;
-    }
-    if (!phone) {
-      toast.error('Please complete your profile: Phone is required.');
-      return;
-    }
+    const details = detailsForm.getValues();
 
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
 
     // Build filled fields snapshot (immutable for this agreement)
     const referenceNumber = `SJA-AGR-${user.id.slice(0, 6).toUpperCase()}-${Date.now()}`;
 
+    const governmentIdDetails = [
+      details.aadhaar_number ? `Aadhaar: ${details.aadhaar_number}` : '',
+      details.pan_number ? `PAN: ${details.pan_number}` : '',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
     const filledFields = {
-      full_name: fullName,
-      residential_address: address,
-      contact_number: phone,
-      email_address: user.email || '',
-      government_id_details: [profile?.aadhaar_number ? `Aadhaar: ${profile.aadhaar_number}` : '', profile?.pan_number ? `PAN: ${profile.pan_number}` : '']
-        .filter(Boolean)
-        .join(' | '),
+      full_name: details.full_name,
+      residential_address: details.residential_address,
+      contact_number: details.contact_number,
+      email_address: details.email_address || user.email || '',
+      government_id_details: governmentIdDetails,
       business_name_if_applicable: '',
+
+      nominee: details.nominee_name || '',
+      nominee_identification: details.nominee_identification || '',
 
       organization_name: 'SJA Foundation (Sariputra Wankhade Foundation)',
       authorized_signatory_name: dynamicFields.first_party_name,
@@ -254,7 +291,6 @@ const Agreement = () => {
     }
 
     // We need an agreement id to store PDFs under a stable path.
-    // If agreement row doesn't exist yet, create it first with minimal data to get id.
     let agreementId = agreementRow?.id;
     if (!agreementId) {
       const { data, error } = await supabase
@@ -264,7 +300,7 @@ const Agreement = () => {
           agreement_text: renderedAgreementText,
           signature_data_url: signatureDataUrl,
           first_party_name: dynamicFields.first_party_name,
-          second_party_name: dynamicFields.second_party_name,
+          second_party_name: details.full_name,
           investment_date: dynamicFields.investment_date,
           invested_amount: dynamicFields.invested_amount,
           user_investment_id: dynamicFields.user_investment_id,
@@ -292,7 +328,7 @@ const Agreement = () => {
       signatureDataUrl,
       agreementText: renderedAgreementText,
       firstPartyName: dynamicFields.first_party_name,
-      secondPartyName: dynamicFields.second_party_name,
+      secondPartyName: details.full_name,
       investmentDate: dynamicFields.investment_date,
       investedAmount: dynamicFields.invested_amount,
       userInvestmentId: dynamicFields.user_investment_id,
@@ -570,7 +606,7 @@ const Agreement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Investment Agreement</h1>
-          <p className="text-muted-foreground">Review the agreement and sign digitally.</p>
+          <p className="text-muted-foreground">Fill your details, review the agreement and sign digitally.</p>
         </div>
         {agreementRow && (
           <div className="flex flex-wrap gap-2">
@@ -605,7 +641,7 @@ const Agreement = () => {
                 Agreement Document
               </CardTitle>
               <CardDescription>
-                The official agreement can be generated from the uploaded PDF template (print-ready) and will store the exact filled values.
+                Users only fill their details — the system automatically generates a clean, professional agreement PDF.
               </CardDescription>
             </div>
           </div>
@@ -615,27 +651,150 @@ const Agreement = () => {
           <div className="rounded-md border bg-muted/30 p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <div className="text-xs text-muted-foreground">First Party</div>
+                <div className="text-xs text-muted-foreground">First Party (Borrower)</div>
                 <div className="font-medium">{dynamicFields?.first_party_name}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Second Party</div>
-                <div className="font-medium">{dynamicFields?.second_party_name}</div>
+                <div className="text-xs text-muted-foreground">Second Party (Lender)</div>
+                <div className="font-medium">{agreementRow?.second_party_name || detailsForm.getValues('full_name') || dynamicFields?.second_party_name}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Agreement Date</div>
                 <div className="font-medium">{dynamicFields ? format(new Date(dynamicFields.investment_date), 'PPP') : ''}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Invested Amount</div>
+                <div className="text-xs text-muted-foreground">Amount</div>
                 <div className="font-medium">INR {dynamicFields?.invested_amount.toLocaleString('en-IN')}</div>
               </div>
             </div>
           </div>
 
+          {!agreementRow && (
+            <>
+              <Separator />
+              <div className="rounded-md border p-4">
+                <div className="mb-3 text-sm font-medium">Your details (auto-filled, edit if needed)</div>
+                <Form {...detailsForm}>
+                  <form className="grid gap-4 md:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+                    <FormField
+                      control={detailsForm.control}
+                      name="full_name"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Full name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="contact_number"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Contact number</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="email_address"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="residential_address"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Residential address</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} className="min-h-[84px]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="aadhaar_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Aadhaar (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="pan_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PAN (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="nominee_name"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Nominee (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="nominee_identification"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Nominee identification (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              </div>
+            </>
+          )}
+
           <Separator />
 
-          {/* Keep the existing text preview as a reference; PDF template is the legal source of truth */}
           <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
             {agreementRow ? agreementRow.agreement_text : renderedAgreementText}
           </div>
@@ -668,7 +827,7 @@ const Agreement = () => {
               <div className="flex gap-4">
                 <Button onClick={() => void handleSaveSignature()} disabled={mutation.isPending}>
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign & Submit Agreement
+                  Generate Agreement & Submit
                 </Button>
                 <Button variant="outline" onClick={clearSignature}>
                   Clear
