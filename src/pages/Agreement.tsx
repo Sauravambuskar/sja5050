@@ -395,48 +395,73 @@ const Agreement = () => {
       const maxWidth = pageWidth - margin * 2;
       const lineH = 5;
 
-      const paragraphs = String(text || '').split(/\n\s*\n/);
+      // Preserve line breaks & indentation exactly as entered.
+      // Only wrap when a single line exceeds page width.
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(15, 23, 42);
 
-      for (const paraRaw of paragraphs) {
-        const para = paraRaw.replace(/\s+$/g, '');
-        const trimmed = para.trim();
-        if (!trimmed) continue;
+      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
 
-        const listMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
-        if (listMatch) {
-          const num = `${listMatch[1]}.`;
-          const content = listMatch[2].replace(/\s+/g, ' ').trim();
+      const wrapLine = (raw: string) => {
+        const line = raw.replace(/\t/g, '    ');
+        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*\)|\d+(?:\.\d+)*\.)\s+/);
+        const leadingSpaces = line.match(/^\s+/)?.[0] ?? '';
 
-          const numW = doc.getTextWidth(num + ' ');
-          const indentX = margin + Math.min(10, Math.max(6, numW));
-          const available = pageWidth - margin - indentX;
+        if (prefixMatch) {
+          const prefix = prefixMatch[0];
+          const rest = line.slice(prefix.length);
+          const prefixW = doc.getTextWidth(prefix);
+          const available = Math.max(10, maxWidth - prefixW);
+          const wrapped = doc.splitTextToSize(rest, available);
+          return { kind: 'prefix' as const, prefix, prefixW, wrapped };
+        }
 
-          const lines = doc.splitTextToSize(content, available);
+        if (leadingSpaces) {
+          const rest = line.slice(leadingSpaces.length);
+          const indentW = doc.getTextWidth(leadingSpaces);
+          const available = Math.max(10, maxWidth - indentW);
+          const wrapped = rest ? doc.splitTextToSize(rest, available) : [''];
+          return { kind: 'indent' as const, indentW, wrapped };
+        }
+
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        return { kind: 'plain' as const, wrapped };
+      };
+
+      for (const raw of lines) {
+        if (raw.trim() === '') {
           y = await ensureSpace(y, lineH);
-          doc.text(num, margin, y);
-          doc.text(String(lines[0] ?? ''), indentX, y);
-          y += lineH;
-
-          for (let i = 1; i < lines.length; i++) {
-            y = await ensureSpace(y, lineH);
-            doc.text(String(lines[i]), indentX, y);
-            y += lineH;
-          }
-          y += 1.5;
+          y += lineH; // keep blank line
           continue;
         }
 
-        const cleaned = trimmed.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        const lines = doc.splitTextToSize(cleaned, maxWidth);
-        for (const line of lines) {
+        const w = wrapLine(raw);
+
+        if (w.kind === 'prefix') {
+          for (let i = 0; i < w.wrapped.length; i++) {
+            y = await ensureSpace(y, lineH);
+            if (i === 0) doc.text(w.prefix, margin, y);
+            doc.text(String(w.wrapped[i]), margin + w.prefixW, y);
+            y += lineH;
+          }
+          continue;
+        }
+
+        if (w.kind === 'indent') {
+          for (const part of w.wrapped) {
+            y = await ensureSpace(y, lineH);
+            doc.text(String(part), margin + w.indentW, y);
+            y += lineH;
+          }
+          continue;
+        }
+
+        for (const part of w.wrapped) {
           y = await ensureSpace(y, lineH);
-          doc.text(String(line), margin, y);
+          doc.text(String(part), margin, y);
           y += lineH;
         }
-        y += 3;
       }
 
       return y;
