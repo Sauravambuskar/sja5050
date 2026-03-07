@@ -62,6 +62,18 @@ const renderTemplate = (template: string, vars: Record<string, string>) => {
   });
 };
 
+function normalizeAgreementTextForDisplay(input: string) {
+  // Prevent overflow caused by pasted templates containing excessive spacing/tabs/NBSP.
+  // Keep line breaks, but collapse multi-spaces within each line.
+  return String(input || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\t/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .split('\n')
+    .map((line) => line.replace(/\s{2,}/g, ' ').trimEnd())
+    .join('\n');
+}
+
 const userDetailsSchema = z.object({
   full_name: z.string().min(2, 'Full name is required.'),
   residential_address: z.string().min(5, 'Address is required.'),
@@ -347,6 +359,11 @@ const Agreement = () => {
     if (!displayVars) return templateText;
     return renderTemplate(templateText, displayVars);
   }, [templateText, displayVars]);
+
+  const renderedAgreementTextForDisplay = useMemo(
+    () => normalizeAgreementTextForDisplay(renderedAgreementText),
+    [renderedAgreementText]
+  );
 
   const pdfTemplateUrl = (settings?.agreement_pdf_template_url || '/agreement-templates/PGS_2.pdf').trim();
   const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
@@ -1061,8 +1078,8 @@ const Agreement = () => {
 
           <Separator />
 
-          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap rounded-md border p-4">
-            {renderedAgreementText}
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line break-words rounded-md border p-4">
+            {renderedAgreementTextForDisplay}
           </div>
 
           {agreementRow ? (
