@@ -63,15 +63,37 @@ const renderTemplate = (template: string, vars: Record<string, string>) => {
 };
 
 function normalizeAgreementTextForDisplay(input: string) {
-  // Prevent overflow caused by pasted templates containing excessive spacing/tabs/NBSP.
-  // Keep line breaks, but collapse multi-spaces within each line.
-  return String(input || '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\t/g, ' ')
-    .replace(/\u00A0/g, ' ')
-    .split('\n')
-    .map((line) => line.replace(/\s{2,}/g, ' ').trimEnd())
-    .join('\n');
+  // Prevent overflow + fix common copy/paste artifacts from PDF/Word.
+  // - Keep line breaks.
+  // - Collapse excessive spacing.
+  // - Repair "spaced letters" lines like "T h e L e n d e r".
+  // - Repair "spaced numbers" like "1 7,50,000".
+  const fixSpacedLetters = (line: string) => {
+    // Join sequences of single letters separated by spaces: "T h e" => "The"
+    return line.replace(/\b(?:[A-Za-z]\s){3,}[A-Za-z]\b/g, (m) => m.replace(/\s+/g, ""));
+  };
+
+  const fixSpacedNumbers = (line: string) => {
+    // Join sequences of digits separated by spaces: "1 7 5 0 0" => "17500"
+    let out = line.replace(/\b(?:\d\s){3,}\d\b/g, (m) => m.replace(/\s+/g, ""));
+
+    // Also remove spaces between digits when separated by punctuation used in amounts
+    // e.g. "1 7,50,000" => "17,50,000"
+    out = out.replace(/(?<=\d)\s+(?=[\d,])/g, "");
+    out = out.replace(/(?<=[\d,])\s+(?=\d)/g, "");
+
+    return out;
+  };
+
+  return String(input || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, " ")
+    .replace(/\u00A0/g, " ")
+    .split("\n")
+    .map((line) => line.replace(/\s{2,}/g, " ").trimEnd())
+    .map(fixSpacedLetters)
+    .map(fixSpacedNumbers)
+    .join("\n");
 }
 
 const userDetailsSchema = z.object({
