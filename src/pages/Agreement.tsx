@@ -67,6 +67,12 @@ const userDetailsSchema = z.object({
   residential_address: z.string().min(5, 'Address is required.'),
   contact_number: z.string().min(8, 'Contact number is required.'),
   email_address: z.string().email('Valid email is required.').optional().or(z.literal('')),
+
+  // IMPORTANT: users sign BEFORE investing, so the agreement amount must be provided here.
+  investment_amount: z.coerce
+    .number({ invalid_type_error: 'Investment amount is required.' })
+    .positive('Investment amount must be greater than 0.'),
+
   aadhaar_number: z.string().optional().or(z.literal('')),
   pan_number: z.string().optional().or(z.literal('')),
   nominee_name: z.string().optional().or(z.literal('')),
@@ -219,6 +225,7 @@ const Agreement = () => {
       residential_address: '',
       contact_number: '',
       email_address: user?.email || '',
+      investment_amount: 0,
       aadhaar_number: '',
       pan_number: '',
       nominee_name: '',
@@ -228,28 +235,36 @@ const Agreement = () => {
 
   useEffect(() => {
     if (agreementRow) return; // don't override if already signed
+
+    const maybeAmountFromDb = Number(dynamicFields?.invested_amount ?? 0);
+
     detailsForm.reset({
       full_name: String(profile?.full_name || dynamicFields?.second_party_name || '').trim(),
       residential_address: String(profile?.address || '').trim(),
       contact_number: String(profile?.phone || '').trim(),
       email_address: user?.email || '',
+      investment_amount: maybeAmountFromDb > 0 ? maybeAmountFromDb : 0,
       aadhaar_number: String(profile?.aadhaar_number || '').trim(),
       pan_number: String(profile?.pan_number || '').trim(),
       nominee_name: '',
       nominee_identification: '',
     });
-  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, user?.email]);
+  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, dynamicFields?.invested_amount, user?.email]);
 
   const watchedFullName = detailsForm.watch('full_name');
-  const [watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] = detailsForm.watch([
-    'aadhaar_number',
-    'pan_number',
-    'nominee_name',
-    'nominee_identification',
-  ]);
+  const [watchedInvestmentAmount, watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] =
+    detailsForm.watch([
+      'investment_amount',
+      'aadhaar_number',
+      'pan_number',
+      'nominee_name',
+      'nominee_identification',
+    ]);
 
   const liveVars = useMemo(() => {
     if (!dynamicFields) return null;
+
+    const amountNum = Number(watchedInvestmentAmount || 0) || Number(dynamicFields.invested_amount || 0) || 0;
 
     const secondPartyName = String(
       agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || ''
@@ -269,8 +284,8 @@ const Agreement = () => {
     const borrower_aadhaar = '';
     const borrower_pan = '';
 
-    const invested_amount = dynamicFields.invested_amount.toLocaleString('en-IN');
-    const invested_amount_words = numberToWordsIN(dynamicFields.invested_amount);
+    const invested_amount = amountNum.toLocaleString('en-IN');
+    const invested_amount_words = amountNum > 0 ? numberToWordsIN(amountNum) : '';
 
     return {
       first_party_name: dynamicFields.first_party_name,
@@ -292,6 +307,7 @@ const Agreement = () => {
     dynamicFields,
     agreementRow?.second_party_name,
     watchedFullName,
+    watchedInvestmentAmount,
     watchedAadhaar,
     watchedPan,
     watchedNominee,
@@ -339,15 +355,16 @@ const Agreement = () => {
     if (!dynamicFields) return [] as string[];
     const missing: string[] = [];
     if (!String(dynamicFields.first_party_name || '').trim()) missing.push('Borrower name (First party)');
-    if (!String(dynamicFields.second_party_name || '').trim()) missing.push('Lender name (Second party)');
+
+    // User-provided loan/investment amount is required for agreement.
+    const amt = Number(watchedInvestmentAmount || 0);
+    if (!(amt > 0)) missing.push('Investment amount');
 
     const dateOk = !Number.isNaN(new Date(dynamicFields.investment_date).getTime());
     if (!dateOk) missing.push('Agreement date');
 
-    if (!(Number(dynamicFields.invested_amount) > 0)) missing.push('Investment amount');
-
     return missing;
-  }, [dynamicFields]);
+  }, [dynamicFields, watchedInvestmentAmount]);
 
   const mutation = useMutation({
     mutationFn: saveAgreement,
@@ -390,6 +407,7 @@ const Agreement = () => {
     }
 
     const details = detailsForm.getValues();
+    const amountNum = Number(details.investment_amount || 0);
 
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
 
@@ -425,8 +443,7 @@ const Agreement = () => {
       registered_office_address: '',
       official_contact_details: '',
 
-      // Also store readable amount in words for any PDF that has this placeholder
-      invested_amount_words: numberToWordsIN(dynamicFields.invested_amount),
+      invested_amount_words: numberToWordsIN(amountNum),
     };
 
     // Generate user-signed PDF from the original template (no clause modifications)
@@ -462,9 +479,12 @@ const Agreement = () => {
             first_party_name: dynamicFields.first_party_name,
             second_party_name: details.full_name,
             investment_date: dynamicFields.investment_date,
-            invested_amount: dynamicFields.invested_amount,
+            invested_amount: amountNum,
             user_investment_id: dynamicFields.user_investment_id,
             status: 'user_signed',
+            filled_fields: filledFields,
+            reference_number: referenceNumber,
+            document_hash: hash,
           },
           { onConflict: 'user_id' }
         )
@@ -493,7 +513,7 @@ const Agreement = () => {
       firstPartyName: dynamicFields.first_party_name,
       secondPartyName: details.full_name,
       investmentDate: dynamicFields.investment_date,
-      investedAmount: dynamicFields.invested_amount,
+      investedAmount: amountNum,
       userInvestmentId: dynamicFields.user_investment_id,
       filledFields,
       referenceNumber,
@@ -781,7 +801,7 @@ const Agreement = () => {
         { key: '{{agreement_month}}', label: 'Agreement month', value: displayVars.agreement_month },
         { key: '{{agreement_year}}', label: 'Agreement year', value: displayVars.agreement_year },
         { key: '{{invested_amount}}', label: 'Investment amount (INR)', value: displayVars.invested_amount },
-        { key: '{{invested_amount_words}}', label: 'Amount in words', value: displayVars.invested_amount_words },
+        { key: '{{invested_amount_words}}', label: 'Amount in words', value: displayVars.invested_amount_words || '(blank)' },
         { key: '{{lender_aadhaar}}', label: 'Lender Aadhaar', value: displayVars.lender_aadhaar || '(blank)' },
         { key: '{{lender_pan}}', label: 'Lender PAN', value: displayVars.lender_pan || '(blank)' },
         { key: '{{nominee}}', label: 'Nominee', value: displayVars.nominee || '(blank)' },
@@ -792,6 +812,8 @@ const Agreement = () => {
         },
       ]
     : [];
+
+  const amountForUi = agreementRow ? Number(agreementRow.invested_amount ?? 0) : Number(watchedInvestmentAmount || 0);
 
   return (
     <>
@@ -865,7 +887,7 @@ const Agreement = () => {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Amount</div>
-                <div className="font-medium">INR {dynamicFields?.invested_amount.toLocaleString('en-IN')}</div>
+                <div className="font-medium">INR {Number.isFinite(amountForUi) ? amountForUi.toLocaleString('en-IN') : '-'}</div>
               </div>
             </div>
           </div>
@@ -942,6 +964,20 @@ const Agreement = () => {
                           <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={detailsForm.control}
+                      name="investment_amount"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Investment amount (₹)</FormLabel>
+                          <FormControl>
+                            <Input type="number" inputMode="numeric" min={0} step={1} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
