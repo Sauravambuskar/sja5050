@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2 } from "lucide-react";
-import { SignAgreementPrompt } from "@/components/investments/SignAgreementPrompt";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,15 +47,23 @@ const Investments = () => {
           <div className="flex justify-center items-center h-40">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : signedAgreement ? (
-          <Tabs defaultValue="plans" className="w-full mt-6">
+        ) : (
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              const next = new URLSearchParams(searchParams);
+              next.set('tab', v);
+              setSearchParams(next);
+            }}
+            className="w-full mt-6"
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="plans">Investment Plans</TabsTrigger>
               <TabsTrigger value="history">My Investments</TabsTrigger>
               <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
             </TabsList>
             <TabsContent value="plans">
-              <InvestmentPlans />
+              <InvestmentPlans canInvest={!!signedAgreement} />
             </TabsContent>
             <TabsContent value="history">
               <Card>
@@ -76,8 +83,6 @@ const Investments = () => {
               <InvestmentWithdrawalsPage />
             </TabsContent>
           </Tabs>
-        ) : (
-          <SignAgreementPrompt />
         )}
       </div>
     </div>

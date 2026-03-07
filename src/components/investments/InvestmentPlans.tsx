@@ -8,6 +8,7 @@ import { useState } from "react";
 import { InvestDialog } from "./InvestDialog";
 import { TrendingUp } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { useNavigate } from "react-router-dom";
 
 const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   const { data, error } = await supabase
@@ -22,7 +23,8 @@ const fetchInvestmentPlans = async (): Promise<InvestmentPlan[]> => {
   return data;
 };
 
-const InvestmentPlans = () => {
+const InvestmentPlans = ({ canInvest }: { canInvest: boolean }) => {
+  const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
   const { data: plans, isLoading, isError, error } = useQuery<InvestmentPlan[]>({
     queryKey: ['investmentPlans'],
@@ -85,13 +87,24 @@ const InvestmentPlans = () => {
                 </p>
               </CardContent>
               <CardFooter className="p-6 pt-0">
-                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Deposit Now</Button>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    if (!canInvest) {
+                      navigate('/agreement');
+                      return;
+                    }
+                    setSelectedPlan(plan);
+                  }}
+                >
+                  Deposit Now
+                </Button>
               </CardFooter>
             </Card>
           );
         })}
       </div>
-      {selectedPlan && (
+      {selectedPlan && canInvest && (
         <InvestDialog
           plan={selectedPlan}
           isOpen={!!selectedPlan}
