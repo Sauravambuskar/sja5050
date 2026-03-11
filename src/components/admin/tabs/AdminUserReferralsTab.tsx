@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus, TrendingUp, Link2, Unlink, Loader2 } from "lucide-react";
+import { Users, UserPlus, TrendingUp, Link2, Unlink, Loader2, TableProperties } from "lucide-react";
 import { AdminReferralNetworkTable } from "@/components/admin/AdminReferralNetworkTable";
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ReferralClientLedgerTable from "@/components/referrals/ReferralClientLedgerTable";
 
 interface AdminUserReferralsTabProps {
   userId: string;
@@ -60,6 +61,12 @@ const fetchReferralCode = async (userId: string) => {
   return data as string;
 };
 
+const fetchReferralClientLedgerForAdmin = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_user_referral_client_ledger_for_admin', { p_user_id: userId });
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
 const fetchUserProfileForAdmin = async (id: string): Promise<AdminUserProfileForAdmin> => {
   const { data, error } = await supabase.rpc('get_user_profile_for_admin', { user_id_to_fetch: id });
   if (error) throw new Error(error.message);
@@ -75,7 +82,7 @@ const fetchUserProfileForAdmin = async (id: string): Promise<AdminUserProfileFor
 
 export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferralsTabProps) => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("direct");
+  const [activeTab, setActiveTab] = useState("ledger");
 
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [confirmAddOpen, setConfirmAddOpen] = useState(false);
@@ -123,6 +130,7 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
       queryClient.invalidateQueries({ queryKey: ['adminReferralStats', userId] });
       queryClient.invalidateQueries({ queryKey: ['adminReferralNetwork', userId] });
       queryClient.invalidateQueries({ queryKey: ['adminReferralTree', userId] });
+      queryClient.invalidateQueries({ queryKey: ['adminReferralClientLedger', userId] });
     },
     onError: (err: Error) => toast.error(err.message),
     onSettled: () => setConfirmAddOpen(false),
@@ -142,6 +150,7 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
       queryClient.invalidateQueries({ queryKey: ['adminReferralStats', userId] });
       queryClient.invalidateQueries({ queryKey: ['adminReferralNetwork', userId] });
       queryClient.invalidateQueries({ queryKey: ['adminReferralTree', userId] });
+      queryClient.invalidateQueries({ queryKey: ['adminReferralClientLedger', userId] });
     },
     onError: (err: Error) => toast.error(err.message),
     onSettled: () => setConfirmRemove(null),
@@ -244,9 +253,22 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="ledger">
+            <TableProperties className="mr-2 h-4 w-4" />
+            Client Ledger
+          </TabsTrigger>
           <TabsTrigger value="direct">Direct Clients</TabsTrigger>
           <TabsTrigger value="network">Client Network</TabsTrigger>
         </TabsList>
+        <TabsContent value="ledger" className="mt-4">
+          <ReferralClientLedgerTable
+            queryKey={['adminReferralClientLedger', userId]}
+            queryFn={() => fetchReferralClientLedgerForAdmin(userId)}
+            title="Client Referral Ledger"
+            description="Direct client investment rows synced from the main system."
+            emptyMessage="No direct client investments found for this user yet."
+          />
+        </TabsContent>
         <TabsContent value="direct" className="mt-4">
           <Card>
             <CardHeader>
@@ -262,7 +284,7 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
               ) : referrals && referrals.length > 0 ? (
                 <div className="space-y-2">
                   {referrals.map((referral: Referral) => (
-                    <div key={referral.id} className="flex flex-wrap items-center justify-between gap-2 p-3 border rounded-lg">
+                    <div key={referral.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
                       <div>
                         <p className="font-medium">{referral.full_name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -291,7 +313,7 @@ export const AdminUserReferralsTab = ({ userId, onViewUser }: AdminUserReferrals
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">No direct clients found.</p>
+                <p className="py-8 text-center text-muted-foreground">No direct clients found.</p>
               )}
             </CardContent>
           </Card>

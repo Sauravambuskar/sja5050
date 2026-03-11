@@ -263,6 +263,22 @@ export type Referral = {
   has_invested: boolean;
 };
 
+export type ReferralClientLedgerItem = {
+  customer_user_id: string;
+  referral_member_id: string | null;
+  customer_member_id: string | null;
+  investment_id: string;
+  investment_date: string | null;
+  customer_name: string | null;
+  commission_rate: number;
+  investment_amount: number;
+  monthly_return: number;
+  daily_return: number;
+  duration_days: number;
+  payment: number;
+  status: string;
+};
+
 export type ReferralTreeUser = {
   id: string;
   full_name: string;
