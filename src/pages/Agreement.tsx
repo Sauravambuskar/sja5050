@@ -534,7 +534,12 @@ const Agreement = () => {
         toast.error(idErr.message);
         return;
       }
-      agreementId = (idRow as any).id;
+      agreementId = (idRow as { id: string }).id;
+    }
+
+    if (!agreementId) {
+      toast.error('Failed to retrieve agreement ID.');
+      return;
     }
 
     let userPdfPath = '';
