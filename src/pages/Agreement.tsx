@@ -17,6 +17,7 @@ import { InvestmentAgreement } from '@/types/database';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { generateAgreementPdf } from '@/lib/agreementPdfTemplate';
 import { uploadAgreementPdf, createAgreementPdfSignedUrl } from '@/lib/agreementPdfStorage';
+import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
 import { useProfile } from '@/hooks/useProfile';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -490,6 +491,14 @@ const Agreement = () => {
     let pdfBytes: Uint8Array;
     let hash: string;
     try {
+      const qrUrl = `${window.location.origin}/agreement?ref=${referenceNumber}`;
+      let qrCodeDataUrl: string | undefined;
+      try {
+        qrCodeDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 256, level: 'M' });
+      } catch {
+        // non-fatal: proceed without QR code if generation fails
+      }
+
       const out = await generateAgreementPdf({
         templateUrl: pdfTemplateUrl,
         fieldMap: pdfFieldMap,
@@ -497,6 +506,9 @@ const Agreement = () => {
         images: {
           user_signature: { dataUrl: signatureDataUrl },
         },
+        qrCode: qrCodeDataUrl
+          ? { dataUrl: qrCodeDataUrl, date: filledFields.agreement_execution_date || format(new Date(), 'PPP') }
+          : undefined,
       });
       pdfBytes = out.pdfBytes;
       hash = out.hash;
@@ -801,6 +813,47 @@ const Agreement = () => {
       doc.setTextColor(148, 163, 184);
       doc.text('(Signature image not available)', margin + 4, y + 22);
       doc.setTextColor(51, 65, 85);
+    }
+
+    y += 48;
+
+    // QR Code section at the bottom of the agreement
+    const qrPageUrl = agreementRow.reference_number || agreementRow.id
+      ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
+      : '';
+
+    if (qrPageUrl) {
+      y = await ensureSpace(y, 52);
+      y += 4;
+
+      doc.setDrawColor(border.r, border.g, border.b);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Agreement QR Code', margin, y);
+      y += 6;
+
+      try {
+        const qrImgDataUrl = await generateQrPngDataUrl({ value: qrPageUrl, size: 200, level: 'M' });
+        doc.addImage(qrImgDataUrl, 'PNG', margin, y, 36, 36);
+      } catch {
+        // non-fatal
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      const qrLabelX = margin + 40;
+      doc.text(
+        `QR Date: ${agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP') : format(new Date(), 'PPP')}`,
+        qrLabelX,
+        y + 8
+      );
+      doc.text('Scan to view and verify this agreement', qrLabelX, y + 16);
+      y += 40;
     }
 
     const totalPages = doc.getNumberOfPages();
