@@ -15,7 +15,9 @@ type ExportOptions = {
 // Render at high resolution then export as PNG/PDF.
 // This avoids DOM capture (which caused blank/cropped exports).
 const CARD_W = 856;
-const CARD_H = 540;
+// Increased from 540 → 600 to fit all four info fields (phone, email, DOB, KYC)
+// without cramping the "Member Since" section.
+const CARD_H = 600;
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -155,6 +157,9 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   const footerH = 62;
   const footerY = CARD_H - footerH;
 
+  // Shared font stack used throughout this renderer
+  const FONT = "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+
   // Header bar
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, CARD_W, headerH);
@@ -182,7 +187,7 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
   const companyFont = fitTextToWidth(ctx, company, companyMaxW, 50, 28, 900);
-  ctx.font = `900 ${companyFont}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 ${companyFont}px ${FONT}`;
   ctx.fillText(company, companyRightX, headerH / 2);
 
   // Body panel (white)
@@ -198,10 +203,9 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   // Text content
   const contentX = pad;
 
-  // NOTE: Use fixed y-positions (instead of stacking) so sections never overlap.
+  // Fixed y-positions so sections never overlap.
   const nameY = headerH + 140;
   const memberIdY = nameY + 44;
-  const phoneRowY = memberIdY + 56;
 
   // Full name
   const name = (options.profile.full_name || "").trim();
@@ -210,65 +214,121 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillStyle = "#1E3A8A";
   const nameMaxW = CARD_W - pad * 2;
   const nameSize = fitTextToWidth(ctx, name, nameMaxW, 54, 34, 900);
-  ctx.font = `900 ${nameSize}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 ${nameSize}px ${FONT}`;
   ctx.fillText(name, contentX, nameY);
 
   // Member ID line
   const memberId = String(options.profile.member_id || "");
   ctx.fillStyle = "#64748B";
-  ctx.font = `600 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `600 26px ${FONT}`;
   ctx.fillText("Member ID:", contentX, memberIdY);
   ctx.fillStyle = "#0F172A";
-  ctx.font = `800 26px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `800 26px ${FONT}`;
   ctx.fillText(memberId, contentX + 160, memberIdY);
 
-  // Phone + KYC row
-  // phone dot
-  ctx.fillStyle = "#64748B";
-  ctx.beginPath();
-  ctx.arc(contentX + 18, phoneRowY - 10, 9, 0, Math.PI * 2);
-  ctx.fill();
+  // ── 2-column info grid (Phone | Email, DOB | KYC) ────────────────────
+  // Mirrors the 2-column layout shown in the UI preview card.
+  const gridStartY = memberIdY + 54;  // first row baseline
+  const gridRowH   = 50;              // pixels between row baselines
+  const col1X      = pad;             // left column x
+  const col2X      = Math.round(CARD_W / 2) + 20;  // right column x (≈ 448)
+  const maxColValW = col2X - col1X - 90; // max value width before truncation
 
-  ctx.fillStyle = "#0F172A";
-  ctx.font = `800 28px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillText(String(options.profile.phone || "N/A"), contentX + 44, phoneRowY);
+  // QR (right side, vertically spanning the grid + bottom area)
+  const qrSize   = 100;
+  const qrBoxPad = 12;
+  const qrX      = CARD_W - pad - qrSize;    // 712
+  const qrY      = gridStartY - 16;           // align top of QR with first grid row
 
-  const kyc = String(options.profile.kyc_status || "N/A");
-  const kycText = `KYC: ${kyc}`;
-  ctx.font = `900 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  const kycTextW = ctx.measureText(kycText).width;
+  // Helper: draw a single "label: value" field with a colored bullet.
+  const drawField = (
+    x: number,
+    y: number,
+    label: string,
+    value: string,
+    bulletColor: string,
+  ) => {
+    const bulletR = 8;
+    // Bullet
+    ctx.fillStyle = bulletColor;
+    ctx.beginPath();
+    ctx.arc(x + bulletR, y - bulletR + 1, bulletR, 0, Math.PI * 2);
+    ctx.fill();
+
+    const textX = x + bulletR * 2 + 10;
+
+    // Label (muted)
+    ctx.fillStyle = "#64748B";
+    ctx.font = `600 22px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    const labelStr = `${label}: `;
+    ctx.fillText(labelStr, textX, y);
+    const labelW = ctx.measureText(labelStr).width;
+
+    // Value (bold, dark) — truncate if too wide
+    ctx.fillStyle = "#0F172A";
+    ctx.font = `800 24px ${FONT}`;
+    const availW = maxColValW - labelW;
+    let val = value;
+    if (ctx.measureText(val).width > availW) {
+      while (val.length > 1 && ctx.measureText(val + "…").width > availW) {
+        val = val.slice(0, -1);
+      }
+      val += "…";
+    }
+    ctx.fillText(val, textX + labelW, y);
+  };
+
+  // Row 1: Phone (col1) | Email (col2)
+  drawField(col1X, gridStartY,           "Phone", String(options.profile.phone || "N/A"), "#2563EB");
+  drawField(col2X, gridStartY,           "Email", String(options.email         || "N/A"), "#16A34A");
+
+  // Row 2: DOB (col1) | KYC badge (col2)
+  const dobRaw = options.profile.dob;
+  let dobText = "N/A";
+  if (dobRaw) {
+    try {
+      const d = new Date(dobRaw);
+      dobText = d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+    } catch {
+      dobText = dobRaw.substring(0, 10);
+    }
+  }
+  drawField(col1X, gridStartY + gridRowH, "DOB",   dobText,                               "#EA580C");
+
+  // KYC badge (col2, row 2) — pill badge matching the UI Badge component
+  const kyc      = String(options.profile.kyc_status || "N/A");
+  const kycText  = `KYC: ${kyc}`;
   const badgePadX = 18;
-  const badgeW = clamp(kycTextW + badgePadX * 2, 180, 320);
-  const badgeH = 48;
-  const badgeX = CARD_W - pad - badgeW;
-  const badgeY = phoneRowY - 36;
+  const badgeH    = 42;
+  ctx.font = `800 22px ${FONT}`;
+  const kycTextW  = ctx.measureText(kycText).width;
+  const badgeW    = clamp(kycTextW + badgePadX * 2, 160, 300);
+  const badgeX    = col2X;
+  const badgeMidY = gridStartY + gridRowH - 4;          // visual center aligned with row 2
 
   ctx.fillStyle = "#EEF2FF";
-  roundedRectPath(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+  roundedRectPath(ctx, badgeX, badgeMidY - badgeH / 2, badgeW, badgeH, badgeH / 2);
   ctx.fill();
-  ctx.fillStyle = "#0F172A";
+  ctx.fillStyle = "#3730A3";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(kycText, badgeX + badgePadX, badgeY + badgeH / 2);
+  ctx.fillText(kycText, badgeX + badgePadX, badgeMidY);
 
-  // Bottom block (Member since + QR)
+  // ── Bottom block: Member Since (left) + QR (right) ────────────────────
   const bottomLabelY = footerY - 104;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#64748B";
-  ctx.font = `600 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `600 24px ${FONT}`;
   ctx.fillText("Member Since", pad, bottomLabelY);
 
   ctx.fillStyle = "#0F172A";
-  ctx.font = `900 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 30px ${FONT}`;
   ctx.fillText(options.memberSinceLabel || "N/A", pad, bottomLabelY + 40);
 
-  // QR (above footer, aligned with bottom section)
-  const qrSize = 112;
-  const qrBoxPad = 14;
-  const qrX = CARD_W - pad - qrSize;
-  const qrY = footerY - qrSize - 50;
-
+  // QR box (white rounded square)
   ctx.fillStyle = "#FFFFFF";
   roundedRectPath(ctx, qrX - qrBoxPad, qrY - qrBoxPad, qrSize + qrBoxPad * 2, qrSize + qrBoxPad * 2, 16);
   ctx.fill();
@@ -282,7 +342,7 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
   ctx.fillRect(0, footerY, CARD_W, footerH);
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `900 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+  ctx.font = `900 30px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("sjamicrofoundation.com", CARD_W / 2, footerY + footerH / 2);
@@ -293,9 +353,10 @@ export async function renderIdCardToPngDataUrl(options: ExportOptions) {
 export async function renderIdCardToPdfBlob(options: ExportOptions) {
   const png = await renderIdCardToPngDataUrl(options);
 
-  // Standard credit card size
-  const cardWidthMM = 85.6;
-  const cardHeightMM = 53.98;
+  // Scale PDF page to match the canvas aspect ratio (CARD_W × CARD_H).
+  // Width stays at credit-card width (85.6 mm); height is derived proportionally.
+  const cardWidthMM  = 85.6;
+  const cardHeightMM = Math.round((cardWidthMM * CARD_H) / CARD_W * 100) / 100; // ≈ 58.0 mm
 
   const doc = new jsPDF({
     orientation: "landscape",
