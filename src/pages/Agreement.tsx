@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Download, FileText, Loader2 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import { Separator } from '@/components/ui/separator';
@@ -859,6 +860,10 @@ const Agreement = () => {
 
   const amountForUi = agreementRow ? Number(agreementRow.invested_amount ?? 0) : Number(watchedInvestmentAmount || 0);
 
+  const agreementQrUrl = agreementRow
+    ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
+    : '';
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1118,6 +1123,26 @@ const Agreement = () => {
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Signed on: {agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A'}
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="flex flex-col items-center gap-3 rounded-md border p-6">
+                <p className="text-sm font-medium text-muted-foreground">Agreement QR Code</p>
+                <QRCodeCanvas
+                  value={agreementQrUrl}
+                  size={140}
+                  level="M"
+                  includeMargin={true}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+                <p className="text-center text-xs text-muted-foreground break-all">
+                  {agreementQrUrl}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  QR Date: {agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP') : 'N/A'}
                 </p>
               </div>
             </div>
