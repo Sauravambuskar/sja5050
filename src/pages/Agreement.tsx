@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SignaturePad from '@/components/profile/SignaturePad';
@@ -28,7 +27,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { numberToWordsIN } from '@/lib/numberToWordsIN';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
 import { downloadQrCodeCanvas } from '@/lib/downloadQrCode';
 import {
   Table,
@@ -527,35 +525,7 @@ const Agreement = () => {
     };
 
     // Generate user-signed PDF from the original template (no clause modifications)
-    let pdfBytes: Uint8Array;
-    let hash: string;
-    try {
-      const qrUrl = `${window.location.origin}/agreement?ref=${referenceNumber}`;
-      let qrCodeDataUrl: string | undefined;
-      try {
-        qrCodeDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 256, level: 'M' });
-      } catch {
-        // non-fatal: proceed without QR code if generation fails
-      }
-
-      const out = await generateAgreementPdf({
-        templateUrl: pdfTemplateUrl,
-        fieldMap: pdfFieldMap,
-        textValues: filledFields,
-        images: {
-          user_signature: { dataUrl: signatureDataUrl },
-        },
-        qrCode: qrCodeDataUrl
-          ? { dataUrl: qrCodeDataUrl, date: filledFields.agreement_execution_date || format(new Date(), 'PPP') }
-          : undefined,
-      });
-      pdfBytes = out.pdfBytes;
-      hash = out.hash;
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to generate agreement PDF.');
-      return;
-    }
-
+    
     // Ensure an agreement row exists and get a stable id for storage paths.
     let agreementId = agreementRow?.id;
     if (!agreementId) {
