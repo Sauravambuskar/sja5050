@@ -154,7 +154,6 @@ export async function generateAgreementPdf(params: GenerateAgreementPdfParams) {
     if (!img) return;
 
     // Access widgets/rectangles (pdf-lib internal API)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const acroField = (field as any).acroField as any;
     const widgets = acroField.getWidgets?.() || [];
 
