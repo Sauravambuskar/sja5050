@@ -11,7 +11,7 @@ export async function uploadAgreementPdf(params: {
   const { userId, agreementId, kind, pdfBytes } = params;
   const path = `${userId}/${agreementId}.${kind}.pdf`;
 
-  const file = new File([pdfBytes], `agreement-${agreementId}.${kind}.pdf`, {
+  const file = new File([pdfBytes as unknown as Uint8Array<ArrayBuffer>], `agreement-${agreementId}.${kind}.pdf`, {
     type: "application/pdf",
   });
 

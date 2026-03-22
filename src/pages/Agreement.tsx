@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SignaturePad from '@/components/profile/SignaturePad';
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Download, FileText, Loader2 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +34,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import QRCode from 'qrcode';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -192,6 +196,7 @@ const Agreement = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const [includeQr, setIncludeQr] = useState(true);
 
   const { settings, isLoading: isSettingsLoading } = useSystemSettings();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
@@ -421,6 +426,28 @@ const Agreement = () => {
     sigCanvas.current?.clear();
   };
 
+  const buildPublicPayload = (params: {
+    referenceNumber: string;
+    firstPartyName: string;
+    secondPartyName: string;
+    investmentDate: string;
+    investedAmount: number;
+    status: string;
+    documentHash?: string;
+  }) => {
+    return {
+      agreement_name: 'Investment Agreement',
+      reference_number: params.referenceNumber,
+      first_party_name: params.firstPartyName,
+      second_party_name: params.secondPartyName,
+      investment_date: params.investmentDate,
+      invested_amount: params.investedAmount,
+      status: params.status,
+      document_hash: params.documentHash || '',
+      generated_at: new Date().toISOString(),
+    };
+  };
+
   const handleSaveSignature = async () => {
     if (!user) return;
 
@@ -485,27 +512,7 @@ const Agreement = () => {
       invested_amount_words: numberToWordsIN(amountNum),
     };
 
-    // Generate user-signed PDF from the original template (no clause modifications)
-    let pdfBytes: Uint8Array;
-    let hash: string;
-    try {
-      const out = await generateAgreementPdf({
-        templateUrl: pdfTemplateUrl,
-        fieldMap: pdfFieldMap,
-        textValues: filledFields,
-        images: {
-          user_signature: { dataUrl: signatureDataUrl },
-        },
-      });
-      pdfBytes = out.pdfBytes;
-      hash = out.hash;
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to generate agreement PDF.');
-      return;
-    }
-
     // Ensure an agreement row exists and get a stable id for storage paths.
-    // Use upsert on user_id to avoid duplicate key violations.
     let agreementId = agreementRow?.id;
     if (!agreementId) {
       const { data: idRow, error: idErr } = await supabase
@@ -523,7 +530,6 @@ const Agreement = () => {
             status: 'user_signed',
             filled_fields: filledFields,
             reference_number: referenceNumber,
-            document_hash: hash,
           },
           { onConflict: 'user_id' }
         )
@@ -542,12 +548,86 @@ const Agreement = () => {
       return;
     }
 
+    // Optional QR verification: generate a public token and embed QR in the PDF.
+    let qrDataUrl: string | undefined;
+    try {
+      if (includeQr) {
+        const payload = buildPublicPayload({
+          referenceNumber,
+          firstPartyName: dynamicFields.first_party_name,
+          secondPartyName: details.full_name,
+          investmentDate: dynamicFields.investment_date,
+          investedAmount: amountNum,
+          status: 'user_signed',
+        });
+
+        const { data: token, error: tokenErr } = await supabase.rpc('upsert_agreement_public_view', {
+          p_agreement_id: agreementId,
+          p_payload: payload,
+        });
+        if (tokenErr) throw tokenErr;
+
+        const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
+        qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 256, margin: 1 });
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate verification QR.');
+      return;
+    }
+
+    // Generate user-signed PDF from the original template
+    let pdfBytes: Uint8Array;
+    let hash: string;
+    try {
+      const out = await generateAgreementPdf({
+        templateUrl: pdfTemplateUrl,
+        fieldMap: pdfFieldMap,
+        textValues: filledFields,
+        images: {
+          user_signature: { dataUrl: signatureDataUrl },
+        },
+        qrCode: qrDataUrl
+          ? {
+              dataUrl: qrDataUrl,
+              label: 'Scan to verify agreement',
+            }
+          : undefined,
+      });
+      pdfBytes = out.pdfBytes;
+      hash = out.hash;
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate agreement PDF.');
+      return;
+    }
+
     let userPdfPath = '';
     try {
       userPdfPath = await uploadAgreementPdf({ userId: user.id, agreementId, kind: 'user', pdfBytes });
     } catch (e: any) {
       toast.error(e?.message || 'Failed to upload agreement PDF.');
       return;
+    }
+
+    // Update the public payload with the final PDF hash.
+    if (includeQr) {
+      try {
+        const payload = buildPublicPayload({
+          referenceNumber,
+          firstPartyName: dynamicFields.first_party_name,
+          secondPartyName: details.full_name,
+          investmentDate: dynamicFields.investment_date,
+          investedAmount: amountNum,
+          status: 'user_signed',
+          documentHash: hash,
+        });
+
+        await supabase.rpc('upsert_agreement_public_view', {
+          p_agreement_id: agreementId,
+          p_payload: payload,
+        });
+      } catch {
+        // ignore (QR still works; hash just won't display)
+      }
     }
 
     mutation.mutate({
@@ -564,6 +644,53 @@ const Agreement = () => {
       documentHash: hash,
       userPdfPath,
     });
+  };
+
+  const handleDownloadPdfWithQr = async () => {
+    if (!agreementRow) {
+      toast.error('Agreement data not available.');
+      return;
+    }
+
+    const filledFields = (agreementRow.filled_fields || {}) as Record<string, string>;
+
+    try {
+      const payload = buildPublicPayload({
+        referenceNumber: String(agreementRow.reference_number || ''),
+        firstPartyName: String(agreementRow.first_party_name || ''),
+        secondPartyName: String(agreementRow.second_party_name || ''),
+        investmentDate: String(agreementRow.investment_date || ''),
+        investedAmount: Number(agreementRow.invested_amount || 0),
+        status: String(agreementRow.status || ''),
+        documentHash: String(agreementRow.document_hash || ''),
+      });
+
+      const { data: token, error: tokenErr } = await supabase.rpc('upsert_agreement_public_view', {
+        p_agreement_id: agreementRow.id,
+        p_payload: payload,
+      });
+      if (tokenErr) throw tokenErr;
+
+      const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 256, margin: 1 });
+
+      const out = await generateAgreementPdf({
+        templateUrl: pdfTemplateUrl,
+        fieldMap: pdfFieldMap,
+        textValues: filledFields,
+        images: {
+          user_signature: { dataUrl: agreementRow.signature_data_url },
+        },
+        qrCode: { dataUrl: qrDataUrl, label: 'Scan to verify agreement' },
+      });
+
+      const blob = new Blob([out.pdfBytes as unknown as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate QR PDF.');
+    }
   };
 
   const handleDownloadPdf = async () => {
@@ -859,6 +986,10 @@ const Agreement = () => {
 
   const amountForUi = agreementRow ? Number(agreementRow.invested_amount ?? 0) : Number(watchedInvestmentAmount || 0);
 
+  const agreementQrUrl = agreementRow
+    ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
+    : '';
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -868,6 +999,10 @@ const Agreement = () => {
         </div>
         {agreementRow && (
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleDownloadPdfWithQr}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF (with QR)
+            </Button>
             {agreementRow.user_pdf_path && (
               <Button variant="outline" onClick={downloadUserPdf}>
                 <Download className="mr-2 h-4 w-4" />
@@ -913,6 +1048,18 @@ const Agreement = () => {
                 Please complete the missing items before signing: {missingDynamicRequirements.join(', ')}.
               </AlertDescription>
             </Alert>
+          )}
+
+          {!agreementRow && (
+            <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-4">
+              <Checkbox id="include-qr" checked={includeQr} onCheckedChange={(v) => setIncludeQr(Boolean(v))} />
+              <div className="space-y-1">
+                <Label htmlFor="include-qr">Include QR code on PDF (public verification)</Label>
+                <div className="text-xs text-muted-foreground">
+                  Anyone can scan and view non-sensitive agreement details (name, reference, amount, status, hash).
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="rounded-md border bg-muted/30 p-4">
@@ -1118,6 +1265,26 @@ const Agreement = () => {
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Signed on: {agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A'}
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="flex flex-col items-center gap-3 rounded-md border p-6">
+                <p className="text-sm font-medium text-muted-foreground">Agreement QR Code</p>
+                <QRCodeCanvas
+                  value={agreementQrUrl}
+                  size={140}
+                  level="M"
+                  includeMargin={true}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+                <p className="text-center text-xs text-muted-foreground break-all">
+                  {agreementQrUrl}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  QR Date: {agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP') : 'N/A'}
                 </p>
               </div>
             </div>

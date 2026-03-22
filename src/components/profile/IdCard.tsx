@@ -1,10 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QRCodeCanvas } from 'qrcode.react';
-import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { Download, Phone, ShieldCheck, Mail, Calendar } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
@@ -12,8 +11,7 @@ import { Profile, IdCardSettings } from '@/types/database';
 import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { renderIdCardToPdfBlob } from '@/lib/idCardExport';
 import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
 
 const fetchIdCardData = async () => {
@@ -28,7 +26,6 @@ const fetchIdCardData = async () => {
 
 export const IdCard = () => {
   const { user } = useAuth();
-  const idCardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [embeddedAvatarUrl, setEmbeddedAvatarUrl] = useState<string | undefined>(undefined);
   const [embeddedLogoUrl, setEmbeddedLogoUrl] = useState<string | undefined>(undefined);
@@ -76,118 +73,6 @@ export const IdCard = () => {
     }
   };
 
-  // Ensure all images in the card are loaded before capture
-  const ensureImagesLoaded = async () => {
-    if (!idCardRef.current) return;
-    const imgs = Array.from(idCardRef.current.querySelectorAll('img'));
-    await Promise.all(
-      imgs.map(
-        (img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) return resolve();
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          })
-      )
-    );
-  };
-
-  const prepareForCapture = async () => {
-    if (!idCardRef.current) return () => {};
-    const el = idCardRef.current;
-    const prevScrollY = window.scrollY;
-
-    // html-to-image/html2canvas are more reliable when the node is in the viewport.
-    el.scrollIntoView({ block: 'center', inline: 'center' });
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-
-    try {
-      // Ensure webfonts are ready before rasterizing
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (document as any).fonts?.ready;
-    } catch {
-      // ignore
-    }
-
-    await ensureImagesLoaded();
-
-    return () => {
-      window.scrollTo({ top: prevScrollY });
-    };
-  };
-
-  const captureCardAsPng = async (pixelRatio = 2) => {
-    if (!idCardRef.current) throw new Error('Card not ready');
-
-    const restore = await prepareForCapture();
-    try {
-      const isLikelyBlank = async (dataUrl: string) => {
-        try {
-          const img = new Image();
-          img.src = dataUrl;
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error('Failed to load generated image'));
-          });
-
-          const w = Math.max(1, img.naturalWidth);
-          const h = Math.max(1, img.naturalHeight);
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.min(260, w);
-          canvas.height = Math.min(180, h);
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return false;
-
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-          let nonWhite = 0;
-          const step = 16;
-          for (let i = 0; i < data.length; i += step) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            if (r < 245 || g < 245 || b < 245) nonWhite++;
-            if (nonWhite > 25) return false;
-          }
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
-      const baseOpts = {
-        pixelRatio,
-        backgroundColor: '#ffffff',
-        fetchRequestInit: { cache: 'no-store' } as RequestInit,
-        filter: (node: Node) => {
-          if (!(node instanceof HTMLElement)) return true;
-          return node.getAttribute('data-export-ignore') !== 'true';
-        },
-      };
-
-      try {
-        const dataUrl = await toPng(idCardRef.current, baseOpts);
-        if (await isLikelyBlank(dataUrl)) throw new Error('Blank export from html-to-image');
-        return dataUrl;
-      } catch {
-        const canvas = await html2canvas(idCardRef.current, {
-          backgroundColor: '#ffffff',
-          scale: Math.max(2, pixelRatio),
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          scrollX: 0,
-          scrollY: -window.scrollY,
-          ignoreElements: (el) => (el instanceof HTMLElement ? el.getAttribute('data-export-ignore') === 'true' : false),
-        });
-        return canvas.toDataURL('image/png');
-      }
-    } finally {
-      restore?.();
-    }
-  };
-
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -230,11 +115,6 @@ export const IdCard = () => {
   }, [user, data, referralLink]);
 
   const handleDownloadPdf = async () => {
-    if (!idCardRef.current) {
-      toast.error("ID card element not found");
-      return;
-    }
-
     if (!data?.profile.member_id) {
       toast.error("Member ID not available");
       return;
@@ -243,60 +123,30 @@ export const IdCard = () => {
     setIsDownloading(true);
 
     try {
-      const dataUrl = await captureCardAsPng(2);
-
-      // Load the image so we can preserve aspect ratio inside the PDF
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load generated image'));
+      const memberSinceLabel = user?.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'N/A';
+      const pdfBlob = await renderIdCardToPdfBlob({
+        profile: data.profile,
+        settings: data.settings,
+        email: user?.email,
+        memberSinceLabel,
+        avatarDataUrl: embeddedAvatarUrl,
+        logoDataUrl: embeddedLogoUrl,
+        backgroundDataUrl: embeddedBgUrl,
+        qrDataUrl: embeddedQrUrl,
       });
 
-      // Standard credit card dimensions in mm
-      const cardWidthMM = 85.6;
-      const cardHeightMM = 53.98;
-      const margin = 5;
-
-      // Create a PDF slightly larger than the card (keeps a clean border)
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [cardWidthMM + margin * 2, cardHeightMM + margin * 2],
-      });
-
-      const availableW = cardWidthMM;
-      const availableH = cardHeightMM;
-      const imgRatio = img.width / img.height;
-      const boxRatio = availableW / availableH;
-
-      let drawW = availableW;
-      let drawH = availableH;
-
-      if (imgRatio > boxRatio) {
-        drawW = availableW;
-        drawH = availableW / imgRatio;
-      } else {
-        drawH = availableH;
-        drawW = availableH * imgRatio;
-      }
-
-      const x = margin + (availableW - drawW) / 2;
-      const y = margin + (availableH - drawH) / 2;
-
-      doc.addImage(dataUrl, 'PNG', x, y, drawW, drawH);
-      doc.save(`SJA-Member-ID-${data.profile.member_id}.pdf`);
-
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SJA-Member-ID-${data.profile.member_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       toast.success("ID Card downloaded as PDF!");
     } catch (err) {
-      if (err instanceof Event) {
-        toast.error(
-          'Download failed because one of the images (photo/logo/background) could not be loaded for export. Please use images hosted on Supabase Storage (or any CORS-enabled URL), then try again.'
-        );
-      } else {
-        console.error('PDF Download error:', err);
-        toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card PDF'}`);
-      }
+      console.error('PDF Download error:', err);
+      toast.error(`Download failed: ${err instanceof Error ? err.message : 'Unable to generate ID card PDF'}`);
     } finally {
       setIsDownloading(false);
     }
@@ -313,9 +163,9 @@ export const IdCard = () => {
       {isLoading ? (
         <Skeleton className="h-[280px] w-full max-w-[380px] rounded-xl" />
       ) : (
-        <div ref={idCardRef} className="w-full max-w-[380px] mx-auto rounded-xl bg-card shadow-lg overflow-hidden font-sans relative" style={cardStyle}>
+        <div className="w-full max-w-[380px] mx-auto rounded-xl bg-card shadow-lg overflow-hidden font-sans relative" style={cardStyle}>
           {data?.settings.background_image_url && (
-            <div data-export-ignore="true" className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
           )}
           <div className="relative z-10">
             {/* Header */}
@@ -373,7 +223,7 @@ export const IdCard = () => {
                   <p className="text-xs text-muted-foreground">Member Since</p>
                   <p className="font-semibold truncate">{user?.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'N/A'}</p>
                 </div>
-                <div data-qr="true" className="bg-white p-1.5 rounded-md shadow-md shrink-0">
+                <div className="bg-white p-1.5 rounded-md shadow-md shrink-0">
                   {embeddedQrUrl ? (
                     <img src={embeddedQrUrl} alt="Referral QR" className="h-[72px] w-[72px]" />
                   ) : (
@@ -385,7 +235,7 @@ export const IdCard = () => {
 
             {/* Footer */}
             <div style={{ backgroundColor: data?.settings.accent_color }} className="px-6 py-2 text-center text-xs text-white font-semibold">
-              http://sjamicrofoundation.com/
+              sjamicrofoundation.com
             </div>
           </div>
         </div>
