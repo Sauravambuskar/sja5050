@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { numberToWordsIN } from '@/lib/numberToWordsIN';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { generateQrPngDataUrl } from '@/lib/qrDataUrl';
+import { downloadQrCodeCanvas } from '@/lib/downloadQrCode';
 import {
   Table,
   TableBody,
@@ -196,6 +199,7 @@ const Agreement = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [includeQr, setIncludeQr] = useState(true);
 
   const { settings, isLoading: isSettingsLoading } = useSystemSettings();
@@ -426,6 +430,15 @@ const Agreement = () => {
     sigCanvas.current?.clear();
   };
 
+  const handleDownloadQr = useCallback(() => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) {
+      toast.error('QR code not available.');
+      return;
+    }
+    const refPart = agreementRow?.reference_number || agreementRow?.id?.substring(0, 8) || 'code';
+    downloadQrCodeCanvas(canvas, `Agreement_QR_${refPart}`);
+  }, [agreementRow?.reference_number, agreementRow?.id]);
   const buildPublicPayload = (params: {
     referenceNumber: string;
     firstPartyName: string;
@@ -929,6 +942,28 @@ const Agreement = () => {
       doc.setTextColor(51, 65, 85);
     }
 
+    y += 44;
+
+    // QR Code section
+    const qrUrl = `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`;
+    try {
+      const qrDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 128, level: 'M' });
+      y = await ensureSpace(y, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Agreement QR Code', margin, y);
+      y += 6;
+      doc.addImage(qrDataUrl, 'PNG', margin, y, 36, 36);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(qrUrl, margin + 40, y + 8, { maxWidth: pageWidth - margin * 2 - 44 });
+      y += 40;
+    } catch {
+      // Skip QR code if generation fails
+    }
+
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -1273,6 +1308,7 @@ const Agreement = () => {
               <div className="flex flex-col items-center gap-3 rounded-md border p-6">
                 <p className="text-sm font-medium text-muted-foreground">Agreement QR Code</p>
                 <QRCodeCanvas
+                  ref={qrCanvasRef}
                   value={agreementQrUrl}
                   size={140}
                   level="M"
@@ -1286,6 +1322,10 @@ const Agreement = () => {
                 <p className="text-xs text-muted-foreground">
                   QR Date: {agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP') : 'N/A'}
                 </p>
+                <Button variant="outline" size="sm" onClick={handleDownloadQr}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download QR Code
+                </Button>
               </div>
             </div>
           ) : (
