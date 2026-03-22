@@ -24,6 +24,7 @@ const Maintenance = lazy(() => import("@/pages/Maintenance"));
 const LoginMfa = lazy(() => import("@/pages/LoginMfa"));
 const PrivacyPolicy = lazy(() => import("@/pages/Privacypolicy"));
 const Terms = lazy(() => import("@/pages/Terms"));
+const VerifyAgreement = lazy(() => import("@/pages/VerifyAgreement"));
 
 // User pages
 const DashboardLoader = lazy(() => import("@/pages/DashboardLoader"));
@@ -146,6 +147,7 @@ const MainRouter = () => (
       {/* Public Pages */}
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/verify-agreement/:token" element={<VerifyAgreement />} />
 
       {/* Auth & Fallback */}
       <Route path="/login" element={<Login />} />
