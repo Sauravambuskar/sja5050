@@ -36,6 +36,7 @@ export type GenerateAgreementPdfParams = {
   qrCode?: {
     dataUrl: string;
     date: string;
+    label?: string;
   };
 };
 
@@ -62,7 +63,7 @@ function safeText(v: unknown) {
 }
 
 async function sha256Hex(bytes: Uint8Array) {
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = await crypto.subtle.digest("SHA-256", bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
   const arr = Array.from(new Uint8Array(hash));
   return arr.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -193,6 +194,34 @@ export async function generateAgreementPdf(params: GenerateAgreementPdfParams) {
     form.flatten();
   } catch {
     // ignore
+  }
+
+  // Optional: add a verification QR code (public link)
+  if (qrCode?.dataUrl) {
+    try {
+      const { bytes, kind } = dataUrlToBytes(qrCode.dataUrl);
+      const img = kind === "png" ? await pdfDoc.embedPng(bytes) : kind === "jpg" ? await pdfDoc.embedJpg(bytes) : null;
+      if (img) {
+        const page = pdfDoc.getPages()[0];
+        const margin = 36;
+        const size = 92;
+        const x = page.getWidth() - margin - size;
+        const y = margin;
+        page.drawImage(img, { x, y, width: size, height: size });
+
+        const helv = await pdfDoc.embedStandardFont(StandardFonts.Helvetica);
+        const label = (qrCode.label || "Scan to verify").trim();
+        page.drawText(label, {
+          x,
+          y: y + size + 8,
+          size: 9,
+          font: helv,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+      }
+    } catch {
+      // ignore
+    }
   }
 
   // Add a tiny invisible mark for integrity (optional; doesn't alter visible layout)
