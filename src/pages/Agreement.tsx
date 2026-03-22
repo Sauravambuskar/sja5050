@@ -982,6 +982,7 @@ const Agreement = () => {
       );
       doc.text('Scan to view and verify this agreement', qrLabelX, y + 16);
       y += 40;
+    }
     y += 44;
 
     // QR Code section
