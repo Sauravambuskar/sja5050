@@ -35,6 +35,7 @@ export type GenerateAgreementPdfParams = {
   };
   qrCode?: {
     dataUrl: string;
+    date: string;
     label?: string;
   };
 };
@@ -230,6 +231,81 @@ export async function generateAgreementPdf(params: GenerateAgreementPdfParams) {
     lastPage.drawRectangle({ x: 0.5, y: 0.5, width: 1, height: 1, color: rgb(1, 1, 1), opacity: 0 });
   } catch {
     // ignore
+  }
+
+  // Embed QR code at the bottom of the last page
+  if (qrCode?.dataUrl) {
+    try {
+      const pages = pdfDoc.getPages();
+      const lastPage = pages[pages.length - 1];
+      const { width: pageWidth } = lastPage.getSize();
+
+      const { bytes: qrBytes } = dataUrlToBytes(qrCode.dataUrl);
+      const qrImg = await pdfDoc.embedPng(qrBytes);
+
+      const font = pdfDoc.embedStandardFont(StandardFonts.Helvetica);
+      const fontBold = pdfDoc.embedStandardFont(StandardFonts.HelveticaBold);
+
+      const qrSize = 72;
+      const leftMargin = 15;
+      const bottomMargin = 14;
+      const sectionHeight = qrSize + bottomMargin + 16;
+
+      // White background to ensure QR section is readable over any existing content
+      lastPage.drawRectangle({
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: sectionHeight,
+        color: rgb(1, 1, 1),
+        opacity: 1,
+      });
+
+      // Separator line above QR section
+      lastPage.drawLine({
+        start: { x: leftMargin, y: sectionHeight - 2 },
+        end: { x: pageWidth - leftMargin, y: sectionHeight - 2 },
+        thickness: 0.5,
+        color: rgb(0.75, 0.75, 0.75),
+      });
+
+      // QR code image
+      lastPage.drawImage(qrImg, {
+        x: leftMargin,
+        y: bottomMargin,
+        width: qrSize,
+        height: qrSize,
+      });
+
+      // Labels to the right of the QR image
+      const textX = leftMargin + qrSize + 12;
+
+      lastPage.drawText('Agreement QR Code', {
+        x: textX,
+        y: bottomMargin + qrSize - 12,
+        size: 9,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      lastPage.drawText(`QR Date: ${qrCode.date}`, {
+        x: textX,
+        y: bottomMargin + qrSize - 26,
+        size: 8,
+        font,
+        color: rgb(0.35, 0.35, 0.35),
+      });
+
+      lastPage.drawText('Scan to view and verify this agreement', {
+        x: textX,
+        y: bottomMargin + qrSize - 40,
+        size: 7.5,
+        font,
+        color: rgb(0.55, 0.55, 0.55),
+      });
+    } catch {
+      // non-fatal: QR rendering failure should not block PDF generation
+    }
   }
 
   const outBytes = await pdfDoc.save();

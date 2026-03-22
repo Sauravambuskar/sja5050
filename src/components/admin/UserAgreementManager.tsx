@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { generateAgreementPdf } from "@/lib/agreementPdfTemplate";
 import { uploadAgreementPdf, createAgreementPdfSignedUrl } from "@/lib/agreementPdfStorage";
+import { generateQrPngDataUrl } from "@/lib/qrDataUrl";
 import { downloadQrCodeCanvas } from "@/lib/downloadQrCode";
 
 async function fetchUserAgreement(userId: string): Promise<InvestmentAgreement | null> {
@@ -206,6 +208,18 @@ export function UserAgreementManager({ userId }: { userId: string }) {
       }
 
       // Generate final PDF based on the SAME original template and same filled fields
+      const qrUrl = `${window.location.origin}/agreement?ref=${agreement.reference_number || agreement.id}`;
+      let qrCodeDataUrl: string | undefined;
+      try {
+        qrCodeDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 256, level: 'M' });
+      } catch {
+        // non-fatal: proceed without QR code if generation fails
+      }
+
+      const qrDate = agreement.signed_at
+        ? format(new Date(agreement.signed_at), 'PPP')
+        : format(new Date(), 'PPP');
+
       const { pdfBytes, hash } = await generateAgreementPdf({
         templateUrl: pdfTemplateUrl,
         fieldMap: pdfFieldMap,
@@ -216,6 +230,7 @@ export function UserAgreementManager({ userId }: { userId: string }) {
           admin_signature: { dataUrl: adminSigDataUrl },
           ...(stampDataUrl ? { stamp: { dataUrl: stampDataUrl } } : {}),
         },
+        qrCode: qrCodeDataUrl ? { dataUrl: qrCodeDataUrl, date: qrDate } : undefined,
       });
 
       const finalPdfPath = await uploadAgreementPdf({
