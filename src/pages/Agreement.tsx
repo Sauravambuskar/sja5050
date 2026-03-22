@@ -684,7 +684,7 @@ const Agreement = () => {
         qrCode: { dataUrl: qrDataUrl, label: 'Scan to verify agreement' },
       });
 
-      const blob = new Blob([out.pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([out.pdfBytes as unknown as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
