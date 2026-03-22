@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Download, Mail, Calendar, User, Gift, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { format } from 'date-fns';
-import { exportToPdf } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { getImageFormat } from '@/lib/utils';
 
 const FALLBACK_LOGO_URL = 'https://i.ibb.co/Jjq5fZbM/sja-pnggg.png';
 
@@ -36,48 +38,155 @@ export const WelcomeLetter = () => {
     enabled: !!user?.id,
   });
 
-  const handleDownloadWelcomeLetter = () => {
+  const handleDownloadWelcomeLetter = async () => {
     if (!data) return;
 
-    // Create a detailed welcome letter in paragraph format
-    const welcomeContent = `
-Welcome to SJA Foundation!
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const PAGE_W = doc.internal.pageSize.getWidth();
+    const MARGIN = 48;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+    let y = MARGIN;
 
-Dear ${data.profile.full_name || 'Valued Member'}, 
+    const accent: [number, number, number] = [37, 99, 235];
 
-We are delighted to have you as a member of our investment community. Your trust in us means everything, and we're committed to helping you achieve your financial goals.
+    // ── Logo ──────────────────────────────────────────────────────────────
+    const logoLoaded = await new Promise<HTMLImageElement | null>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = data.logoUrl;
+    });
 
-Your membership has been successfully created with Member ID: ${data.profile.member_id || 'N/A'}. You joined us on ${format(new Date(data.joinDate), 'MMMM dd, yyyy')}. 
+    if (logoLoaded) {
+      const logoH = 48;
+      const logoW = (logoLoaded.width * logoH) / logoLoaded.height;
+      const logoX = (PAGE_W - logoW) / 2;
+      try {
+        doc.addImage(logoLoaded, getImageFormat(data.logoUrl), logoX, y, logoW, logoH);
+      } catch {
+        // skip logo if embedding fails
+      }
+      y += logoH + 12;
+    }
 
-As a member, you now have access to our investment plans, referral program, and comprehensive dashboard to track your earnings and investments.
+    // ── Header bar ────────────────────────────────────────────────────────
+    doc.setFillColor(...accent);
+    doc.rect(0, y, PAGE_W, 2, 'F');
+    y += 10;
 
-Your unique referral code is: ${data.profile.referral_code || 'N/A'}. Share this with friends and family to earn referral commissions.
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(...accent);
+    doc.text('Welcome Letter', PAGE_W / 2, y + 20, { align: 'center' });
+    y += 28;
 
-Your Contact Information:
-- Email: ${user?.email || 'N/A'}
-- Phone: ${data.profile.phone || 'N/A'}
+    doc.setFontSize(13);
+    doc.setTextColor(80, 80, 80);
+    doc.text('SJA Foundation', PAGE_W / 2, y, { align: 'center' });
+    y += 6;
 
-We wish you success in your investment journey with us! Our team is here to support you every step of the way. If you have any questions or need assistance, please don't hesitate to reach out.
+    doc.setFillColor(...accent);
+    doc.rect(0, y, PAGE_W, 2, 'F');
+    y += 18;
 
-Wish You All the best !
+    // ── Date ──────────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Date: ${format(new Date(), 'MMMM dd, yyyy')}`, PAGE_W - MARGIN, y, { align: 'right' });
+    y += 18;
 
-Regards,
-SJA Team
+    // ── Salutation ────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Dear ${data.profile.full_name || 'Valued Member'},`, MARGIN, y);
+    y += 18;
 
-Generated on: ${format(new Date(), 'MMMM dd, yyyy')}
-    `.trim();
-
-    const headers = ['Welcome Letter Details'];
-    const letterData = [[welcomeContent]];
-
-    exportToPdf(
-      `Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`,
-      'Welcome Letter - SJA Foundation',
-      headers,
-      letterData,
-      data.profile.full_name || 'Member',
-      data.logoUrl
+    // ── Opening paragraph ─────────────────────────────────────────────────
+    const openingLines = doc.splitTextToSize(
+      "We are delighted to have you as a member of our investment community. Your trust in us means everything, and we're committed to helping you achieve your financial goals.",
+      CONTENT_W
     );
+    doc.text(openingLines, MARGIN, y);
+    y += openingLines.length * 16 + 12;
+
+    // ── Membership details table ──────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...accent);
+    doc.text('Your Membership Details', MARGIN, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN },
+      head: [['Field', 'Details']],
+      body: [
+        ['Member ID', data.profile.member_id || 'N/A'],
+        ['Full Name', data.profile.full_name || 'N/A'],
+        ['Email', user?.email || 'N/A'],
+        ['Phone', data.profile.phone || 'N/A'],
+        ['Join Date', format(new Date(data.joinDate), 'MMMM dd, yyyy')],
+        ['Referral Code', data.profile.referral_code || 'N/A'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: accent },
+      styles: { fontSize: 11 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 120 } },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 18;
+
+    // ── Benefits section ──────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...accent);
+    doc.text('Your Member Benefits', MARGIN, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN },
+      body: [
+        ['Investment Plans', 'Access to exclusive investment opportunities with competitive returns.'],
+        ['Referral Program', 'Earn commissions by referring friends and family using your unique code.'],
+        ['Dashboard Access', 'Track your earnings and investments in real-time via your personal dashboard.'],
+      ],
+      theme: 'grid',
+      styles: { fontSize: 11 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 120 } },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 18;
+
+    // ── Closing ───────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 30, 30);
+    const closingLines = doc.splitTextToSize(
+      "We wish you success in your investment journey with us! Our team is here to support you every step of the way. If you have any questions or need assistance, please don't hesitate to reach out.",
+      CONTENT_W
+    );
+    doc.text(closingLines, MARGIN, y);
+    y += closingLines.length * 16 + 16;
+
+    doc.text('Warm regards,', MARGIN, y);
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.text('SJA Team', MARGIN, y);
+
+    // ── Footer bar ────────────────────────────────────────────────────────
+    const PAGE_H = doc.internal.pageSize.getHeight();
+    doc.setFillColor(...accent);
+    doc.rect(0, PAGE_H - 28, PAGE_W, 28, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text('sjamicrofoundation.com', PAGE_W / 2, PAGE_H - 10, { align: 'center' });
+
+    doc.save(`Welcome-Letter-${data.profile.member_id || 'Member'}.pdf`);
   };
 
   if (isLoading) {

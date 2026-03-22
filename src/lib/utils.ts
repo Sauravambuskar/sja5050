@@ -61,6 +61,24 @@ export function exportToCsv(filename: string, rows: object[]) {
   }
 }
 
+/**
+ * Detects the image format from a URL or data URL for use with jsPDF's addImage.
+ * Handles data URLs (data:image/png;base64,...) and regular URLs with extensions.
+ */
+export function getImageFormat(url: string): 'PNG' | 'JPEG' | 'WEBP' {
+  // Handle data URLs: data:image/png;base64,...
+  if (url.startsWith('data:')) {
+    if (url.startsWith('data:image/png')) return 'PNG';
+    if (url.startsWith('data:image/webp')) return 'WEBP';
+    return 'JPEG';
+  }
+  // Strip query parameters and fragments before checking extension
+  const lower = url.toLowerCase().split('?')[0].split('#')[0];
+  if (lower.endsWith('.png')) return 'PNG';
+  if (lower.endsWith('.webp')) return 'WEBP';
+  return 'JPEG';
+}
+
 export function exportToPdf(
   filename: string,
   title: string,
@@ -68,82 +86,78 @@ export function exportToPdf(
   data: (string | number)[][],
   userName: string,
   logoUrl?: string
-) {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let yOffset = 20;
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yOffset = 20;
 
-  const getImageFormat = (url: string) => {
-    const lower = url.toLowerCase();
-    if (lower.endsWith('.png')) return 'PNG' as const;
-    if (lower.endsWith('.webp')) return 'WEBP' as const;
-    return 'JPEG' as const;
-  };
+    // Add Logo if provided
+    if (logoUrl) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = logoUrl;
 
-  // Add Logo if provided
-  if (logoUrl) {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = logoUrl;
-
-    img.onload = () => {
-      try {
-        const imgWidth = 30;
-        const imgHeight = (img.height * imgWidth) / img.width;
-        const xPos = (pageWidth - imgWidth) / 2;
-
+      img.onload = () => {
         try {
-          doc.addImage(img, getImageFormat(logoUrl), xPos, 10, imgWidth, imgHeight);
-          yOffset = 10 + imgHeight + 10;
-        } catch (err) {
-          // If the image can't be embedded (CORS/format issues), continue without the logo.
-          console.warn('Failed to embed logo image in PDF:', err);
+          const imgWidth = 30;
+          const imgHeight = (img.height * imgWidth) / img.width;
+          const xPos = (pageWidth - imgWidth) / 2;
+
+          try {
+            doc.addImage(img, getImageFormat(logoUrl), xPos, 10, imgWidth, imgHeight);
+            yOffset = 10 + imgHeight + 10;
+          } catch (err) {
+            // If the image can't be embedded (CORS/format issues), continue without the logo.
+            console.warn('Failed to embed logo image in PDF:', err);
+          }
+        } finally {
+          addContent();
         }
-      } finally {
+      };
+
+      img.onerror = () => {
         addContent();
-      }
-    };
-
-    img.onerror = () => {
+      };
+    } else {
       addContent();
-    };
-  } else {
-    addContent();
-  }
+    }
 
-  function addContent() {
-    doc.setFontSize(20);
-    doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
-    yOffset += 10;
+    function addContent() {
+      doc.setFontSize(20);
+      doc.text(title, pageWidth / 2, yOffset, { align: 'center' });
+      yOffset += 10;
 
-    doc.setFontSize(12);
-    doc.text(`Statement for: ${userName}`, 14, yOffset);
-    yOffset += 6;
-    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
-    yOffset += 10;
+      doc.setFontSize(12);
+      doc.text(`Statement for: ${userName}`, 14, yOffset);
+      yOffset += 6;
+      doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, yOffset);
+      yOffset += 10;
 
-    autoTable(doc, {
-      startY: yOffset,
-      head: [headers],
-      body: data,
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
-      didDrawPage: function () {
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-          doc.setPage(i);
-          doc.setFontSize(10);
-          doc.text(
-            `Page ${i} of ${pageCount}`,
-            pageWidth - 14,
-            doc.internal.pageSize.getHeight() - 10,
-            { align: 'right' }
-          );
-          doc.text('SJA Foundation', 14, doc.internal.pageSize.getHeight() - 10);
-        }
-      },
-    });
+      autoTable(doc, {
+        startY: yOffset,
+        head: [headers],
+        body: data,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] },
+        didDrawPage: function () {
+          const pageCount = (doc as any).internal.getNumberOfPages();
+          for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.text(
+              `Page ${i} of ${pageCount}`,
+              pageWidth - 14,
+              doc.internal.pageSize.getHeight() - 10,
+              { align: 'right' }
+            );
+            doc.text('SJA Foundation', 14, doc.internal.pageSize.getHeight() - 10);
+          }
+        },
+      });
 
-    doc.save(filename);
-  }
+      doc.save(filename);
+      resolve();
+    }
+  });
 }
