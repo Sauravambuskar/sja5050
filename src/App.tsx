@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -70,8 +69,6 @@ const ReferralManagement = lazy(() => import("@/pages/admin/ReferralManagement")
 const AdminPayoutReceipt = lazy(() => import("@/pages/admin/AdminPayoutReceipt"));
 const AdminPaymentHistory = lazy(() => import("@/pages/admin/PaymentHistory"));
 
-const queryClient = new QueryClient();
-
 const RouteLoading = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
     <Loader2 className="h-8 w-8 animate-spin" />
@@ -81,12 +78,10 @@ const RouteLoading = () => (
 const App = () => (
   <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
     <TooltipProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <MainRouter />
-          <Toaster richColors />
-        </AuthProvider>
-      </QueryClientProvider>
+      <AuthProvider>
+        <MainRouter />
+        <Toaster richColors />
+      </AuthProvider>
     </TooltipProvider>
   </ThemeProvider>
 );

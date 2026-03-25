@@ -8,7 +8,16 @@ import { AuthProvider } from './components/auth/AuthProvider.tsx'
 import { ThemeProvider } from './components/theme/ThemeProvider.tsx'
 import { Toaster } from "@/components/ui/sonner"
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+    },
+  },
+})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

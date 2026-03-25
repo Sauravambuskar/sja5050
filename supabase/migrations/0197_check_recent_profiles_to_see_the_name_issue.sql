@@ -1,0 +1,1 @@
+SELECT id, full_name, updated_at FROM profiles ORDER BY updated_at DESC LIMIT 10;

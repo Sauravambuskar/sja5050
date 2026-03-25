@@ -288,7 +288,7 @@ const Agreement = () => {
       nominee_name: '',
       nominee_identification: '',
     });
-  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, dynamicFields?.invested_amount, user?.email]);
+  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, dynamicFields?.invested_amount, user?.email, user?.id]);
 
   const watchedFullName = detailsForm.watch('full_name');
   const [watchedInvestmentAmount, watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] =

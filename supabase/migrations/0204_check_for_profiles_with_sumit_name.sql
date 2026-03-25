@@ -1,0 +1,1 @@
+SELECT id, full_name FROM profiles WHERE full_name ILIKE '%sumit%' LIMIT 5;
