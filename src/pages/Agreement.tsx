@@ -652,13 +652,20 @@ const Agreement = () => {
       return;
     }
 
+    // Validate that required fields are present in the agreement
+    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
+    if (!fullName || fullName.trim().length < 2) {
+      toast.error('Full name is missing in the agreement. Please contact support.');
+      return;
+    }
+
     const filledFields = (agreementRow.filled_fields || {}) as Record<string, string>;
 
     try {
       const payload = buildPublicPayload({
         referenceNumber: String(agreementRow.reference_number || ''),
         firstPartyName: String(agreementRow.first_party_name || ''),
-        secondPartyName: String(agreementRow.second_party_name || ''),
+        secondPartyName: String(fullName),
         investmentDate: String(agreementRow.investment_date || ''),
         investedAmount: Number(agreementRow.invested_amount || 0),
         status: String(agreementRow.status || ''),
@@ -696,6 +703,13 @@ const Agreement = () => {
   const handleDownloadPdf = async () => {
     if (!agreementRow || !user) {
       toast.error('Agreement data not available.');
+      return;
+    }
+
+    // Validate that required fields are present in the agreement
+    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
+    if (!fullName || fullName.trim().length < 2) {
+      toast.error('Full name is missing in the agreement. Please contact support.');
       return;
     }
 
@@ -876,7 +890,7 @@ const Agreement = () => {
 
     const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
     doc.text(`First Party: ${agreementRow.first_party_name || ''}`, margin + 4, y + 16);
-    doc.text(`Second Party: ${agreementRow.second_party_name || user.email || ''}`, margin + 4, y + 22);
+    doc.text(`Second Party: ${fullName || user.email || ''}`, margin + 4, y + 22);
     doc.text(
       `Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`,
       margin + 4,
@@ -943,6 +957,14 @@ const Agreement = () => {
       toast.error('User agreement PDF not available yet.');
       return;
     }
+
+    // Validate that required fields are present in the agreement
+    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
+    if (!fullName || fullName.trim().length < 2) {
+      toast.error('Full name is missing in the agreement. Please contact support.');
+      return;
+    }
+
     const url = await createAgreementPdfSignedUrl(agreementRow.user_pdf_path);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
