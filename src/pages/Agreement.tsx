@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Download, FileText, Loader2 } from 'lucide-react';
+import { Download, FileText, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -37,6 +37,7 @@ import {
 import QRCode from 'qrcode';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -969,6 +970,29 @@ const Agreement = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const statusBadge = useMemo(() => {
+    if (!agreementRow) return null;
+    
+    switch (agreementRow.status) {
+      case 'finalized':
+        return (
+          <Badge className="bg-green-500 hover:bg-green-600">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Finalized
+          </Badge>
+        );
+      case 'user_signed':
+        return (
+          <Badge variant="secondary" className="bg-amber-500 hover:bg-amber-600 text-white">
+            <Clock className="mr-1 h-3 w-3" />
+            Pending Admin Approval
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{agreementRow.status}</Badge>;
+    }
+  }, [agreementRow]);
+
   if (isLoading || isDynamicLoading || isSettingsLoading || isProfileLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -1019,24 +1043,29 @@ const Agreement = () => {
           <h1 className="text-3xl font-bold">Investment Agreement</h1>
           <p className="text-muted-foreground">Fill your details, review the agreement and sign digitally.</p>
         </div>
-        {agreementRow && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleDownloadPdfWithQr}>
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF (with QR)
-            </Button>
-            {agreementRow.user_pdf_path && (
-              <Button variant="outline" onClick={downloadUserPdf}>
+        <div className="flex flex-wrap items-center gap-3">
+          {statusBadge}
+          {agreementRow && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={handleDownloadPdfWithQr}>
                 <Download className="mr-2 h-4 w-4" />
-                Download User PDF
+                Download PDF (with QR)
               </Button>
-            )}
-            <Button onClick={handleDownloadPdf}>
-              <Download className="mr-2 h-4 w-4" />
-              Download as PDF
-            </Button>
-          </div>
-        )}
+              {agreementRow.user_pdf_path && (
+                <Button variant="outline" onClick={downloadUserPdf}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download User PDF
+                </Button>
+              )}
+              {agreementRow.pdf_path && (
+                <Button onClick={handleDownloadPdf}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Final PDF
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Card className="mt-6">
@@ -1063,11 +1092,25 @@ const Agreement = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {missingDynamicRequirements.length > 0 && !agreementRow && (
-            <Alert variant="destructive">
-              <AlertTitle>Missing required agreement data</AlertTitle>
-              <AlertDescription>
-                Please complete the missing items before signing: {missingDynamicRequirements.join(', ')}.
+          {agreementRow && agreementRow.status === 'finalized' && (
+            <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertTitle className="text-green-800 dark:text-green-200">Agreement Finalized</AlertTitle>
+              <AlertDescription className="text-green-700 dark:text-green-300">
+                Your agreement has been finalized with the company signature and stamp. You can download the final PDF from the buttons above.
+                {agreementRow.admin_signed_at && (
+                  <span className="block mt-1 text-sm">Admin signed on: {format(new Date(agreementRow.admin_signed_at), 'PPP p')}</span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {agreementRow && agreementRow.status === 'user_signed' && (
+            <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200">Pending Admin Approval</AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                You have signed the agreement. It is now pending admin approval. The admin will review and finalize it with the company signature and stamp.
               </AlertDescription>
             </Alert>
           )}
@@ -1082,6 +1125,15 @@ const Agreement = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {missingDynamicRequirements.length > 0 && !agreementRow && (
+            <Alert variant="destructive">
+              <AlertTitle>Missing required agreement data</AlertTitle>
+              <AlertDescription>
+                Please complete the missing items before signing: {missingDynamicRequirements.join(', ')}.
+              </AlertDescription>
+            </Alert>
           )}
 
           <div className="rounded-md border bg-muted/30 p-4">

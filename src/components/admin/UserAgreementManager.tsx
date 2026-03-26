@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Download, FileCheck2 } from "lucide-react";
+import { Loader2, Download, FileCheck2, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import jsPDF from "jspdf";
 import SignatureCanvas from "react-signature-canvas";
 
@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { generateAgreementPdf } from "@/lib/agreementPdfTemplate";
 import { uploadAgreementPdf, createAgreementPdfSignedUrl } from "@/lib/agreementPdfStorage";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 async function fetchUserAgreement(userId: string): Promise<InvestmentAgreement | null> {
   const { data, error } = await supabase
@@ -167,8 +168,18 @@ export function UserAgreementManager({ userId }: { userId: string }) {
 
   const statusBadge = useMemo(() => {
     if (!agreement) return <Badge variant="outline">Not signed</Badge>;
-    if (agreement.status === "finalized") return <Badge>Finalized</Badge>;
-    return <Badge variant="secondary">User signed</Badge>;
+    if (agreement.status === "finalized") return (
+      <Badge className="bg-green-500 hover:bg-green-600">
+        <CheckCircle className="mr-1 h-3 w-3" />
+        Finalized
+      </Badge>
+    );
+    return (
+      <Badge variant="secondary" className="bg-amber-500 hover:bg-amber-600 text-white">
+        <Clock className="mr-1 h-3 w-3" />
+        User signed
+      </Badge>
+    );
   }, [agreement]);
 
   const finalizeMutation = useMutation({
@@ -311,11 +322,44 @@ export function UserAgreementManager({ userId }: { userId: string }) {
         <Separator />
 
         {!agreement ? (
-          <div className="text-sm text-muted-foreground">User has not signed yet.</div>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>User has not signed yet</AlertTitle>
+            <AlertDescription>
+              The user needs to sign the agreement first before you can finalize it.
+            </AlertDescription>
+          </Alert>
         ) : agreement.status === "finalized" ? (
-          <div className="text-sm text-muted-foreground">Agreement is finalized.</div>
+          <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertTitle className="text-green-800 dark:text-green-200">Agreement Finalized</AlertTitle>
+            <AlertDescription className="text-green-700 dark:text-green-300">
+              This agreement has been finalized with admin signature, company signature, and stamp. The final PDF is available for download.
+              {agreement.admin_signed_at && (
+                <span className="block mt-1 text-sm">Admin signed on: {new Date(agreement.admin_signed_at).toLocaleString()}</span>
+              )}
+            </AlertDescription>
+          </Alert>
         ) : (
           <div className="space-y-4">
+            <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200">Ready for Finalization</AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                The user has signed this agreement. Please add your admin signature and finalize it to complete the process.
+              </AlertDescription>
+            </Alert>
+
+            {!assets?.company_signature_path && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Missing Company Signature</AlertTitle>
+                <AlertDescription>
+                                  Please upload the company signature in System Management &gt; Agreement Assets before finalizing agreements.
+                                </AlertDescription>
+              </Alert>
+            )}
+
             <div>
               <div className="text-sm font-medium">Admin signature</div>
               <div className="mt-2">
@@ -324,7 +368,7 @@ export function UserAgreementManager({ userId }: { userId: string }) {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button onClick={() => void finalizeMutation.mutateAsync()} disabled={isBusy}>
+              <Button onClick={() => void finalizeMutation.mutateAsync()} disabled={isBusy || !assets?.company_signature_path}>
                 {isBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Finalize & Store PDF
               </Button>
