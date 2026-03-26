@@ -1,15 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Download, FileCheck2, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { Loader2, Download, FileCheck2, AlertCircle, CheckCircle, Clock, QrCode } from "lucide-react";
 import jsPDF from "jspdf";
 import SignatureCanvas from "react-signature-canvas";
+import { QRCodeCanvas } from "qrcode.react";
 
 import SignaturePad from "@/components/profile/SignaturePad";
 import { InvestmentAgreement } from "@/types/database";
@@ -25,6 +27,8 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { generateAgreementPdf } from "@/lib/agreementPdfTemplate";
 import { uploadAgreementPdf, createAgreementPdfSignedUrl } from "@/lib/agreementPdfStorage";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { generateQrPngDataUrl } from "@/lib/qrDataUrl";
+import { downloadQrCodeCanvas } from "@/lib/downloadQrCode";
 
 async function fetchUserAgreement(userId: string): Promise<InvestmentAgreement | null> {
   const { data, error } = await supabase
@@ -126,6 +130,7 @@ function renderAgreementBody(params: {
 export function UserAgreementManager({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const adminSigCanvas = useRef<SignatureCanvas>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   const { settings } = useSystemSettings();
@@ -214,6 +219,18 @@ export function UserAgreementManager({ userId }: { userId: string }) {
       }
 
       // Generate final PDF based on the SAME original template and same filled fields
+      const qrUrl = `${window.location.origin}/agreement?ref=${agreement.reference_number || agreement.id}`;
+      let qrCodeDataUrl: string | undefined;
+      try {
+        qrCodeDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 256, level: 'M' });
+      } catch {
+        // non-fatal: proceed without QR code if generation fails
+      }
+
+      const qrDate = agreement.signed_at
+        ? format(new Date(agreement.signed_at), 'PPP')
+        : format(new Date(), 'PPP');
+
       const { pdfBytes, hash } = await generateAgreementPdf({
         templateUrl: pdfTemplateUrl,
         fieldMap: pdfFieldMap,
@@ -224,6 +241,7 @@ export function UserAgreementManager({ userId }: { userId: string }) {
           admin_signature: { dataUrl: adminSigDataUrl },
           ...(stampDataUrl ? { stamp: { dataUrl: stampDataUrl } } : {}),
         },
+        qrCode: qrCodeDataUrl ? { dataUrl: qrCodeDataUrl, date: qrDate } : undefined,
       });
 
       const finalPdfPath = await uploadAgreementPdf({
@@ -284,6 +302,20 @@ export function UserAgreementManager({ userId }: { userId: string }) {
     const url = await createSignedUrl(SIGNED_AGREEMENTS_BUCKET, agreement.pdf_path, 60 * 30);
     window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  const agreementQrUrl = agreement
+    ? `${window.location.origin}/agreement?ref=${agreement.reference_number || agreement.id}`
+    : '';
+
+  const handleDownloadQr = useCallback(() => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) {
+      toast.error("QR code not available.");
+      return;
+    }
+    const refPart = agreement?.reference_number || agreement?.id?.substring(0, 8) || userId.substring(0, 8);
+    downloadQrCodeCanvas(canvas, `Agreement_QR_${refPart}`);
+  }, [agreement?.reference_number, agreement?.id, userId]);
 
   const isBusy = isLoading || isFinalizing || finalizeMutation.isPending;
 
@@ -374,6 +406,32 @@ export function UserAgreementManager({ userId }: { userId: string }) {
               </Button>
             </div>
           </div>
+        )}
+
+        {agreement && agreementQrUrl && (
+          <>
+            <Separator />
+            <div className="flex flex-col items-center gap-3 rounded-md border p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <QrCode className="h-4 w-4" />
+                Agreement QR Code
+              </p>
+              <QRCodeCanvas
+                ref={qrCanvasRef}
+                value={agreementQrUrl}
+                size={128}
+                level="M"
+                includeMargin={true}
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
+              <p className="text-center text-xs text-muted-foreground break-all">{agreementQrUrl}</p>
+              <Button variant="outline" size="sm" onClick={handleDownloadQr}>
+                <Download className="mr-2 h-4 w-4" />
+                Download QR Code
+              </Button>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

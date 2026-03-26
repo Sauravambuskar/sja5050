@@ -36,7 +36,7 @@ const Notifications = () => {
     queryFn: fetchNotifications,
   });
 
-  const mutation = useMutation({
+  const { mutate: markNotificationsAsRead } = useMutation({
     mutationFn: markAsRead,
     onSuccess: () => {
       // Invalidate both the notifications list and the unread count for the sidebar badge
@@ -50,9 +50,9 @@ const Notifications = () => {
   useEffect(() => {
     // Mark notifications as read when the component mounts
     if (user) {
-      mutation.mutate();
+      markNotificationsAsRead();
     }
-  }, [user]);
+  }, [user, markNotificationsAsRead]);
 
   return (
     <>
