@@ -1,0 +1,1 @@
+SELECT * FROM storage.buckets WHERE name = 'agreement_assets';

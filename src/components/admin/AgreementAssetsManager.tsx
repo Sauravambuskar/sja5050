@@ -21,16 +21,32 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 async function uploadAsset(file: File, kind: "stamp" | "company_signature") {
-  const ext = file.name.split(".").pop() || "png";
-  const safeExt = ext.replace(/[^a-z0-9]/gi, "").toLowerCase() || "png";
-  const path = `agreement/${kind}.${safeExt}`;
+  try {
+    console.log(`Starting upload for ${kind}:`, file.name, file.size, file.type);
+    
+    const ext = file.name.split(".").pop() || "png";
+    const safeExt = ext.replace(/[^a-z0-9]/gi, "").toLowerCase() || "png";
+    const path = `agreement/${kind}.${safeExt}`;
 
-  const { error } = await supabase.storage
-    .from(AGREEMENT_ASSETS_BUCKET)
-    .upload(path, file, { upsert: true, cacheControl: "3600" });
+    console.log(`Upload path: ${path}`);
 
-  if (error) throw error;
-  return path;
+    const { data, error } = await supabase.storage
+      .from(AGREEMENT_ASSETS_BUCKET)
+      .upload(path, file, { upsert: true, cacheControl: "3600" });
+
+    console.log(`Upload result for ${kind}:`, { data, error });
+
+    if (error) {
+      console.error(`Upload error for ${kind}:`, error);
+      throw new Error(`Failed to upload ${kind}: ${error.message}`);
+    }
+
+    console.log(`${kind} uploaded successfully to:`, data?.path);
+    return data?.path || path;
+  } catch (error) {
+    console.error(`Upload exception for ${kind}:`, error);
+    throw error;
+  }
 }
 
 export function AgreementAssetsManager() {
@@ -38,7 +54,11 @@ export function AgreementAssetsManager() {
   const [stampPath, setStampPath] = useState<string | null>(null);
   const [companySigPath, setCompanySigPath] = useState<string | null>(null);
 
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { first_party_name: "" } });
+  const form = useForm<FormValues>({ 
+    resolver: zodResolver(schema), 
+    defaultValues: { first_party_name: "SJA Foundation" },
+    mode: "onChange" // Enable validation on change
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["agreementAssets"],
@@ -66,39 +86,94 @@ export function AgreementAssetsManager() {
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { error } = await supabase.rpc("admin_update_agreement_assets", {
+      console.log("=== Starting Save Assets ===");
+      console.log("Form values:", values);
+      console.log("Stamp path:", stampPath);
+      console.log("Company sig path:", companySigPath);
+      
+      // Check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Current user:", user?.id, user?.email);
+      
+      // Check user role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+      console.log("User role:", profile?.role);
+      
+      if (profile?.role !== 'admin') {
+        throw new Error("You must be an admin to save agreement assets");
+      }
+      
+      const { error, data: result } = await supabase.rpc("admin_update_agreement_assets", {
         p_first_party_name: values.first_party_name,
         p_stamp_path: stampPath,
         p_company_signature_path: companySigPath,
       });
-      if (error) throw error;
+      
+      console.log("RPC result:", result);
+      console.log("RPC error:", error);
+      
+      if (error) {
+        console.error("RPC Error details:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Failed to save: ${error.message}`);
+      }
+      
+      return result;
     },
-    onSuccess: () => {
-      toast.success("Agreement assets updated.");
+    onSuccess: (data) => {
+      console.log("Save success:", data);
+      toast.success("Agreement assets updated successfully.");
       queryClient.invalidateQueries({ queryKey: ["agreementAssets"] });
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.error("Save error:", e);
+      toast.error(`Failed to save assets: ${e.message}`);
+    },
   });
 
   const uploadStampMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log("Uploading stamp:", file.name);
       const path = await uploadAsset(file, "stamp");
+      console.log("Stamp uploaded to:", path);
       setStampPath(path);
       return path;
     },
-    onSuccess: () => toast.success("Stamp uploaded."),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (path) => {
+      toast.success("Stamp uploaded successfully.");
+      console.log("Stamp upload success:", path);
+    },
+    onError: (e: Error) => {
+      console.error("Stamp upload error:", e);
+      toast.error(`Failed to upload stamp: ${e.message}`);
+    },
   });
 
   const uploadSigMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log("Uploading company signature:", file.name);
       const path = await uploadAsset(file, "company_signature");
+      console.log("Company signature uploaded to:", path);
       setCompanySigPath(path);
       return path;
     },
-    onSuccess: () => toast.success("Company signature uploaded."),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (path) => {
+      toast.success("Company signature uploaded successfully.");
+      console.log("Company signature upload success:", path);
+    },
+    onError: (e: Error) => {
+      console.error("Company signature upload error:", e);
+      toast.error(`Failed to upload company signature: ${e.message}`);
+    },
   });
 
   const isBusy =
@@ -107,10 +182,26 @@ export function AgreementAssetsManager() {
   const stampUrl = stampPreviewQuery.data;
   const sigUrl = sigPreviewQuery.data;
 
-  const canSave = useMemo(() => {
-    const v = form.getValues();
-    return Boolean(v.first_party_name?.trim());
-  }, [form]);
+  const { isValid, isDirty } = form.formState;
+
+  const handleSave = async () => {
+    console.log("Handle save called");
+    console.log("Form valid:", isValid);
+    console.log("Form dirty:", isDirty);
+    console.log("Form values:", form.getValues());
+    
+    // Trigger validation
+    const valid = await form.trigger();
+    console.log("Validation result:", valid);
+    
+    if (valid) {
+      const values = form.getValues();
+      console.log("Submitting with values:", values);
+      mutation.mutate(values);
+    } else {
+      toast.error("Please fix the form errors before saving.");
+    }
+  };
 
   return (
     <Card>
@@ -127,7 +218,7 @@ export function AgreementAssetsManager() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-6">
+            <div className="space-y-6">
               <FormField
                 control={form.control}
                 name="first_party_name"
@@ -199,12 +290,38 @@ export function AgreementAssetsManager() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Button type="submit" disabled={isBusy || !canSave}>
+                <Button 
+                  type="button"
+                  disabled={isBusy || !isValid}
+                  onClick={handleSave}
+                >
                   {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                   Save Assets
                 </Button>
+                {!isValid && (
+                  <span className="text-sm text-muted-foreground">
+                    Please enter a valid first party name (minimum 2 characters)
+                  </span>
+                )}
+                {isValid && (
+                  <span className="text-sm text-green-600 dark:text-green-400">
+                    ✓ Ready to save
+                  </span>
+                )}
               </div>
-            </form>
+
+              {/* Debug Info - Remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 rounded-md border bg-muted/50 p-3 text-xs">
+                  <div className="font-semibold mb-2">Debug Info:</div>
+                  <div>Form valid: {isValid ? 'Yes' : 'No'}</div>
+                  <div>Form dirty: {isDirty ? 'Yes' : 'No'}</div>
+                  <div>Stamp path: {stampPath || 'Not set'}</div>
+                  <div>Company sig path: {companySigPath || 'Not set'}</div>
+                  <div>Form values: {JSON.stringify(form.getValues())}</div>
+                </div>
+              )}
+            </div>
           </Form>
         )}
       </CardContent>
