@@ -603,6 +603,7 @@ const Agreement = () => {
         qrCode: qrDataUrl
           ? {
               dataUrl: qrDataUrl,
+              date: format(new Date(), 'PPP'),
               label: 'Scan to verify agreement',
             }
           : undefined,
@@ -695,7 +696,7 @@ const Agreement = () => {
         images: {
           user_signature: { dataUrl: agreementRow.signature_data_url },
         },
-        qrCode: { dataUrl: qrDataUrl, label: 'Scan to verify agreement' },
+        qrCode: { dataUrl: qrDataUrl, date: format(new Date(), 'PPP'), label: 'Scan to verify agreement' },
       });
 
       const blob = new Blob([out.pdfBytes as unknown as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
