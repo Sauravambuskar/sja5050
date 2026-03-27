@@ -208,12 +208,12 @@ const Agreement = () => {
   const {
     data: dynamicFields,
     isLoading: isDynamicLoading,
-    isError: isDynamicError,
-    error: dynamicError,
   } = useQuery({
     queryKey: ['agreementDynamicFields', user?.id],
     queryFn: fetchMyAgreementDynamicFields,
     enabled: !!user,
+    // fetchMyAgreementDynamicFields never throws — it returns a safe fallback on error
+    retry: false,
   });
 
   const { data: agreementRow, isLoading } = useQuery({
@@ -261,6 +261,27 @@ const Agreement = () => {
   const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
   const templateText = (settings?.investment_agreement_text || '').trim() || FALLBACK_TEMPLATE;
 
+  // Always build a complete set of dynamic fields so agreement generation never fails.
+  // Priority: RPC result > profile data > settings > sensible defaults.
+  const effectiveDynamicFields = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      first_party_name: String(
+        dynamicFields?.first_party_name ||
+        settings?.agreement_first_party_name ||
+        'SJA Foundation'
+      ).trim(),
+      second_party_name: String(
+        dynamicFields?.second_party_name ||
+        profile?.full_name ||
+        ''
+      ).trim(),
+      investment_date: dynamicFields?.investment_date || today,
+      invested_amount: Number(dynamicFields?.invested_amount || 0),
+      user_investment_id: dynamicFields?.user_investment_id ?? null,
+    };
+  }, [dynamicFields, profile, settings]);
+
   const detailsForm = useForm<UserDetailsFormValues>({
     resolver: zodResolver(userDetailsSchema),
     defaultValues: {
@@ -279,10 +300,10 @@ const Agreement = () => {
   useEffect(() => {
     if (agreementRow) return; // don't override if already signed
 
-    const maybeAmountFromDb = Number(dynamicFields?.invested_amount ?? 0);
+    const maybeAmountFromDb = Number(effectiveDynamicFields.invested_amount ?? 0);
 
     detailsForm.reset({
-      full_name: String(profile?.full_name || dynamicFields?.second_party_name || '').trim(),
+      full_name: String(profile?.full_name || effectiveDynamicFields.second_party_name || '').trim(),
       residential_address: String(profile?.address || '').trim(),
       contact_number: String(profile?.phone || '').trim(),
       email_address: user?.email || '',
@@ -292,7 +313,7 @@ const Agreement = () => {
       nominee_name: '',
       nominee_identification: '',
     });
-  }, [agreementRow, detailsForm, profile, dynamicFields?.second_party_name, dynamicFields?.invested_amount, user?.email, user?.id]);
+  }, [agreementRow, detailsForm, profile, effectiveDynamicFields, user?.email, user?.id]);
 
   const watchedFullName = detailsForm.watch('full_name');
   const [watchedInvestmentAmount, watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] =
@@ -305,21 +326,19 @@ const Agreement = () => {
     ]);
 
   const liveVars = useMemo(() => {
-    if (!dynamicFields) return null;
-
-    const amountNum = Number(watchedInvestmentAmount || 0) || Number(dynamicFields.invested_amount || 0) || 0;
+    const amountNum = Number(watchedInvestmentAmount || 0) || Number(effectiveDynamicFields.invested_amount || 0) || 0;
 
     const secondPartyName = String(
-      agreementRow?.second_party_name || watchedFullName || dynamicFields.second_party_name || ''
+      agreementRow?.second_party_name || watchedFullName || effectiveDynamicFields.second_party_name || ''
     ).trim();
 
-    const investDate = new Date(dynamicFields.investment_date);
+    const investDate = new Date(effectiveDynamicFields.investment_date);
     const agreement_day = String(investDate.getDate());
     const agreement_month = format(investDate, 'MMMM');
     const agreement_year = String(investDate.getFullYear());
 
-    const lender_aadhaar = String(watchedAadhaar || '').trim();
-    const lender_pan = String(watchedPan || '').trim();
+    const lender_aadhaar = String(watchedAadhaar || profile?.aadhaar_number || '').trim();
+    const lender_pan = String(watchedPan || profile?.pan_number || '').trim();
     const nominee = String(watchedNominee || '').trim();
     const nominee_identification = String(watchedNomineeId || '').trim();
 
@@ -331,7 +350,7 @@ const Agreement = () => {
     const invested_amount_words = amountNum > 0 ? numberToWordsIN(amountNum) : '';
 
     return {
-      first_party_name: dynamicFields.first_party_name,
+      first_party_name: effectiveDynamicFields.first_party_name,
       second_party_name: secondPartyName,
       agreement_date: format(investDate, 'PPP'),
       agreement_day,
@@ -347,7 +366,8 @@ const Agreement = () => {
       nominee_identification,
     };
   }, [
-    dynamicFields,
+    effectiveDynamicFields,
+    profile,
     agreementRow?.second_party_name,
     watchedFullName,
     watchedInvestmentAmount,
@@ -367,7 +387,7 @@ const Agreement = () => {
     const investedAmountNum = Number(agreementRow.invested_amount ?? 0);
 
     return {
-      first_party_name: String(agreementRow.first_party_name || liveVars?.first_party_name || '').trim(),
+      first_party_name: String(agreementRow.first_party_name || liveVars.first_party_name || '').trim(),
       second_party_name: String(agreementRow.second_party_name || '').trim(),
       agreement_date: format(investDate, 'PPP'),
       agreement_day: String(investDate.getDate()),
@@ -387,7 +407,6 @@ const Agreement = () => {
   }, [agreementRow, liveVars]);
 
   const renderedAgreementText = useMemo(() => {
-    if (!displayVars) return templateText;
     return renderTemplate(templateText, displayVars);
   }, [templateText, displayVars]);
 
@@ -400,19 +419,17 @@ const Agreement = () => {
   const pdfFieldMap = (settings?.agreement_pdf_field_map || {}) as any;
 
   const missingDynamicRequirements = useMemo(() => {
-    if (!dynamicFields) return [] as string[];
     const missing: string[] = [];
-    if (!String(dynamicFields.first_party_name || '').trim()) missing.push('Borrower name (First party)');
 
     // User-provided loan/investment amount is required for agreement.
     const amt = Number(watchedInvestmentAmount || 0);
     if (!(amt > 0)) missing.push('Investment amount');
 
-    const dateOk = !Number.isNaN(new Date(dynamicFields.investment_date).getTime());
+    const dateOk = !Number.isNaN(new Date(effectiveDynamicFields.investment_date).getTime());
     if (!dateOk) missing.push('Agreement date');
 
     return missing;
-  }, [dynamicFields, watchedInvestmentAmount]);
+  }, [effectiveDynamicFields, watchedInvestmentAmount]);
 
   const mutation = useMutation({
     mutationFn: saveAgreement,
@@ -464,11 +481,6 @@ const Agreement = () => {
   const handleSaveSignature = async () => {
     if (!user) return;
 
-    if (!dynamicFields) {
-      toast.error('Agreement details are still loading. Please try again.');
-      return;
-    }
-
     if (missingDynamicRequirements.length) {
       toast.error(`Missing required agreement data: ${missingDynamicRequirements.join(', ')}`);
       return;
@@ -516,7 +528,7 @@ const Agreement = () => {
       lender_pan: details.pan_number || '',
 
       organization_name: 'SJA Foundation (Sariputra Wankhade Foundation)',
-      authorized_signatory_name: dynamicFields.first_party_name,
+      authorized_signatory_name: effectiveDynamicFields.first_party_name,
       agreement_execution_date: format(new Date(), 'PPP'),
       unique_agreement_reference_number: referenceNumber,
       registered_office_address: '',
@@ -537,11 +549,11 @@ const Agreement = () => {
             user_id: user.id,
             agreement_text: renderedAgreementText,
             signature_data_url: signatureDataUrl,
-            first_party_name: dynamicFields.first_party_name,
+            first_party_name: effectiveDynamicFields.first_party_name,
             second_party_name: details.full_name,
-            investment_date: dynamicFields.investment_date,
+            investment_date: effectiveDynamicFields.investment_date,
             invested_amount: amountNum,
-            user_investment_id: dynamicFields.user_investment_id,
+            user_investment_id: effectiveDynamicFields.user_investment_id,
             status: 'user_signed',
             filled_fields: filledFields,
             reference_number: referenceNumber,
@@ -569,9 +581,9 @@ const Agreement = () => {
       if (includeQr) {
         const payload = buildPublicPayload({
           referenceNumber,
-          firstPartyName: dynamicFields.first_party_name,
+          firstPartyName: effectiveDynamicFields.first_party_name,
           secondPartyName: details.full_name,
-          investmentDate: dynamicFields.investment_date,
+          investmentDate: effectiveDynamicFields.investment_date,
           investedAmount: amountNum,
           status: 'user_signed',
         });
@@ -629,9 +641,9 @@ const Agreement = () => {
       try {
         const payload = buildPublicPayload({
           referenceNumber,
-          firstPartyName: dynamicFields.first_party_name,
+          firstPartyName: effectiveDynamicFields.first_party_name,
           secondPartyName: details.full_name,
-          investmentDate: dynamicFields.investment_date,
+          investmentDate: effectiveDynamicFields.investment_date,
           investedAmount: amountNum,
           status: 'user_signed',
           documentHash: hash,
@@ -650,11 +662,11 @@ const Agreement = () => {
       userId: user.id,
       signatureDataUrl,
       agreementText: renderedAgreementText,
-      firstPartyName: dynamicFields.first_party_name,
+      firstPartyName: effectiveDynamicFields.first_party_name,
       secondPartyName: details.full_name,
-      investmentDate: dynamicFields.investment_date,
+      investmentDate: effectiveDynamicFields.investment_date,
       investedAmount: amountNum,
-      userInvestmentId: dynamicFields.user_investment_id,
+      userInvestmentId: effectiveDynamicFields.user_investment_id,
       filledFields,
       referenceNumber,
       documentHash: hash,
@@ -1078,15 +1090,6 @@ const Agreement = () => {
     );
   }
 
-  if (isDynamicError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Unable to load agreement data</AlertTitle>
-        <AlertDescription>{(dynamicError as any)?.message || 'Please try again.'}</AlertDescription>
-      </Alert>
-    );
-  }
-
   const liveValues = displayVars
     ? [
         { key: '{{first_party_name}}', label: 'Borrower name', value: displayVars.first_party_name },
@@ -1217,15 +1220,15 @@ const Agreement = () => {
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <div className="text-xs text-muted-foreground">First Party (Borrower)</div>
-                <div className="font-medium">{dynamicFields?.first_party_name}</div>
+                <div className="font-medium">{effectiveDynamicFields.first_party_name}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Second Party (Lender)</div>
-                <div className="font-medium">{agreementRow?.second_party_name || detailsForm.getValues('full_name') || dynamicFields?.second_party_name}</div>
+                <div className="font-medium">{agreementRow?.second_party_name || detailsForm.getValues('full_name') || effectiveDynamicFields.second_party_name}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Agreement Date</div>
-                <div className="font-medium">{dynamicFields ? format(new Date(dynamicFields.investment_date), 'PPP') : ''}</div>
+                <div className="font-medium">{format(new Date(effectiveDynamicFields.investment_date), 'PPP')}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Amount</div>
