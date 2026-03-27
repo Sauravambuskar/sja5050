@@ -104,7 +104,7 @@ function normalizeAgreementTextForDisplay(input: string) {
 }
 
 const userDetailsSchema = z.object({
-  full_name: z.string().min(2, 'Full name is required.'),
+  full_name: z.string().optional().or(z.literal('')),
   residential_address: z.string().min(5, 'Address is required.'),
   contact_number: z.string().min(8, 'Contact number is required.'),
   email_address: z.string().email('Valid email is required.').optional().or(z.literal('')),
