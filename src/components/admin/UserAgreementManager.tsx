@@ -200,11 +200,17 @@ export function UserAgreementManager({ userId }: { userId: string }) {
         throw new Error("Please add admin signature.");
       }
 
-      if (!agreement.filled_fields) {
-        throw new Error("Missing filled fields snapshot. Ask the user to re-sign the agreement.");
-      }
-
       setIsFinalizing(true);
+
+      // Use stored filled_fields if available; otherwise fall back to the
+      // top-level columns persisted on the agreement row (legacy agreements
+      // may not have a filled_fields snapshot).
+      const textValues: Record<string, string> = agreement.filled_fields
+        ? (agreement.filled_fields as Record<string, string>)
+        : {
+            full_name: agreement.second_party_name ?? "",
+            authorized_signatory_name: agreement.first_party_name ?? "",
+          };
 
       // Fetch assets as data URLs for embedding
       const compSigBlob = await blobFromUrl(companySigUrlQuery.data!);
@@ -234,7 +240,7 @@ export function UserAgreementManager({ userId }: { userId: string }) {
       const { pdfBytes, hash } = await generateAgreementPdf({
         templateUrl: pdfTemplateUrl,
         fieldMap: pdfFieldMap,
-        textValues: agreement.filled_fields as any,
+        textValues,
         images: {
           user_signature: { dataUrl: agreement.signature_data_url },
           company_signature: { dataUrl: compSigDataUrl },
