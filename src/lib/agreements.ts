@@ -31,28 +31,34 @@ export async function fetchAgreementAssets(): Promise<AgreementAssets> {
 }
 
 export async function fetchMyAgreementDynamicFields(): Promise<AgreementDynamicFields> {
-  const { data, error } = await supabase.rpc("get_my_agreement_dynamic_fields");
-  if (error) throw error;
-
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row) {
-    // Should never happen after RPC fix, but keep safe fallback
-    return {
-      first_party_name: "",
-      second_party_name: "",
-      investment_date: new Date().toISOString().slice(0, 10),
-      invested_amount: 0,
-      user_investment_id: null,
-    };
-  }
-
-  return {
-    first_party_name: row.first_party_name || "",
-    second_party_name: row.second_party_name || "",
-    investment_date: row.investment_date,
-    invested_amount: Number(row.invested_amount || 0),
-    user_investment_id: row.user_investment_id ?? null,
+  const today = new Date().toISOString().slice(0, 10);
+  const fallback: AgreementDynamicFields = {
+    first_party_name: "",
+    second_party_name: "",
+    investment_date: today,
+    invested_amount: 0,
+    user_investment_id: null,
   };
+
+  try {
+    const { data, error } = await supabase.rpc("get_my_agreement_dynamic_fields");
+    // Silently swallow errors so the agreement page can always render with fallback data.
+    if (error) return fallback;
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return fallback;
+
+    return {
+      first_party_name: row.first_party_name || "",
+      second_party_name: row.second_party_name || "",
+      investment_date: row.investment_date || today,
+      invested_amount: Number(row.invested_amount || 0),
+      user_investment_id: row.user_investment_id ?? null,
+    };
+  } catch {
+    // Never propagate — agreement generation must not fail due to missing dynamic fields.
+    return fallback;
+  }
 }
 
 export async function createSignedUrl(bucket: string, path: string, expiresInSeconds = 60 * 30) {
