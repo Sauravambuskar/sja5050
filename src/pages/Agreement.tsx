@@ -658,7 +658,7 @@ const Agreement = () => {
   };
 
   const handleDownloadPdfWithQr = async () => {
-    if (!agreementRow) {
+    if (!agreementRow || !user) {
       toast.error('Agreement data not available.');
       return;
     }
@@ -670,13 +670,8 @@ const Agreement = () => {
       'Investor'
     ).trim();
 
-    const filledFields: Record<string, string> = {
-      residential_address: '',
-      contact_number: '',
-      ...((agreementRow.filled_fields || {}) as Record<string, string>),
-      full_name: fullName,
-    };
-
+    // Try to get a public verification QR (non-fatal if it fails)
+    let verifyQrDataUrl: string | null = null;
     try {
       const payload = buildPublicPayload({
         referenceNumber: String(agreementRow.reference_number || ''),
@@ -687,33 +682,178 @@ const Agreement = () => {
         status: String(agreementRow.status || ''),
         documentHash: String(agreementRow.document_hash || ''),
       });
-
       const { data: token, error: tokenErr } = await supabase.rpc('upsert_agreement_public_view', {
         p_agreement_id: agreementRow.id,
         p_payload: payload,
       });
-      if (tokenErr) throw tokenErr;
-
-      const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
-      const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 256, margin: 1 });
-
-      const out = await generateAgreementPdf({
-        templateUrl: pdfTemplateUrl,
-        fieldMap: pdfFieldMap,
-        textValues: filledFields,
-        images: {
-          user_signature: { dataUrl: agreementRow.signature_data_url },
-        },
-        qrCode: { dataUrl: qrDataUrl, date: format(new Date(), 'PPP'), label: 'Scan to verify agreement' },
-      });
-
-      const blob = new Blob([out.pdfBytes as unknown as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to generate QR PDF.');
+      if (!tokenErr && token) {
+        const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
+        verifyQrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 256, margin: 1 });
+      }
+    } catch {
+      // proceed without verification QR
     }
+
+    // Generate content-based PDF using actual agreement text
+    const muted = { r: 241, g: 245, b: 249 };
+    const border = { r: 226, g: 232, b: 240 };
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    doc.setFont('helvetica', 'normal');
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+
+    const loadImg = async (url: string) => {
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return null;
+        return await blobToDataUrl(await res.blob());
+      } catch { return null; }
+    };
+
+    const imgFmt = (d: string): 'PNG' | 'JPEG' =>
+      d.startsWith('data:image/jpeg') || d.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+
+    const addHeader = async (title: string) => {
+      const logoDataUrl = await loadImg(brandLogoUrl);
+      if (logoDataUrl) {
+        try { doc.addImage(logoDataUrl, imgFmt(logoDataUrl), margin, 6, 16, 16); } catch { /* ignore */ }
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(17, 24, 39);
+      doc.text(title, margin + 20, 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Digitally signed agreement', margin + 20, 21);
+      doc.setDrawColor(border.r, border.g, border.b);
+      doc.line(margin, 24, pageWidth - margin, 24);
+      doc.setTextColor(17, 24, 39);
+    };
+
+    const addFooter = (pageNum: number, totalPages: number) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      doc.text(`Generated: ${format(new Date(), 'PPP p')}`, margin, pageHeight - 8);
+      doc.setTextColor(17, 24, 39);
+    };
+
+    const ensureSpace = async (y: number, h: number) => {
+      if (y + h <= pageHeight - 18) return y;
+      doc.addPage();
+      await addHeader('Investment Agreement');
+      return 30;
+    };
+
+    const renderBody = async (text: string, startY: number) => {
+      let y = startY;
+      const maxWidth = pageWidth - margin * 2;
+      const lineH = 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+      for (const raw of lines) {
+        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH; continue; }
+        const line = raw.replace(/\t/g, '    ');
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        for (const part of wrapped) {
+          y = await ensureSpace(y, lineH);
+          doc.text(String(part), margin, y);
+          y += lineH;
+        }
+      }
+      return y;
+    };
+
+    await addHeader('Investment Agreement');
+    let y = 30;
+
+    // Details summary box
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.setFillColor(muted.r, muted.g, muted.b);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 34, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Agreement Details', margin + 4, y + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
+    doc.text(`First Party: ${agreementRow.first_party_name || ''}`, margin + 4, y + 16);
+    doc.text(`Second Party: ${fullName}`, margin + 4, y + 22);
+    doc.text(`Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`, margin + 4, y + 28);
+    doc.text(`Invested Amount: INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, margin + 4, y + 34);
+    y += 44;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Agreement', margin, y);
+    y += 7;
+
+    y = await renderBody(renderedAgreementText, y);
+
+    y += 2;
+    y = await ensureSpace(y, 55);
+
+    // Signature
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Investor Signature', margin, y);
+    y += 6;
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Signed at: ${signedAt}`, margin + 4, y + 8);
+    try {
+      doc.addImage(agreementRow.signature_data_url, imgFmt(agreementRow.signature_data_url), margin + 4, y + 12, 70, 24);
+    } catch {
+      doc.setTextColor(148, 163, 184);
+      doc.text('(Signature image not available)', margin + 4, y + 22);
+    }
+    y += 48;
+
+    // Verification QR code
+    const qrUrl = verifyQrDataUrl
+      ? null
+      : `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`;
+    const finalQrDataUrl = verifyQrDataUrl || (qrUrl ? await generateQrPngDataUrl({ value: qrUrl, size: 200, level: 'M' }).catch(() => null) : null);
+
+    if (finalQrDataUrl) {
+      y = await ensureSpace(y, 52);
+      y += 4;
+      doc.setDrawColor(border.r, border.g, border.b);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Agreement QR Code', margin, y);
+      y += 6;
+      try { doc.addImage(finalQrDataUrl, 'PNG', margin, y, 36, 36); } catch { /* ignore */ }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(verifyQrDataUrl ? 'Scan to verify this agreement' : 'Scan to view this agreement', margin + 40, y + 8);
+      doc.text(`QR Date: ${format(new Date(), 'PPP')}`, margin + 40, y + 16);
+      y += 40;
+    }
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) { doc.setPage(i); addFooter(i, totalPages); }
+
+    doc.save(`Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
   };
 
   const handleDownloadPdf = async () => {
@@ -729,20 +869,14 @@ const Agreement = () => {
       'Investor'
     ).trim();
 
-    // Prefer template-based PDF if present
+    // Use admin-finalized PDF if available
     if (agreementRow.pdf_path) {
       const url = await createAgreementPdfSignedUrl(agreementRow.pdf_path);
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    if (agreementRow.user_pdf_path) {
-      const url = await createAgreementPdfSignedUrl(agreementRow.user_pdf_path);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    // Fallback to text-based PDF
+    // Generate content-based PDF from actual agreement text
     const muted = { r: 241, g: 245, b: 249 }; // slate-100
     const border = { r: 226, g: 232, b: 240 }; // slate-200
 
