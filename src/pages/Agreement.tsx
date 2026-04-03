@@ -105,15 +105,10 @@ function normalizeAgreementTextForDisplay(input: string) {
 
 const userDetailsSchema = z.object({
   full_name: z.string().optional().or(z.literal('')),
-  residential_address: z.string().min(5, 'Address is required.'),
-  contact_number: z.string().min(8, 'Contact number is required.'),
+  residential_address: z.string().optional().or(z.literal('')),
+  contact_number: z.string().optional().or(z.literal('')),
   email_address: z.string().email('Valid email is required.').optional().or(z.literal('')),
-
-  // IMPORTANT: users sign BEFORE investing, so the agreement amount must be provided here.
-  investment_amount: z.coerce
-    .number({ invalid_type_error: 'Investment amount is required.' })
-    .positive('Investment amount must be greater than 0.'),
-
+  investment_amount: z.coerce.number().nonnegative().default(0),
   aadhaar_number: z.string().optional().or(z.literal('')),
   pan_number: z.string().optional().or(z.literal('')),
   nominee_name: z.string().optional().or(z.literal('')),
@@ -420,16 +415,10 @@ const Agreement = () => {
 
   const missingDynamicRequirements = useMemo(() => {
     const missing: string[] = [];
-
-    // User-provided loan/investment amount is required for agreement.
-    const amt = Number(watchedInvestmentAmount || 0);
-    if (!(amt > 0)) missing.push('Investment amount');
-
     const dateOk = !Number.isNaN(new Date(effectiveDynamicFields.investment_date).getTime());
     if (!dateOk) missing.push('Agreement date');
-
     return missing;
-  }, [effectiveDynamicFields, watchedInvestmentAmount]);
+  }, [effectiveDynamicFields]);
 
   const mutation = useMutation({
     mutationFn: saveAgreement,
@@ -486,19 +475,13 @@ const Agreement = () => {
       return;
     }
 
-    const detailsValid = await detailsForm.trigger();
-    if (!detailsValid) {
-      toast.error('Please fill the required details.');
-      return;
-    }
-
     if (sigCanvas.current?.isEmpty()) {
       toast.error('Please provide your signature.');
       return;
     }
 
     const details = detailsForm.getValues();
-    const amountNum = Number(details.investment_amount || 0);
+    const amountNum = Number(details.investment_amount || 0) || Number(effectiveDynamicFields.invested_amount || 0);
 
     const signatureDataUrl = sigCanvas.current?.toDataURL('image/png') ?? '';
 
@@ -1292,7 +1275,7 @@ const Agreement = () => {
                       name="contact_number"
                       render={({ field }) => (
                         <FormItem className="md:col-span-1">
-                          <FormLabel>Contact number</FormLabel>
+                          <FormLabel>Contact number (optional)</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -1320,7 +1303,7 @@ const Agreement = () => {
                       name="investment_amount"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Investment amount (₹)</FormLabel>
+                          <FormLabel>Investment amount (₹) — auto-filled from your investment</FormLabel>
                           <FormControl>
                             <Input type="number" inputMode="numeric" min={0} step={1} {...field} />
                           </FormControl>
@@ -1334,7 +1317,7 @@ const Agreement = () => {
                       name="residential_address"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Residential address</FormLabel>
+                          <FormLabel>Residential address (optional)</FormLabel>
                           <FormControl>
                             <Textarea {...field} className="min-h-[84px]" />
                           </FormControl>
