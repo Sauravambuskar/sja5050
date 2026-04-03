@@ -190,6 +190,30 @@ async function blobToDataUrl(blob: Blob) {
   });
 }
 
+async function removeWhiteBackground(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(null); return; }
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 210 && d[i + 1] > 210 && d[i + 2] > 210) d[i + 3] = 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
 const Agreement = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -825,7 +849,7 @@ const Agreement = () => {
     y += 48;
 
     // Advocate stamp & signature section
-    y = await ensureSpace(y, 72);
+    y = await ensureSpace(y, 80);
     y += 4;
     doc.setDrawColor(border.r, border.g, border.b);
     doc.line(margin, y, pageWidth - margin, y);
@@ -837,18 +861,32 @@ const Agreement = () => {
     y += 8;
     try {
       const stampBase = window.location.origin;
-      const imgW = 42;
-      const imgH = 42;
-      const gap = 8;
-      const [circularData, textData, signData] = await Promise.all([
-        loadImg(`${stampBase}/stamp2.jpeg`),
-        loadImg(`${stampBase}/stamp1.jpeg`),
-        loadImg(`${stampBase}/advocate-sign.jpg`),
+      const imgW = 40;
+      const imgH = 40;
+      const gap = 10;
+      const [circularData, textData, sealData, signData] = await Promise.all([
+        removeWhiteBackground(`${stampBase}/stamp2.jpeg`),
+        removeWhiteBackground(`${stampBase}/stamp1.jpeg`),
+        removeWhiteBackground(`${stampBase}/seal.png`),
+        removeWhiteBackground(`${stampBase}/advocate-sign.jpg`),
       ]);
-      if (circularData) doc.addImage(circularData, 'JPEG', margin, y, imgW, imgH);
-      if (textData) doc.addImage(textData, 'JPEG', margin + imgW + gap, y, imgW, imgH);
-      if (signData) doc.addImage(signData, 'JPEG', margin + (imgW + gap) * 2, y, imgW * 1.6, imgH);
-      y += imgH + 8;
+      let sx = margin;
+      if (circularData) { doc.addImage(circularData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
+      if (textData) { doc.addImage(textData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
+      if (sealData) {
+        doc.addImage(sealData, 'PNG', sx, y, imgW, imgH);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(180, 0, 0);
+        doc.text('Adv. Swapnil D. Ingale', sx + imgW / 2, y + imgH / 2 - 3, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5.5);
+        doc.text('(B.A., LL.B.)', sx + imgW / 2, y + imgH / 2 + 3, { align: 'center' });
+        doc.text('Reg. No. MAH/2433/2024', sx + imgW / 2, y + imgH / 2 + 9, { align: 'center' });
+        sx += imgW + gap;
+      }
+      if (signData) { doc.addImage(signData, 'PNG', sx, y, imgW * 1.5, imgH); }
+      y += imgH + 6;
     } catch { /* non-fatal */ }
 
     // Verification QR code
@@ -1123,7 +1161,7 @@ const Agreement = () => {
     y += 48;
 
     // Advocate stamp & signature section
-    y = await ensureSpace(y, 72);
+    y = await ensureSpace(y, 80);
     y += 4;
     doc.setDrawColor(border.r, border.g, border.b);
     doc.line(margin, y, pageWidth - margin, y);
@@ -1135,18 +1173,32 @@ const Agreement = () => {
     y += 8;
     try {
       const stampBase = window.location.origin;
-      const imgW = 42;
-      const imgH = 42;
-      const gap = 8;
-      const [circularData, textData, signData] = await Promise.all([
-        loadImageAsDataUrl(`${stampBase}/stamp2.jpeg`),
-        loadImageAsDataUrl(`${stampBase}/stamp1.jpeg`),
-        loadImageAsDataUrl(`${stampBase}/advocate-sign.jpg`),
+      const imgW = 40;
+      const imgH = 40;
+      const gap = 10;
+      const [circularData, textData, sealData, signData] = await Promise.all([
+        removeWhiteBackground(`${stampBase}/stamp2.jpeg`),
+        removeWhiteBackground(`${stampBase}/stamp1.jpeg`),
+        removeWhiteBackground(`${stampBase}/seal.png`),
+        removeWhiteBackground(`${stampBase}/advocate-sign.jpg`),
       ]);
-      if (circularData) doc.addImage(circularData, 'JPEG', margin, y, imgW, imgH);
-      if (textData) doc.addImage(textData, 'JPEG', margin + imgW + gap, y, imgW, imgH);
-      if (signData) doc.addImage(signData, 'JPEG', margin + (imgW + gap) * 2, y, imgW * 1.6, imgH);
-      y += imgH + 8;
+      let sx = margin;
+      if (circularData) { doc.addImage(circularData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
+      if (textData) { doc.addImage(textData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
+      if (sealData) {
+        doc.addImage(sealData, 'PNG', sx, y, imgW, imgH);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(180, 0, 0);
+        doc.text('Adv. Swapnil D. Ingale', sx + imgW / 2, y + imgH / 2 - 3, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5.5);
+        doc.text('(B.A., LL.B.)', sx + imgW / 2, y + imgH / 2 + 3, { align: 'center' });
+        doc.text('Reg. No. MAH/2433/2024', sx + imgW / 2, y + imgH / 2 + 9, { align: 'center' });
+        sx += imgW + gap;
+      }
+      if (signData) { doc.addImage(signData, 'PNG', sx, y, imgW * 1.5, imgH); }
+      y += imgH + 6;
     } catch { /* non-fatal */ }
 
     // QR Code section at the bottom of the agreement
