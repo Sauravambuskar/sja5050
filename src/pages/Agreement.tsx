@@ -84,21 +84,78 @@ function normalizeAgreementTextForDisplay(input: string) {
   const fixSuperscripts = (line: string) =>
     line.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => superscriptMap[c] ?? c);
 
-  const fixSpacedLetters = (line: string) => {
-    // Aggressively join single chars separated by spaces when 2+ pairs exist:
-    // "T h e" => "The", "T h e L e n d e r" => "The Lender"
-    // We repeatedly apply to handle long spaced sequences
-    let out = line;
-    // Pattern: at least 2 single-letter tokens separated by spaces, possibly followed by another
-    out = out.replace(/\b([A-Za-z]) (?=[A-Za-z] |[A-Za-z]\b)/g, '$1');
-    // Clean up any remaining single trailing letter that was part of the sequence
-    out = out.replace(/([A-Za-z]) ([A-Za-z])\b(?=\s|$)/g, (_m, a, b) => {
-      // Only join if the preceding context looks like joined chars (no vowel clusters)
-      return a + b;
+  // Small but effective English word list for greedy segmentation of merged lowercase runs.
+  // Sorted longest-first so greedy matching prefers longer words.
+  const ENGLISH_WORDS_SORTED = [
+    'investment','agreement','borrower','lender','interest','payment','capacity',
+    'personal','individual','expressly','understand','understands','clearly',
+    'accepted','accepts','received','returned','repayment','repaid','loaned',
+    'mortgaged','transferred','advanced','advanced','principal','duration',
+    'period','tenure','months','quarterly','annually','monthly','weekly',
+    'recovery','penalty','default','forfeiture','arbitration','jurisdiction',
+    'signatories','signatory','authorized','executed','notarized','registered',
+    'applicable','irrevocable','unconditional','enforceable','exclusive',
+    'partnership','corporate','non-corporate','representative','non-representative',
+    'exclusively','liability','transaction','relationship','venture','deposit',
+    'agency','purpose','indenture','hereinafter','herein','hereof','therefore',
+    'accordingly','pursuant','whereunder','whereof','whereas','witnesseth',
+    'consideration','conditions','provisions','obligations','covenants','parties',
+    'hereto','thereof','thereto','therein','agreed','agrees','advance','advanceda',
+    'advancea','advanced','agrees','ensure','ensures','accept','provide','provides',
+    'receive','receives','repay','repays','shall','should','would','could','might',
+    'must','will','have','having','been','being','done','made','take','taken',
+    'given','paid','lent','held','sold','used','said','such','each','both','only',
+    'also','even','then','when','once','upon','with','from','into','unto','over',
+    'under','above','below','after','before','during','within','without','against',
+    'between','among','through','across','along','around','about','since','until',
+    'while','unless','whether','either','neither','however','therefore','moreover',
+    'furthermore','notwithstanding','aforementioned','abovementioned','said',
+    'that','this','these','those','their','there','where','which','whose','whom',
+    'they','them','what','when','were','have','your','does','done','date','time',
+    'term','loan','fund','bank','cash','rate','risk','loss','gain','note','deed',
+    'bond','seal','sign','rule','code','law','act','tax','fee','cost','sum',
+    'rupees','amount','value','total','balance','outstanding','remaining',
+    'instalment','installment','tranche','disbursement','repayment','proceeds',
+    'percent','percentage','annum','per','day','week','month','year','years',
+    'months','days','weeks','lakh','lakhs','crore','crores','thousand','hundred',
+    'only','and','but','the','for','not','are','was','its','his','her','him',
+    'our','has','had','may','can','any','all','new','old','one','two','six',
+    'ten','due','end','set','get','put','run','use','let','say','see','did',
+    'own','try','now','yet','off','out','too','so','an','as','at','by','do',
+    'go','he','if','in','is','it','me','my','no','of','on','or','to','up',
+    'us','we',
+  ].sort((a, b) => b.length - a.length);
+
+  /**
+   * Greedy-segment a joined run of letters (possibly mixed case) using the word list.
+   * Case-insensitive matching, preserving original casing in output.
+   * e.g. "TheLenderhasagreedtoadvanceasumof" → "The Lender has agreed to advance a sum of"
+   */
+  const segmentLowerRun = (run: string): string => {
+    let i = 0; const parts: string[] = [];
+    while (i < run.length) {
+      let matched = false;
+      for (const w of ENGLISH_WORDS_SORTED) {
+        if (run.slice(i, i + w.length).toLowerCase() === w) {
+          parts.push(run.slice(i, i + w.length)); // preserve original casing
+          i += w.length;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) { parts.push(run[i]); i++; }
+    }
+    return parts.join(' ');
+  };
+
+  const fixSpacedLetters = (line: string): string => {
+    // Join any run of 3+ single letters separated by single spaces, then
+    // recover word boundaries with case-insensitive greedy dictionary matching.
+    // e.g. "T h e L e n d e r h a s a g r e e d" → "The Lender has agreed"
+    return line.replace(/([A-Za-z])( [A-Za-z]){2,}/g, (match) => {
+      const chars = match.replace(/ /g, '');   // collapse spaces
+      return segmentLowerRun(chars);            // segment whole joined run
     });
-    // Second pass for anything missed
-    out = out.replace(/\b([A-Za-z]) ([A-Za-z]) ([A-Za-z])\b/g, '$1$2$3');
-    return out;
   };
 
   const fixSpacedNumbers = (line: string) => {
