@@ -16,15 +16,18 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": false, // Changed from true to false
-    "noUnusedParameters": false, // Changed from true to false
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
 
     /* Aliases */
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "shared", "server"],
   "exclude": ["supabase", "node_modules"]
 }
