@@ -89,11 +89,6 @@ export async function inspectPdfFormFields(templateUrl: string) {
 export async function generateAgreementPdf(params: GenerateAgreementPdfParams) {
   const { templateUrl, fieldMap, textValues, images, qrCode } = params;
 
-  // Required values (legal directive: reject if missing)
-  assertRequiredText("Full name", safeText(textValues.full_name));
-  assertRequiredText("Residential address", safeText(textValues.residential_address));
-  assertRequiredText("Contact number", safeText(textValues.contact_number));
-
   const res = await fetch(templateUrl);
   if (!res.ok) throw new Error("Failed to load PDF template");
   const templateBytes = new Uint8Array(await res.arrayBuffer());
