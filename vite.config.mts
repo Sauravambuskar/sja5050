@@ -6,8 +6,9 @@ import path from "node:path";
 export default defineConfig(({ command }) => ({
   appType: "spa",
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0",
+    port: 5000,
+    allowedHosts: true,
   },
   plugins: [
     // Dev-only helper (does not affect runtime bundle size)
