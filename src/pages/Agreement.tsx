@@ -835,6 +835,7 @@ const Agreement = () => {
 
     // Details summary box — 2×2 grid layout
     const colMid = pageWidth / 2;
+    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
     doc.setDrawColor(border.r, border.g, border.b);
     doc.setFillColor(muted.r, muted.g, muted.b);
     doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, 'FD');
