@@ -663,12 +663,12 @@ const Agreement = () => {
       return;
     }
 
-    // Validate that required fields are present in the agreement
-    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
-    if (!fullName || fullName.trim().length < 2) {
-      toast.error('Full name is missing in the agreement. Please contact support.');
-      return;
-    }
+    const fullName = (
+      agreementRow.second_party_name ||
+      (agreementRow.filled_fields as any)?.full_name ||
+      user?.email ||
+      'Investor'
+    ).trim();
 
     const filledFields = (agreementRow.filled_fields || {}) as Record<string, string>;
 
@@ -717,12 +717,12 @@ const Agreement = () => {
       return;
     }
 
-    // Validate that required fields are present in the agreement
-    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
-    if (!fullName || fullName.trim().length < 2) {
-      toast.error('Full name is missing in the agreement. Please contact support.');
-      return;
-    }
+    const fullName = (
+      agreementRow.second_party_name ||
+      (agreementRow.filled_fields as any)?.full_name ||
+      user?.email ||
+      'Investor'
+    ).trim();
 
     // Prefer template-based PDF if present
     if (agreementRow.pdf_path) {
@@ -1028,13 +1028,6 @@ const Agreement = () => {
   const downloadUserPdf = async () => {
     if (!agreementRow?.user_pdf_path) {
       toast.error('User agreement PDF not available yet.');
-      return;
-    }
-
-    // Validate that required fields are present in the agreement
-    const fullName = agreementRow.second_party_name || (agreementRow.filled_fields as any)?.full_name;
-    if (!fullName || fullName.trim().length < 2) {
-      toast.error('Full name is missing in the agreement. Please contact support.');
       return;
     }
 
