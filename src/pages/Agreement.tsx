@@ -777,19 +777,54 @@ const Agreement = () => {
     const renderBody = async (text: string, startY: number) => {
       let y = startY;
       const maxWidth = pageWidth - margin * 2;
-      const lineH = 5;
+      const lineH = 5.2;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(15, 23, 42);
-      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-      for (const raw of lines) {
-        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH; continue; }
+
+      const wrapLine = (raw: string) => {
         const line = raw.replace(/\t/g, '    ');
-        const wrapped = doc.splitTextToSize(line, maxWidth);
-        for (const part of wrapped) {
-          y = await ensureSpace(y, lineH);
-          doc.text(String(part), margin, y);
-          y += lineH;
+        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*[).])\s+/);
+        const leadingSpaces = line.match(/^\s+/)?.[0] ?? '';
+        if (prefixMatch) {
+          const prefix = prefixMatch[0];
+          const rest = line.slice(prefix.length);
+          const prefixW = doc.getTextWidth(prefix);
+          const wrapped = doc.splitTextToSize(rest, Math.max(10, maxWidth - prefixW));
+          return { kind: 'prefix' as const, prefix, prefixW, wrapped };
+        }
+        if (leadingSpaces) {
+          const rest = line.slice(leadingSpaces.length);
+          const indentW = Math.min(doc.getTextWidth(leadingSpaces), maxWidth * 0.3);
+          const wrapped = rest ? doc.splitTextToSize(rest, Math.max(10, maxWidth - indentW)) : [''];
+          return { kind: 'indent' as const, indentW, wrapped };
+        }
+        return { kind: 'plain' as const, wrapped: doc.splitTextToSize(line, maxWidth) };
+      };
+
+      const normalizedLines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+      for (const raw of normalizedLines) {
+        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH * 0.6; continue; }
+        const w = wrapLine(raw);
+        if (w.kind === 'prefix') {
+          for (let i = 0; i < w.wrapped.length; i++) {
+            y = await ensureSpace(y, lineH);
+            if (i === 0) doc.text(w.prefix, margin, y);
+            doc.text(String(w.wrapped[i]), margin + w.prefixW, y);
+            y += lineH;
+          }
+        } else if (w.kind === 'indent') {
+          for (const part of w.wrapped) {
+            y = await ensureSpace(y, lineH);
+            doc.text(String(part), margin + w.indentW, y);
+            y += lineH;
+          }
+        } else {
+          for (const part of w.wrapped) {
+            y = await ensureSpace(y, lineH);
+            doc.text(String(part), margin, y);
+            y += lineH;
+          }
         }
       }
       return y;
@@ -798,31 +833,58 @@ const Agreement = () => {
     await addHeader('Investment Agreement');
     let y = 30;
 
-    // Details summary box
+    // Details summary box — 2×2 grid layout
+    const colMid = pageWidth / 2;
     doc.setDrawColor(border.r, border.g, border.b);
     doc.setFillColor(muted.r, muted.g, muted.b);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 34, 2, 2, 'FD');
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, 'FD');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement Details', margin + 4, y + 8);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    // Left column
+    doc.text('First Party (Borrower)', margin + 4, y + 17);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
-    doc.text(`First Party: ${agreementRow.first_party_name || ''}`, margin + 4, y + 16);
-    doc.text(`Second Party: ${fullName}`, margin + 4, y + 22);
-    doc.text(`Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`, margin + 4, y + 28);
-    doc.text(`Invested Amount: INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, margin + 4, y + 34);
-    y += 44;
+    doc.text(String(agreementRow.first_party_name || '').slice(0, 38), margin + 4, y + 23);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Agreement Date', margin + 4, y + 31);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : '', margin + 4, y + 37);
+    // Right column
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Second Party (Lender)', colMid + 4, y + 17);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(String(fullName).slice(0, 38), colMid + 4, y + 23);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Invested Amount', colMid + 4, y + 31);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(`INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, colMid + 4, y + 37);
+    y += 48;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement', margin, y);
-    y += 7;
+    y += 8;
 
-    y = await renderBody(renderedAgreementText, y);
+    y = await renderBody(renderedAgreementTextForDisplay, y);
 
     y += 2;
     y = await ensureSpace(y, 55);
@@ -1012,51 +1074,40 @@ const Agreement = () => {
     const renderAgreementBody = async (text: string, startY: number) => {
       let y = startY;
       const maxWidth = pageWidth - margin * 2;
-      const lineH = 5;
+      const lineH = 5.2;
 
-      // Preserve line breaks & indentation exactly as entered.
-      // Only wrap when a single line exceeds page width.
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(15, 23, 42);
 
-      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-
       const wrapLine = (raw: string) => {
         const line = raw.replace(/\t/g, '    ');
-        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*\)|\d+(?:\.\d+)*\.)\s+/);
+        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*[).])\s+/);
         const leadingSpaces = line.match(/^\s+/)?.[0] ?? '';
 
         if (prefixMatch) {
           const prefix = prefixMatch[0];
           const rest = line.slice(prefix.length);
           const prefixW = doc.getTextWidth(prefix);
-          const available = Math.max(10, maxWidth - prefixW);
-          const wrapped = doc.splitTextToSize(rest, available);
+          const wrapped = doc.splitTextToSize(rest, Math.max(10, maxWidth - prefixW));
           return { kind: 'prefix' as const, prefix, prefixW, wrapped };
         }
 
         if (leadingSpaces) {
           const rest = line.slice(leadingSpaces.length);
-          const indentW = doc.getTextWidth(leadingSpaces);
-          const available = Math.max(10, maxWidth - indentW);
-          const wrapped = rest ? doc.splitTextToSize(rest, available) : [''];
+          const indentW = Math.min(doc.getTextWidth(leadingSpaces), maxWidth * 0.3);
+          const wrapped = rest ? doc.splitTextToSize(rest, Math.max(10, maxWidth - indentW)) : [''];
           return { kind: 'indent' as const, indentW, wrapped };
         }
 
-        const wrapped = doc.splitTextToSize(line, maxWidth);
-        return { kind: 'plain' as const, wrapped };
+        return { kind: 'plain' as const, wrapped: doc.splitTextToSize(line, maxWidth) };
       };
 
+      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
       for (const raw of lines) {
-        if (raw.trim() === '') {
-          y = await ensureSpace(y, lineH);
-          y += lineH; // keep blank line
-          continue;
-        }
+        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH * 0.6; continue; }
 
         const w = wrapLine(raw);
-
         if (w.kind === 'prefix') {
           for (let i = 0; i < w.wrapped.length; i++) {
             y = await ensureSpace(y, lineH);
@@ -1064,64 +1115,79 @@ const Agreement = () => {
             doc.text(String(w.wrapped[i]), margin + w.prefixW, y);
             y += lineH;
           }
-          continue;
-        }
-
-        if (w.kind === 'indent') {
+        } else if (w.kind === 'indent') {
           for (const part of w.wrapped) {
             y = await ensureSpace(y, lineH);
             doc.text(String(part), margin + w.indentW, y);
             y += lineH;
           }
-          continue;
-        }
-
-        for (const part of w.wrapped) {
-          y = await ensureSpace(y, lineH);
-          doc.text(String(part), margin, y);
-          y += lineH;
+        } else {
+          for (const part of w.wrapped) {
+            y = await ensureSpace(y, lineH);
+            doc.text(String(part), margin, y);
+            y += lineH;
+          }
         }
       }
-
       return y;
     };
 
     await addHeader('Investment Agreement');
     let y = 30;
 
-    // Summary box
+    // Summary box — 2×2 grid layout
+    const colMid2 = pageWidth / 2;
+    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
     doc.setDrawColor(border.r, border.g, border.b);
     doc.setFillColor(muted.r, muted.g, muted.b);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 34, 2, 2, 'FD');
-
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, 'FD');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement Details', margin + 4, y + 8);
-
+    // Left column
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('First Party (Borrower)', margin + 4, y + 17);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-
-    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
-    doc.text(`First Party: ${agreementRow.first_party_name || ''}`, margin + 4, y + 16);
-    doc.text(`Second Party: ${fullName || user.email || ''}`, margin + 4, y + 22);
-    doc.text(
-      `Agreement Date: ${agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : ''}`,
-      margin + 4,
-      y + 28
-    );
-    doc.text(`Invested Amount: INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, margin + 4, y + 34);
-
-    y += 44;
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(agreementRow.first_party_name || '').slice(0, 38), margin + 4, y + 23);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Agreement Date', margin + 4, y + 31);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : '', margin + 4, y + 37);
+    // Right column
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Second Party (Lender)', colMid2 + 4, y + 17);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(fullName || user.email || '').slice(0, 38), colMid2 + 4, y + 23);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 100);
+    doc.text('Invested Amount', colMid2 + 4, y + 31);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, colMid2 + 4, y + 37);
+    y += 48;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text('Agreement', margin, y);
-    y += 7;
+    y += 8;
 
-    y = await renderAgreementBody(renderedAgreementText, y);
+    y = await renderAgreementBody(renderedAgreementTextForDisplay, y);
 
     y += 2;
     y = await ensureSpace(y, 55);
