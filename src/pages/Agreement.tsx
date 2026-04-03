@@ -70,37 +70,56 @@ const renderTemplate = (template: string, vars: Record<string, string>) => {
 };
 
 function normalizeAgreementTextForDisplay(input: string) {
-  // Prevent overflow + fix common copy/paste artifacts from PDF/Word.
-  // - Keep line breaks.
-  // - Collapse excessive spacing.
-  // - Repair "spaced letters" lines like "T h e L e n d e r".
-  // - Repair "spaced numbers" like "1 7,50,000".
-  const fixSpacedLetters = (line: string) => {
-    // Join sequences of single letters separated by spaces: "T h e" => "The"
-    return line.replace(/\b(?:[A-Za-z]\s){3,}[A-Za-z]\b/g, (m) => m.replace(/\s+/g, ""));
+  // Fix common PDF/Word copy-paste artifacts:
+  // - "T h e L e n d e r" => "The Lender"
+  // - "1 7,50,000" => "17,50,000"
+  // - superscript/unicode digits => normal digits
+  // - collapse excessive whitespace
+
+  const superscriptMap: Record<string, string> = {
+    '⁰':'0','¹':'1','²':'2','³':'3','⁴':'4',
+    '⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9',
   };
 
-  const fixSpacedNumbers = (line: string) => {
-    // Join sequences of digits separated by spaces: "1 7 5 0 0" => "17500"
-    let out = line.replace(/\b(?:\d\s){3,}\d\b/g, (m) => m.replace(/\s+/g, ""));
+  const fixSuperscripts = (line: string) =>
+    line.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => superscriptMap[c] ?? c);
 
-    // Also remove spaces between digits when separated by punctuation used in amounts
-    // e.g. "1 7,50,000" => "17,50,000"
-    out = out.replace(/(?<=\d)\s+(?=[\d,])/g, "");
-    out = out.replace(/(?<=[\d,])\s+(?=\d)/g, "");
-
+  const fixSpacedLetters = (line: string) => {
+    // Aggressively join single chars separated by spaces when 2+ pairs exist:
+    // "T h e" => "The", "T h e L e n d e r" => "The Lender"
+    // We repeatedly apply to handle long spaced sequences
+    let out = line;
+    // Pattern: at least 2 single-letter tokens separated by spaces, possibly followed by another
+    out = out.replace(/\b([A-Za-z]) (?=[A-Za-z] |[A-Za-z]\b)/g, '$1');
+    // Clean up any remaining single trailing letter that was part of the sequence
+    out = out.replace(/([A-Za-z]) ([A-Za-z])\b(?=\s|$)/g, (_m, a, b) => {
+      // Only join if the preceding context looks like joined chars (no vowel clusters)
+      return a + b;
+    });
+    // Second pass for anything missed
+    out = out.replace(/\b([A-Za-z]) ([A-Za-z]) ([A-Za-z])\b/g, '$1$2$3');
     return out;
   };
 
-  return String(input || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\t/g, " ")
-    .replace(/\u00A0/g, " ")
-    .split("\n")
-    .map((line) => line.replace(/\s{2,}/g, " ").trimEnd())
+  const fixSpacedNumbers = (line: string) => {
+    // Join digit sequences like "1 7 5 0 0" => "17500"
+    let out = line.replace(/\b(\d)( \d){2,}\b/g, (m) => m.replace(/ /g, ''));
+    // Remove spaces between digits and commas in amounts: "17 ,50,000" => "17,50,000"
+    out = out.replace(/(\d)\s+([,\d])/g, '$1$2');
+    out = out.replace(/([,\d])\s+(\d)/g, '$1$2');
+    return out;
+  };
+
+  return String(input || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\t/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .split('\n')
+    .map(fixSuperscripts)
+    .map((line) => line.replace(/\s{2,}/g, ' ').trimEnd())
     .map(fixSpacedLetters)
     .map(fixSpacedNumbers)
-    .join("\n");
+    .join('\n');
 }
 
 const userDetailsSchema = z.object({
@@ -681,55 +700,80 @@ const Agreement = () => {
     });
   };
 
-  const handleDownloadPdfWithQr = async () => {
+  // ─── Shared professional PDF generator ────────────────────────────────────
+  const buildProfessionalAgreementPdf = async (opts: {
+    withQr: boolean;
+    verifyQrDataUrl?: string | null;
+  }) => {
     if (!agreementRow || !user) {
       toast.error('Agreement data not available.');
       return;
     }
 
-    const fullName = (
+    // ── Resolved values with robust fallbacks ──────────────────────────────
+    const filled: any = agreementRow.filled_fields || {};
+    const firstParty = String(
+      agreementRow.first_party_name ||
+      filled.authorized_signatory_name ||
+      effectiveDynamicFields.first_party_name ||
+      settings?.agreement_first_party_name ||
+      'SJA Foundation'
+    ).trim();
+
+    const secondParty = String(
       agreementRow.second_party_name ||
-      (agreementRow.filled_fields as any)?.full_name ||
-      user?.email ||
+      filled.full_name ||
+      user.email ||
       'Investor'
     ).trim();
 
-    // Try to get a public verification QR (non-fatal if it fails)
-    let verifyQrDataUrl: string | null = null;
-    try {
-      const payload = buildPublicPayload({
-        referenceNumber: String(agreementRow.reference_number || ''),
-        firstPartyName: String(agreementRow.first_party_name || ''),
-        secondPartyName: String(fullName),
-        investmentDate: String(agreementRow.investment_date || ''),
-        investedAmount: Number(agreementRow.invested_amount || 0),
-        status: String(agreementRow.status || ''),
-        documentHash: String(agreementRow.document_hash || ''),
-      });
-      const { data: token, error: tokenErr } = await supabase.rpc('upsert_agreement_public_view', {
-        p_agreement_id: agreementRow.id,
-        p_payload: payload,
-      });
-      if (!tokenErr && token) {
-        const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
-        verifyQrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 256, margin: 1 });
-      }
-    } catch {
-      // proceed without verification QR
-    }
+    const investedAmount = Number(
+      agreementRow.invested_amount ??
+      filled.investment_amount ??
+      effectiveDynamicFields.invested_amount ??
+      0
+    );
 
-    // Generate content-based PDF using actual agreement text
-    const muted = { r: 241, g: 245, b: 249 };
-    const border = { r: 226, g: 232, b: 240 };
+    const investedAmountStr = investedAmount > 0
+      ? `₹ ${investedAmount.toLocaleString('en-IN')}`
+      : '—';
 
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    doc.setFont('helvetica', 'normal');
+    const investedAmountWords = String(
+      filled.invested_amount_words ||
+      (investedAmount > 0 ? numberToWordsIN(investedAmount) : '')
+    ).trim();
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
+    const agreementDateStr = agreementRow.investment_date
+      ? format(new Date(agreementRow.investment_date), 'PPP')
+      : (effectiveDynamicFields.investment_date
+          ? format(new Date(effectiveDynamicFields.investment_date), 'PPP')
+          : format(new Date(), 'PPP'));
 
-    const loadImg = async (url: string) => {
+    const signedAtStr = agreementRow.signed_at
+      ? format(new Date(agreementRow.signed_at), 'PPP, p')
+      : format(new Date(), 'PPP, p');
+
+    const refNum = String(agreementRow.reference_number || agreementRow.id || '').slice(0, 32);
+
+    // ── Colours ────────────────────────────────────────────────────────────
+    const NAVY   = [13,  38,  76]  as const; // header bg
+    const GOLD   = [176, 141, 45]  as const; // accent line
+    const WHITE  = [255, 255, 255] as const;
+    const SLATE  = [30,  41,  59]  as const; // primary text
+    const MUTED  = [100, 116, 139] as const; // muted text
+    const CARD   = [240, 245, 252] as const; // detail card bg
+    const BORDER = [210, 220, 235] as const; // borders
+    const GREEN  = [22,  101, 52]  as const; // signed stamp text
+
+    // ── Doc setup ─────────────────────────────────────────────────────────
+    const doc  = new jsPDF({ unit: 'mm', format: 'a4' });
+    const PW   = doc.internal.pageSize.getWidth();   // 210
+    const PH   = doc.internal.pageSize.getHeight();  // 297
+    const M    = 15;   // left/right margin
+    const CW   = PW - M * 2; // content width
+    const FOOTER_H = 14;
+
+    const loadImg = async (url: string): Promise<string | null> => {
       try {
         const res = await fetch(url, { mode: 'cors' });
         if (!res.ok) return null;
@@ -740,601 +784,415 @@ const Agreement = () => {
     const imgFmt = (d: string): 'PNG' | 'JPEG' =>
       d.startsWith('data:image/jpeg') || d.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
 
-    const addHeader = async (title: string) => {
-      const logoDataUrl = await loadImg(brandLogoUrl);
-      if (logoDataUrl) {
-        try { doc.addImage(logoDataUrl, imgFmt(logoDataUrl), margin, 6, 16, 16); } catch { /* ignore */ }
+    // ── Header band ───────────────────────────────────────────────────────
+    const HEADER_H = 28;
+    const drawHeader = async () => {
+      // Navy background
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, PW, HEADER_H, 'F');
+
+      // Gold accent strip
+      doc.setFillColor(...GOLD);
+      doc.rect(0, HEADER_H, PW, 1.2, 'F');
+
+      // Logo
+      const logoData = await loadImg(brandLogoUrl);
+      if (logoData) {
+        try { doc.addImage(logoData, imgFmt(logoData), M, 4, 18, 18); } catch { /**/ }
       }
+
+      // Title
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(17, 24, 39);
-      doc.text(title, margin + 20, 16);
+      doc.setFontSize(15);
+      doc.setTextColor(...WHITE);
+      doc.text('INVESTMENT AGREEMENT', M + 22, 13);
+
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Digitally signed agreement', margin + 20, 21);
-      doc.setDrawColor(border.r, border.g, border.b);
-      doc.line(margin, 24, pageWidth - margin, 24);
-      doc.setTextColor(17, 24, 39);
+      doc.setFontSize(8.5);
+      doc.setTextColor(180, 200, 230);
+      doc.text('Digitally Signed Legal Document', M + 22, 20);
+
+      // Reference top-right
+      if (refNum) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(160, 185, 215);
+        doc.text(`Ref: ${refNum}`, PW - M, 13, { align: 'right' });
+      }
+
+      // Reset
+      doc.setTextColor(...SLATE);
     };
 
-    const addFooter = (pageNum: number, totalPages: number) => {
+    // ── Footer ────────────────────────────────────────────────────────────
+    const drawFooter = (pageNum: number, totalPages: number) => {
+      const fy = PH - FOOTER_H + 4;
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.3);
+      doc.line(M, PH - FOOTER_H, PW - M, PH - FOOTER_H);
+
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
-      doc.text(`Generated: ${format(new Date(), 'PPP p')}`, margin, pageHeight - 8);
-      doc.setTextColor(17, 24, 39);
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(`Generated: ${format(new Date(), 'PPP, p')}`, M, fy);
+      doc.text(`Page ${pageNum} of ${totalPages}`, PW / 2, fy, { align: 'center' });
+      doc.text('SJA Foundation — Confidential', PW - M, fy, { align: 'right' });
     };
 
-    const ensureSpace = async (y: number, h: number) => {
-      if (y + h <= pageHeight - 18) return y;
+    // ── New page helper ───────────────────────────────────────────────────
+    const ensureSpace = async (y: number, h: number): Promise<number> => {
+      if (y + h <= PH - FOOTER_H - 4) return y;
       doc.addPage();
-      await addHeader('Investment Agreement');
-      return 30;
+      await drawHeader();
+      return HEADER_H + 6;
     };
 
-    const renderBody = async (text: string, startY: number) => {
-      let y = startY;
-      const maxWidth = pageWidth - margin * 2;
-      const lineH = 5.2;
-      doc.setFont('helvetica', 'normal');
+    // ── Section title helper ──────────────────────────────────────────────
+    const sectionTitle = (label: string, y: number) => {
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(...NAVY);
+      doc.text(label.toUpperCase(), M, y);
+      doc.setDrawColor(...GOLD);
+      doc.setLineWidth(0.6);
+      doc.line(M, y + 1.5, M + doc.getTextWidth(label.toUpperCase()) + 2, y + 1.5);
+      doc.setLineWidth(0.3);
+      doc.setDrawColor(...BORDER);
+      return y + 7;
+    };
 
-      const wrapLine = (raw: string) => {
-        const line = raw.replace(/\t/g, '    ');
-        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*[).])\s+/);
-        const leadingSpaces = line.match(/^\s+/)?.[0] ?? '';
-        if (prefixMatch) {
-          const prefix = prefixMatch[0];
-          const rest = line.slice(prefix.length);
-          const prefixW = doc.getTextWidth(prefix);
-          const wrapped = doc.splitTextToSize(rest, Math.max(10, maxWidth - prefixW));
-          return { kind: 'prefix' as const, prefix, prefixW, wrapped };
-        }
-        if (leadingSpaces) {
-          const rest = line.slice(leadingSpaces.length);
-          const indentW = Math.min(doc.getTextWidth(leadingSpaces), maxWidth * 0.3);
-          const wrapped = rest ? doc.splitTextToSize(rest, Math.max(10, maxWidth - indentW)) : [''];
-          return { kind: 'indent' as const, indentW, wrapped };
-        }
-        return { kind: 'plain' as const, wrapped: doc.splitTextToSize(line, maxWidth) };
-      };
+    // ── Agreement body renderer ───────────────────────────────────────────
+    const renderBody = async (text: string, startY: number): Promise<number> => {
+      let y = startY;
+      const LH = 5.4; // line height mm
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...SLATE);
 
-      const normalizedLines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-      for (const raw of normalizedLines) {
-        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH * 0.6; continue; }
-        const w = wrapLine(raw);
-        if (w.kind === 'prefix') {
-          for (let i = 0; i < w.wrapped.length; i++) {
-            y = await ensureSpace(y, lineH);
-            if (i === 0) doc.text(w.prefix, margin, y);
-            doc.text(String(w.wrapped[i]), margin + w.prefixW, y);
-            y += lineH;
+      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+
+      for (const raw of lines) {
+        const trimmed = raw.trim();
+
+        // Blank line
+        if (!trimmed) {
+          y = await ensureSpace(y, LH);
+          y += LH * 0.5;
+          continue;
+        }
+
+        // Section heading: all-caps or numbered like "1) Nature"
+        const isHeading = /^(\d+[\).]?\s+[A-Z]|[A-Z][A-Z\s]{5,})/.test(trimmed);
+        if (isHeading) {
+          y = await ensureSpace(y, LH + 4);
+          y += 2;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9.5);
+          doc.setTextColor(...NAVY);
+          const wrapped = doc.splitTextToSize(trimmed, CW);
+          for (const part of wrapped) {
+            y = await ensureSpace(y, LH);
+            doc.text(String(part), M, y);
+            y += LH;
           }
-        } else if (w.kind === 'indent') {
-          for (const part of w.wrapped) {
-            y = await ensureSpace(y, lineH);
-            doc.text(String(part), margin + w.indentW, y);
-            y += lineH;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9.5);
+          doc.setTextColor(...SLATE);
+          continue;
+        }
+
+        // Sub-clause: starts with number+dot like "1.1", "2.3A"
+        const subMatch = trimmed.match(/^(\d+\.\d+[A-Za-z]?\s+)(.*)/s);
+        if (subMatch) {
+          const prefix   = subMatch[1];
+          const rest     = subMatch[2];
+          const prefixW  = doc.getTextWidth(prefix);
+          const wrapped  = doc.splitTextToSize(rest, CW - prefixW);
+          for (let i = 0; i < wrapped.length; i++) {
+            y = await ensureSpace(y, LH);
+            if (i === 0) {
+              doc.setFont('helvetica', 'bold');
+              doc.text(prefix, M, y);
+              doc.setFont('helvetica', 'normal');
+            }
+            doc.text(String(wrapped[i]), M + prefixW, y);
+            y += LH;
           }
-        } else {
-          for (const part of w.wrapped) {
-            y = await ensureSpace(y, lineH);
-            doc.text(String(part), margin, y);
-            y += lineH;
+          continue;
+        }
+
+        // Bullet / list item
+        const bulletMatch = trimmed.match(/^([•\-\*]\s+)(.*)/s);
+        if (bulletMatch) {
+          const bullet  = '• ';
+          const rest    = bulletMatch[2];
+          const bW      = doc.getTextWidth(bullet);
+          const wrapped = doc.splitTextToSize(rest, CW - bW - 4);
+          for (let i = 0; i < wrapped.length; i++) {
+            y = await ensureSpace(y, LH);
+            if (i === 0) doc.text(bullet, M + 4, y);
+            doc.text(String(wrapped[i]), M + 4 + bW, y);
+            y += LH;
           }
+          continue;
+        }
+
+        // Plain paragraph
+        const wrapped = doc.splitTextToSize(trimmed, CW);
+        for (const part of wrapped) {
+          y = await ensureSpace(y, LH);
+          doc.text(String(part), M, y);
+          y += LH;
         }
       }
       return y;
     };
 
-    await addHeader('Investment Agreement');
-    let y = 30;
+    // ════════════════════════════════════════════════════════════════════
+    // PAGE 1 — Header + Details card + Agreement body
+    // ════════════════════════════════════════════════════════════════════
+    await drawHeader();
+    let y = HEADER_H + 7;
 
-    // Details summary box — 2×2 grid layout
-    const colMid = pageWidth / 2;
-    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.setFillColor(muted.r, muted.g, muted.b);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Agreement Details', margin + 4, y + 8);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    // Left column
-    doc.text('First Party (Borrower)', margin + 4, y + 17);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(String(agreementRow.first_party_name || '').slice(0, 38), margin + 4, y + 23);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Agreement Date', margin + 4, y + 31);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : '', margin + 4, y + 37);
-    // Right column
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Second Party (Lender)', colMid + 4, y + 17);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(String(fullName).slice(0, 38), colMid + 4, y + 23);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Invested Amount', colMid + 4, y + 31);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(`INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, colMid + 4, y + 37);
-    y += 48;
+    // ── Detail card ───────────────────────────────────────────────────────
+    const CARD_H = 52;
+    doc.setDrawColor(...BORDER);
+    doc.setFillColor(...CARD);
+    doc.roundedRect(M, y, CW, CARD_H, 3, 3, 'FD');
 
+    // Left border accent
+    doc.setFillColor(...NAVY);
+    doc.roundedRect(M, y, 2, CARD_H, 1, 1, 'F');
+
+    // Card header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text('AGREEMENT DETAILS', M + 6, y + 7);
+
+    // Divider
+    doc.setDrawColor(...BORDER);
+    doc.line(M + 4, y + 10, M + CW - 4, y + 10);
+
+    // 2×2 grid
+    const col1x = M + 6;
+    const col2x = M + CW / 2 + 4;
+    const row1y = y + 18;
+    const row2y = y + 38;
+
+    const cardLabel = (text: string, x: number, cy: number) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(text, x, cy);
+    };
+    const cardValue = (text: string, x: number, cy: number, maxW = CW / 2 - 10) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...SLATE);
+      const safe = String(text || '—').slice(0, 50);
+      doc.text(safe, x, cy, { maxWidth: maxW });
+    };
+
+    cardLabel('First Party (Borrower)',  col1x, row1y - 4);
+    cardValue(firstParty,                col1x, row1y + 3);
+    cardLabel('Agreement Date',          col1x, row2y - 4);
+    cardValue(agreementDateStr,          col1x, row2y + 3);
+
+    cardLabel('Second Party (Lender)',   col2x, row1y - 4);
+    cardValue(secondParty,              col2x, row1y + 3);
+    cardLabel('Invested Amount',         col2x, row2y - 4);
+
+    // Amount in large coloured font
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Agreement', margin, y);
+    doc.setTextColor(13, 80, 45);
+    doc.text(investedAmountStr, col2x, row2y + 3);
+    if (investedAmountWords) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...MUTED);
+      doc.text(`(${investedAmountWords})`, col2x, row2y + 9, { maxWidth: CW / 2 - 8 });
+    }
+
+    y += CARD_H + 8;
+
+    // ── Reference + Signed stamp ──────────────────────────────────────────
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    if (refNum) doc.text(`Reference: ${refNum}`, M, y);
+    // "SIGNED" watermark badge
+    doc.setDrawColor(...GREEN);
+    doc.setFillColor(240, 255, 244);
+    doc.roundedRect(PW - M - 38, y - 5, 38, 8, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GREEN);
+    doc.text('✓ DIGITALLY SIGNED', PW - M - 19, y, { align: 'center' });
     y += 8;
 
+    // ── Agreement body ────────────────────────────────────────────────────
+    y = sectionTitle('Agreement', y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...SLATE);
     y = await renderBody(renderedAgreementTextForDisplay, y);
 
-    y += 2;
-    y = await ensureSpace(y, 55);
+    // ── Signature section ─────────────────────────────────────────────────
+    y = await ensureSpace(y + 4, 60);
+    y = sectionTitle('Investor Signature', y);
 
-    // Signature
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Investor Signature', margin, y);
-    y += 6;
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, 'FD');
+    doc.setDrawColor(...BORDER);
+    doc.setFillColor(...WHITE);
+    doc.roundedRect(M, y, CW, 48, 3, 3, 'FD');
+
+    // Signed-by row
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`Signed at: ${signedAt}`, margin + 4, y + 8);
-    try {
-      doc.addImage(agreementRow.signature_data_url, imgFmt(agreementRow.signature_data_url), margin + 4, y + 12, 70, 24);
-    } catch {
-      doc.setTextColor(148, 163, 184);
-      doc.text('(Signature image not available)', margin + 4, y + 22);
-    }
-    y += 48;
-
-    // Advocate stamp & signature section
-    y = await ensureSpace(y, 80);
-    y += 4;
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 7;
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.text('Lender (Second Party):', M + 5, y + 8);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Advocate Verification', margin, y);
-    y += 8;
+    doc.setFontSize(9);
+    doc.setTextColor(...SLATE);
+    doc.text(secondParty, M + 48, y + 8);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.text('Date & Time:', M + 5, y + 15);
+    doc.setTextColor(...SLATE);
+    doc.text(signedAtStr, M + 30, y + 15);
+
+    // Signature image
+    try {
+      const sigFmt = agreementRow.signature_data_url?.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG';
+      doc.addImage(agreementRow.signature_data_url, sigFmt, M + 5, y + 19, 80, 24);
+    } catch {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 200);
+      doc.text('(Signature image not available)', M + 5, y + 32);
+    }
+
+    // Signature line
+    doc.setDrawColor(...BORDER);
+    doc.line(M + 5, y + 44, M + 90, y + 44);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text('Signature of Lender', M + 5, y + 47.5);
+
+    y += 54;
+
+    // ── Advocate verification ─────────────────────────────────────────────
+    y = await ensureSpace(y, 60);
+    y = sectionTitle('Advocate Verification', y);
     try {
       const stampBase = window.location.origin;
-      const imgW = 40;
-      const imgH = 40;
-      const gap = 10;
-      const [circularData, textData, sealData, signData] = await Promise.all([
+      const IW = 38; const IH = 38; const gap = 8;
+      const [c1, c2, c3, c4] = await Promise.all([
         removeWhiteBackground(`${stampBase}/stamp2.jpeg`),
         removeWhiteBackground(`${stampBase}/stamp1.jpeg`),
         removeWhiteBackground(`${stampBase}/seal.png`),
         removeWhiteBackground(`${stampBase}/advocate-sign.jpg`),
       ]);
-      let sx = margin;
-      if (circularData) { doc.addImage(circularData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
-      if (textData) { doc.addImage(textData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
-      if (sealData) {
-        doc.addImage(sealData, 'PNG', sx, y, imgW, imgH);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(180, 0, 0);
-        doc.text('Adv. Swapnil D. Ingale', sx + imgW / 2, y + imgH / 2 - 3, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(5.5);
-        doc.text('(B.A., LL.B.)', sx + imgW / 2, y + imgH / 2 + 3, { align: 'center' });
-        doc.text('Reg. No. MAH/2433/2024', sx + imgW / 2, y + imgH / 2 + 9, { align: 'center' });
-        sx += imgW + gap;
+      let sx = M;
+      if (c1) { doc.addImage(c1, 'PNG', sx, y, IW, IH); sx += IW + gap; }
+      if (c2) { doc.addImage(c2, 'PNG', sx, y, IW, IH); sx += IW + gap; }
+      if (c3) {
+        doc.addImage(c3, 'PNG', sx, y, IW, IH);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(170, 0, 0);
+        doc.text('Adv. Swapnil D. Ingale', sx + IW / 2, y + IH / 2 - 2, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5);
+        doc.text('(B.A., LL.B.)', sx + IW / 2, y + IH / 2 + 4, { align: 'center' });
+        doc.text('Reg. MAH/2433/2024', sx + IW / 2, y + IH / 2 + 9, { align: 'center' });
+        sx += IW + gap;
       }
-      if (signData) { doc.addImage(signData, 'PNG', sx, y, imgW * 1.5, imgH); }
-      y += imgH + 6;
-    } catch { /* non-fatal */ }
+      if (c4) doc.addImage(c4, 'PNG', sx, y, IW * 1.4, IH);
+      y += IH + 6;
+    } catch { /**/ }
 
-    // Verification QR code
-    const qrUrl = verifyQrDataUrl
-      ? null
-      : `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`;
-    const finalQrDataUrl = verifyQrDataUrl || (qrUrl ? await generateQrPngDataUrl({ value: qrUrl, size: 200, level: 'M' }).catch(() => null) : null);
+    // ── QR code ───────────────────────────────────────────────────────────
+    if (opts.withQr) {
+      const qrVal = opts.verifyQrDataUrl
+        ? null
+        : `${window.location.origin}/verify-agreement/${agreementRow.reference_number || agreementRow.id}`;
+      const finalQr = opts.verifyQrDataUrl
+        || (qrVal ? await generateQrPngDataUrl({ value: qrVal, size: 256, level: 'H' }).catch(() => null) : null);
 
-    if (finalQrDataUrl) {
-      y = await ensureSpace(y, 52);
-      y += 4;
-      doc.setDrawColor(border.r, border.g, border.b);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 6;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 41, 59);
-      doc.text('Agreement QR Code', margin, y);
-      y += 6;
-      try { doc.addImage(finalQrDataUrl, 'PNG', margin, y, 36, 36); } catch { /* ignore */ }
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(verifyQrDataUrl ? 'Scan to verify this agreement' : 'Scan to view this agreement', margin + 40, y + 8);
-      doc.text(`QR Date: ${format(new Date(), 'PPP')}`, margin + 40, y + 16);
-      y += 40;
+      if (finalQr) {
+        y = await ensureSpace(y + 4, 56);
+        y = sectionTitle('Verification QR Code', y);
+
+        // QR box
+        doc.setFillColor(...CARD);
+        doc.setDrawColor(...BORDER);
+        doc.roundedRect(M, y, CW, 48, 3, 3, 'FD');
+        try { doc.addImage(finalQr, 'PNG', M + 5, y + 5, 38, 38); } catch { /**/ }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...SLATE);
+        doc.text('Scan to verify this agreement', M + 48, y + 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        doc.text(`QR generated: ${format(new Date(), 'PPP')}`, M + 48, y + 20);
+        doc.text('This QR links to the public agreement record', M + 48, y + 28);
+        doc.text('and confirms authenticity of this document.', M + 48, y + 35);
+        y += 54;
+      }
     }
 
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) { doc.setPage(i); addFooter(i, totalPages); }
+    // ── Stamp all footers ─────────────────────────────────────────────────
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) { doc.setPage(i); drawFooter(i, total); }
 
-    doc.save(`Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
+    const fname = `Investment_Agreement_${secondParty.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+    doc.save(fname);
+  };
+  // ─── End shared PDF builder ────────────────────────────────────────────
+
+  const handleDownloadPdfWithQr = async () => {
+    if (!agreementRow || !user) { toast.error('Agreement data not available.'); return; }
+
+    let verifyQrDataUrl: string | null = null;
+    try {
+      const filled: any = agreementRow.filled_fields || {};
+      const payload = buildPublicPayload({
+        referenceNumber: String(agreementRow.reference_number || ''),
+        firstPartyName:  String(agreementRow.first_party_name || filled.authorized_signatory_name || effectiveDynamicFields.first_party_name || 'SJA Foundation'),
+        secondPartyName: String(agreementRow.second_party_name || filled.full_name || user.email || ''),
+        investmentDate:  String(agreementRow.investment_date || effectiveDynamicFields.investment_date || ''),
+        investedAmount:  Number(agreementRow.invested_amount ?? effectiveDynamicFields.invested_amount ?? 0),
+        status:          String(agreementRow.status || ''),
+        documentHash:    String(agreementRow.document_hash || ''),
+      });
+      const { data: token, error: tokenErr } = await supabase.rpc('upsert_agreement_public_view', {
+        p_agreement_id: agreementRow.id,
+        p_payload: payload,
+      });
+      if (!tokenErr && token) {
+        const verifyUrl = `${window.location.origin}/verify-agreement/${token}`;
+        verifyQrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 300, margin: 2 });
+      }
+    } catch { /* non-fatal */ }
+
+    await buildProfessionalAgreementPdf({ withQr: true, verifyQrDataUrl });
   };
 
   const handleDownloadPdf = async () => {
-    if (!agreementRow || !user) {
-      toast.error('Agreement data not available.');
-      return;
-    }
+    if (!agreementRow || !user) { toast.error('Agreement data not available.'); return; }
 
-    const fullName = (
-      agreementRow.second_party_name ||
-      (agreementRow.filled_fields as any)?.full_name ||
-      user?.email ||
-      'Investor'
-    ).trim();
-
-    // Use admin-finalized PDF if available
+    // If admin has finalized a PDF, open that directly
     if (agreementRow.pdf_path) {
       const url = await createAgreementPdfSignedUrl(agreementRow.pdf_path);
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    // Generate content-based PDF from actual agreement text
-    const muted = { r: 241, g: 245, b: 249 }; // slate-100
-    const border = { r: 226, g: 232, b: 240 }; // slate-200
-
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    doc.setFont('helvetica', 'normal');
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
-
-    const loadImageAsDataUrl = async (url: string) => {
-      try {
-        const res = await fetch(url, { mode: 'cors' });
-        if (!res.ok) return null;
-        const blob = await res.blob();
-        return await blobToDataUrl(blob);
-      } catch {
-        return null;
-      }
-    };
-
-    const imageFormatFromDataUrl = (dataUrl: string): 'PNG' | 'JPEG' => {
-      if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
-      return 'PNG';
-    };
-
-    const addHeader = async (pageTitle: string) => {
-      const logoDataUrl = await loadImageAsDataUrl(brandLogoUrl);
-      if (logoDataUrl) {
-        try {
-          doc.addImage(logoDataUrl, imageFormatFromDataUrl(logoDataUrl), margin, 6, 16, 16);
-        } catch {
-          // ignore
-        }
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(17, 24, 39);
-      doc.text(pageTitle, margin + 20, 16);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Digitally signed agreement', margin + 20, 21);
-
-      doc.setDrawColor(border.r, border.g, border.b);
-      doc.line(margin, 24, pageWidth - margin, 24);
-      doc.setTextColor(17, 24, 39);
-    };
-
-    const addFooter = (pageNum: number, totalPages: number) => {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
-      doc.text(`Generated: ${format(new Date(), 'PPP p')}`, margin, pageHeight - 8);
-      doc.setTextColor(17, 24, 39);
-    };
-
-    const ensureSpace = async (y: number, requiredHeight: number) => {
-      if (y + requiredHeight <= pageHeight - 18) return y;
-      doc.addPage();
-      await addHeader('Investment Agreement');
-      return 30;
-    };
-
-    const renderAgreementBody = async (text: string, startY: number) => {
-      let y = startY;
-      const maxWidth = pageWidth - margin * 2;
-      const lineH = 5.2;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-
-      const wrapLine = (raw: string) => {
-        const line = raw.replace(/\t/g, '    ');
-        const prefixMatch = line.match(/^\s*(?:•|-|\d+(?:\.\d+)*[).])\s+/);
-        const leadingSpaces = line.match(/^\s+/)?.[0] ?? '';
-
-        if (prefixMatch) {
-          const prefix = prefixMatch[0];
-          const rest = line.slice(prefix.length);
-          const prefixW = doc.getTextWidth(prefix);
-          const wrapped = doc.splitTextToSize(rest, Math.max(10, maxWidth - prefixW));
-          return { kind: 'prefix' as const, prefix, prefixW, wrapped };
-        }
-
-        if (leadingSpaces) {
-          const rest = line.slice(leadingSpaces.length);
-          const indentW = Math.min(doc.getTextWidth(leadingSpaces), maxWidth * 0.3);
-          const wrapped = rest ? doc.splitTextToSize(rest, Math.max(10, maxWidth - indentW)) : [''];
-          return { kind: 'indent' as const, indentW, wrapped };
-        }
-
-        return { kind: 'plain' as const, wrapped: doc.splitTextToSize(line, maxWidth) };
-      };
-
-      const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
-      for (const raw of lines) {
-        if (raw.trim() === '') { y = await ensureSpace(y, lineH); y += lineH * 0.6; continue; }
-
-        const w = wrapLine(raw);
-        if (w.kind === 'prefix') {
-          for (let i = 0; i < w.wrapped.length; i++) {
-            y = await ensureSpace(y, lineH);
-            if (i === 0) doc.text(w.prefix, margin, y);
-            doc.text(String(w.wrapped[i]), margin + w.prefixW, y);
-            y += lineH;
-          }
-        } else if (w.kind === 'indent') {
-          for (const part of w.wrapped) {
-            y = await ensureSpace(y, lineH);
-            doc.text(String(part), margin + w.indentW, y);
-            y += lineH;
-          }
-        } else {
-          for (const part of w.wrapped) {
-            y = await ensureSpace(y, lineH);
-            doc.text(String(part), margin, y);
-            y += lineH;
-          }
-        }
-      }
-      return y;
-    };
-
-    await addHeader('Investment Agreement');
-    let y = 30;
-
-    // Summary box — 2×2 grid layout
-    const colMid2 = pageWidth / 2;
-    const signedAt = agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP p') : 'N/A';
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.setFillColor(muted.r, muted.g, muted.b);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Agreement Details', margin + 4, y + 8);
-    // Left column
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('First Party (Borrower)', margin + 4, y + 17);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text(String(agreementRow.first_party_name || '').slice(0, 38), margin + 4, y + 23);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Agreement Date', margin + 4, y + 31);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text(agreementRow.investment_date ? format(new Date(agreementRow.investment_date), 'PPP') : '', margin + 4, y + 37);
-    // Right column
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Second Party (Lender)', colMid2 + 4, y + 17);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text(String(fullName || user.email || '').slice(0, 38), colMid2 + 4, y + 23);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 100);
-    doc.text('Invested Amount', colMid2 + 4, y + 31);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`INR ${(agreementRow.invested_amount ?? 0).toLocaleString('en-IN')}`, colMid2 + 4, y + 37);
-    y += 48;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Agreement', margin, y);
-    y += 8;
-
-    y = await renderAgreementBody(renderedAgreementTextForDisplay, y);
-
-    y += 2;
-    y = await ensureSpace(y, 55);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Investor Signature', margin, y);
-    y += 6;
-
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`Signed at: ${signedAt}`, margin + 4, y + 8);
-
-    try {
-      doc.addImage(
-        agreementRow.signature_data_url,
-        agreementRow.signature_data_url?.startsWith('data:image/jpeg') || agreementRow.signature_data_url?.startsWith('data:image/jpg')
-          ? 'JPEG'
-          : 'PNG',
-        margin + 4,
-        y + 12,
-        70,
-        24
-      );
-    } catch {
-      doc.setTextColor(148, 163, 184);
-      doc.text('(Signature image not available)', margin + 4, y + 22);
-      doc.setTextColor(51, 65, 85);
-    }
-
-    y += 48;
-
-    // Advocate stamp & signature section
-    y = await ensureSpace(y, 80);
-    y += 4;
-    doc.setDrawColor(border.r, border.g, border.b);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 7;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Advocate Verification', margin, y);
-    y += 8;
-    try {
-      const stampBase = window.location.origin;
-      const imgW = 40;
-      const imgH = 40;
-      const gap = 10;
-      const [circularData, textData, sealData, signData] = await Promise.all([
-        removeWhiteBackground(`${stampBase}/stamp2.jpeg`),
-        removeWhiteBackground(`${stampBase}/stamp1.jpeg`),
-        removeWhiteBackground(`${stampBase}/seal.png`),
-        removeWhiteBackground(`${stampBase}/advocate-sign.jpg`),
-      ]);
-      let sx = margin;
-      if (circularData) { doc.addImage(circularData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
-      if (textData) { doc.addImage(textData, 'PNG', sx, y, imgW, imgH); sx += imgW + gap; }
-      if (sealData) {
-        doc.addImage(sealData, 'PNG', sx, y, imgW, imgH);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(180, 0, 0);
-        doc.text('Adv. Swapnil D. Ingale', sx + imgW / 2, y + imgH / 2 - 3, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(5.5);
-        doc.text('(B.A., LL.B.)', sx + imgW / 2, y + imgH / 2 + 3, { align: 'center' });
-        doc.text('Reg. No. MAH/2433/2024', sx + imgW / 2, y + imgH / 2 + 9, { align: 'center' });
-        sx += imgW + gap;
-      }
-      if (signData) { doc.addImage(signData, 'PNG', sx, y, imgW * 1.5, imgH); }
-      y += imgH + 6;
-    } catch { /* non-fatal */ }
-
-    // QR Code section at the bottom of the agreement
-    const qrPageUrl = agreementRow.reference_number || agreementRow.id
-      ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
-      : '';
-
-    if (qrPageUrl) {
-      y = await ensureSpace(y, 52);
-      y += 4;
-
-      doc.setDrawColor(border.r, border.g, border.b);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 6;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 41, 59);
-      doc.text('Agreement QR Code', margin, y);
-      y += 6;
-
-      try {
-        const qrImgDataUrl = await generateQrPngDataUrl({ value: qrPageUrl, size: 200, level: 'M' });
-        doc.addImage(qrImgDataUrl, 'PNG', margin, y, 36, 36);
-      } catch {
-        // non-fatal
-      }
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(100, 116, 139);
-      const qrLabelX = margin + 40;
-      doc.text(
-        `QR Date: ${agreementRow.signed_at ? format(new Date(agreementRow.signed_at), 'PPP') : format(new Date(), 'PPP')}`,
-        qrLabelX,
-        y + 8
-      );
-      doc.text('Scan to view and verify this agreement', qrLabelX, y + 16);
-      y += 40;
-    }
-    y += 44;
-
-    // QR Code section
-    const qrUrl = `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`;
-    try {
-      const qrDataUrl = await generateQrPngDataUrl({ value: qrUrl, size: 128, level: 'M' });
-      y = await ensureSpace(y, 50);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(30, 41, 59);
-      doc.text('Agreement QR Code', margin, y);
-      y += 6;
-      doc.addImage(qrDataUrl, 'PNG', margin, y, 36, 36);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(qrUrl, margin + 40, y + 8, { maxWidth: pageWidth - margin * 2 - 44 });
-      y += 40;
-    } catch {
-      // Skip QR code if generation fails
-    }
-
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      addFooter(i, totalPages);
-    }
-
-    doc.save(`Investment_Agreement_${user.id.substring(0, 8)}.pdf`);
+    await buildProfessionalAgreementPdf({ withQr: false });
   };
 
   const downloadUserPdf = async () => {
