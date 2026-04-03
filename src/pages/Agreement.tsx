@@ -824,6 +824,33 @@ const Agreement = () => {
     }
     y += 48;
 
+    // Advocate stamp & signature section
+    y = await ensureSpace(y, 72);
+    y += 4;
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Advocate Verification', margin, y);
+    y += 8;
+    try {
+      const stampBase = window.location.origin;
+      const imgW = 42;
+      const imgH = 42;
+      const gap = 8;
+      const [circularData, textData, signData] = await Promise.all([
+        loadImg(`${stampBase}/stamp2.jpeg`),
+        loadImg(`${stampBase}/stamp1.jpeg`),
+        loadImg(`${stampBase}/advocate-sign.jpg`),
+      ]);
+      if (circularData) doc.addImage(circularData, 'JPEG', margin, y, imgW, imgH);
+      if (textData) doc.addImage(textData, 'JPEG', margin + imgW + gap, y, imgW, imgH);
+      if (signData) doc.addImage(signData, 'JPEG', margin + (imgW + gap) * 2, y, imgW * 1.6, imgH);
+      y += imgH + 8;
+    } catch { /* non-fatal */ }
+
     // Verification QR code
     const qrUrl = verifyQrDataUrl
       ? null
@@ -1094,6 +1121,33 @@ const Agreement = () => {
     }
 
     y += 48;
+
+    // Advocate stamp & signature section
+    y = await ensureSpace(y, 72);
+    y += 4;
+    doc.setDrawColor(border.r, border.g, border.b);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Advocate Verification', margin, y);
+    y += 8;
+    try {
+      const stampBase = window.location.origin;
+      const imgW = 42;
+      const imgH = 42;
+      const gap = 8;
+      const [circularData, textData, signData] = await Promise.all([
+        loadImageAsDataUrl(`${stampBase}/stamp2.jpeg`),
+        loadImageAsDataUrl(`${stampBase}/stamp1.jpeg`),
+        loadImageAsDataUrl(`${stampBase}/advocate-sign.jpg`),
+      ]);
+      if (circularData) doc.addImage(circularData, 'JPEG', margin, y, imgW, imgH);
+      if (textData) doc.addImage(textData, 'JPEG', margin + imgW + gap, y, imgW, imgH);
+      if (signData) doc.addImage(signData, 'JPEG', margin + (imgW + gap) * 2, y, imgW * 1.6, imgH);
+      y += imgH + 8;
+    } catch { /* non-fatal */ }
 
     // QR Code section at the bottom of the agreement
     const qrPageUrl = agreementRow.reference_number || agreementRow.id
