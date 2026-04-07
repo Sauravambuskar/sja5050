@@ -1334,18 +1334,6 @@ const Agreement = () => {
                 <Download className="mr-2 h-4 w-4" />
                 Download PDF (with QR)
               </Button>
-              {agreementRow.user_pdf_path && (
-                <Button variant="outline" onClick={downloadUserPdf}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download User PDF
-                </Button>
-              )}
-              {agreementRow.pdf_path && (
-                <Button onClick={handleDownloadPdf}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Final PDF
-                </Button>
-              )}
             </div>
           )}
         </div>
