@@ -595,10 +595,10 @@ const Agreement = () => {
       .filter(Boolean)
       .join(' | ');
 
-    const filledFields = {
-      full_name: details.full_name,
-      residential_address: details.residential_address,
-      contact_number: details.contact_number,
+    const filledFields: Record<string, string> = {
+      full_name: details.full_name || '',
+      residential_address: details.residential_address || '',
+      contact_number: details.contact_number || '',
       email_address: details.email_address || user.email || '',
       government_id_details: governmentIdDetails,
       business_name_if_applicable: '',
@@ -611,7 +611,7 @@ const Agreement = () => {
       lender_pan: details.pan_number || '',
 
       organization_name: 'SJA Foundation (Sariputra Wankhade Foundation)',
-      authorized_signatory_name: effectiveDynamicFields.first_party_name,
+      authorized_signatory_name: effectiveDynamicFields.first_party_name || '',
       agreement_execution_date: format(new Date(), 'PPP'),
       unique_agreement_reference_number: referenceNumber,
       registered_office_address: '',
@@ -664,8 +664,8 @@ const Agreement = () => {
       if (includeQr) {
         const payload = buildPublicPayload({
           referenceNumber,
-          firstPartyName: effectiveDynamicFields.first_party_name,
-          secondPartyName: details.full_name,
+          firstPartyName: effectiveDynamicFields.first_party_name || '',
+          secondPartyName: details.full_name || '',
           investmentDate: effectiveDynamicFields.investment_date,
           investedAmount: amountNum,
           status: 'user_signed',
@@ -724,8 +724,8 @@ const Agreement = () => {
       try {
         const payload = buildPublicPayload({
           referenceNumber,
-          firstPartyName: effectiveDynamicFields.first_party_name,
-          secondPartyName: details.full_name,
+          firstPartyName: effectiveDynamicFields.first_party_name || '',
+          secondPartyName: details.full_name || '',
           investmentDate: effectiveDynamicFields.investment_date,
           investedAmount: amountNum,
           status: 'user_signed',
@@ -745,8 +745,8 @@ const Agreement = () => {
       userId: user.id,
       signatureDataUrl,
       agreementText: renderedAgreementText,
-      firstPartyName: effectiveDynamicFields.first_party_name,
-      secondPartyName: details.full_name,
+      firstPartyName: effectiveDynamicFields.first_party_name || '',
+      secondPartyName: details.full_name || '',
       investmentDate: effectiveDynamicFields.investment_date,
       investedAmount: amountNum,
       userInvestmentId: effectiveDynamicFields.user_investment_id,
