@@ -1149,10 +1149,10 @@ const Agreement = () => {
       const stampBase = window.location.origin;
       const IW = 38; const IH = 38; const gap = 8;
       const [c1, c2, c3, c4] = await Promise.all([
-        removeWhiteBackground(`${stampBase}/stamp2.jpeg`),
-        removeWhiteBackground(`${stampBase}/stamp1.jpeg`),
+        removeWhiteBackground(`${stampBase}/stamp2.png`),
+        removeWhiteBackground(`${stampBase}/stamp1.png`),
         removeWhiteBackground(`${stampBase}/seal.png`),
-        removeWhiteBackground(`${stampBase}/advocate-sign.jpg`),
+        removeWhiteBackground(`${stampBase}/advocate-sign.png`),
       ]);
       let sx = M;
       if (c1) { doc.addImage(c1, 'PNG', sx, y, IW, IH); sx += IW + gap; }
