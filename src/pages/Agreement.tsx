@@ -317,6 +317,23 @@ const Agreement = () => {
     enabled: !!user,
   });
 
+  const { data: firstNominee } = useQuery({
+    queryKey: ['myFirstNominee', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nominees')
+        .select('full_name, relationship')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Keep the agreement live: if profile/investments/system settings change, refresh dynamic fields.
   useEffect(() => {
     if (!user) return;
@@ -405,10 +422,12 @@ const Agreement = () => {
       investment_amount: maybeAmountFromDb > 0 ? maybeAmountFromDb : 0,
       aadhaar_number: String(profile?.aadhaar_number || '').trim(),
       pan_number: String(profile?.pan_number || '').trim(),
-      nominee_name: '',
-      nominee_identification: '',
+      nominee_name: String(firstNominee?.full_name || '').trim(),
+      nominee_identification: firstNominee?.relationship
+        ? `Relationship: ${firstNominee.relationship}`
+        : '',
     });
-  }, [agreementRow, detailsForm, profile, effectiveDynamicFields, user?.email, user?.id]);
+  }, [agreementRow, detailsForm, profile, firstNominee, effectiveDynamicFields, user?.email, user?.id]);
 
   const watchedFullName = detailsForm.watch('full_name');
   const [watchedInvestmentAmount, watchedAadhaar, watchedPan, watchedNominee, watchedNomineeId] =
@@ -434,8 +453,11 @@ const Agreement = () => {
 
     const lender_aadhaar = String(watchedAadhaar || profile?.aadhaar_number || '').trim();
     const lender_pan = String(watchedPan || profile?.pan_number || '').trim();
-    const nominee = String(watchedNominee || '').trim();
-    const nominee_identification = String(watchedNomineeId || '').trim();
+    const nominee = String(watchedNominee || firstNominee?.full_name || '').trim();
+    const nominee_identification = String(
+      watchedNomineeId ||
+      (firstNominee?.relationship ? `Relationship: ${firstNominee.relationship}` : '')
+    ).trim();
 
     // Borrower IDs are not stored in user profile; keep blank if not configured.
     const borrower_aadhaar = '';
@@ -463,6 +485,7 @@ const Agreement = () => {
   }, [
     effectiveDynamicFields,
     profile,
+    firstNominee,
     agreementRow?.second_party_name,
     watchedFullName,
     watchedInvestmentAmount,
@@ -483,7 +506,7 @@ const Agreement = () => {
 
     return {
       first_party_name: String(agreementRow.first_party_name || liveVars.first_party_name || '').trim(),
-      second_party_name: String(agreementRow.second_party_name || '').trim(),
+      second_party_name: String(agreementRow.second_party_name || profile?.full_name || '').trim(),
       agreement_date: format(investDate, 'PPP'),
       agreement_day: String(investDate.getDate()),
       agreement_month: format(investDate, 'MMMM'),
@@ -492,14 +515,17 @@ const Agreement = () => {
       invested_amount_words: String(
         filled.invested_amount_words || (investedAmountNum ? numberToWordsIN(investedAmountNum) : '')
       ).trim(),
-      lender_aadhaar: String(filled.lender_aadhaar || '').trim(),
-      lender_pan: String(filled.lender_pan || '').trim(),
+      lender_aadhaar: String(filled.lender_aadhaar || profile?.aadhaar_number || '').trim(),
+      lender_pan: String(filled.lender_pan || profile?.pan_number || '').trim(),
       borrower_aadhaar: '',
       borrower_pan: '',
-      nominee: String(filled.nominee || '').trim(),
-      nominee_identification: String(filled.nominee_identification || '').trim(),
+      nominee: String(filled.nominee || firstNominee?.full_name || '').trim(),
+      nominee_identification: String(
+        filled.nominee_identification ||
+        (firstNominee?.relationship ? `Relationship: ${firstNominee.relationship}` : '')
+      ).trim(),
     };
-  }, [agreementRow, liveVars]);
+  }, [agreementRow, liveVars, profile, firstNominee]);
 
   const renderedAgreementText = useMemo(() => {
     return renderTemplate(templateText, displayVars);
