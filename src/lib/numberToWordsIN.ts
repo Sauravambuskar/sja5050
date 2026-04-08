@@ -78,5 +78,5 @@ export function numberToWordsIN(amount: number) {
   if (thousand) parts.push(`${toWordsBelow100(thousand)} thousand`);
   if (rest) parts.push(toWordsBelow1000(rest));
 
-  return capitalizeWords(parts.join(" "));
+  return capitalizeWords(parts.join(" ")) + " Rupees Only";
 }

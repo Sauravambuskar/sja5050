@@ -780,7 +780,7 @@ const Agreement = () => {
     const secondParty = String(
       agreementRow.second_party_name ||
       filled.full_name ||
-      user.email ||
+      profile?.full_name ||
       'Investor'
     ).trim();
 
@@ -792,7 +792,7 @@ const Agreement = () => {
     );
 
     const investedAmountStr = investedAmount > 0
-      ? `₹ ${investedAmount.toLocaleString('en-IN')}`
+      ? `Rs. ${investedAmount.toLocaleString('en-IN')}`
       : '—';
 
     const investedAmountWords = String(
@@ -1417,7 +1417,7 @@ const Agreement = () => {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Second Party (Lender)</div>
-                <div className="font-medium">{agreementRow?.second_party_name || detailsForm.getValues('full_name') || effectiveDynamicFields.second_party_name}</div>
+                <div className="font-medium">{agreementRow?.second_party_name || profile?.full_name || detailsForm.getValues('full_name') || effectiveDynamicFields.second_party_name}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Agreement Date</div>
