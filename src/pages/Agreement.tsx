@@ -1147,26 +1147,28 @@ const Agreement = () => {
     y = sectionTitle('Advocate Verification', y);
     try {
       const stampBase = window.location.origin;
-      const IW = 38; const IH = 38; const gap = 8;
-      const [c1, c2, c3, c4] = await Promise.all([
+      const IW = 30; const IH = 30; const gap = 5;
+      const [c1, c2, c3, c4, c5] = await Promise.all([
         removeWhiteBackground(`${stampBase}/stamp2.png`),
         removeWhiteBackground(`${stampBase}/stamp1.png`),
         removeWhiteBackground(`${stampBase}/seal.png`),
         removeWhiteBackground(`${stampBase}/advocate-sign.png`),
+        removeWhiteBackground(`${stampBase}/prosja-land-stamp.png`),
       ]);
       let sx = M;
       if (c1) { doc.addImage(c1, 'PNG', sx, y, IW, IH); sx += IW + gap; }
       if (c2) { doc.addImage(c2, 'PNG', sx, y, IW, IH); sx += IW + gap; }
       if (c3) {
         doc.addImage(c3, 'PNG', sx, y, IW, IH);
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(170, 0, 0);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(5); doc.setTextColor(170, 0, 0);
         doc.text('Adv. Swapnil D. Ingale', sx + IW / 2, y + IH / 2 - 2, { align: 'center' });
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5);
-        doc.text('(B.A., LL.B.)', sx + IW / 2, y + IH / 2 + 4, { align: 'center' });
-        doc.text('Reg. MAH/2433/2024', sx + IW / 2, y + IH / 2 + 9, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(4.5);
+        doc.text('(B.A., LL.B.)', sx + IW / 2, y + IH / 2 + 3, { align: 'center' });
+        doc.text('Reg. MAH/2433/2024', sx + IW / 2, y + IH / 2 + 7, { align: 'center' });
         sx += IW + gap;
       }
-      if (c4) doc.addImage(c4, 'PNG', sx, y, IW * 1.4, IH);
+      if (c5) { doc.addImage(c5, 'PNG', sx, y, IW, IH); sx += IW + gap; }
+      if (c4) doc.addImage(c4, 'PNG', sx, y, IW * 1.2, IH);
       y += IH + 6;
     } catch { /**/ }
 
