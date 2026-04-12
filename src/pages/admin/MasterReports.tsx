@@ -27,44 +27,46 @@ const fetchAllTransactionsData = async (): Promise<MasterTransactionReportItem[]
 };
 
 const fetchReferralNetworkData = async () => {
-    const { data, error } = await supabase
+    // Step 1: fetch all members who have a referrer
+    const { data: members, error: membersError } = await supabase
         .from('profiles')
-        .select(`
-            member_id,
-            full_name,
-            phone,
-            kyc_status,
-            referral_code,
-            created_at,
-            referrer:referrer_id (
-                member_id,
-                full_name,
-                phone,
-                referral_code
-            )
-        `)
+        .select('id, member_id, full_name, phone, kyc_status, referral_code, created_at, referrer_id')
         .not('referrer_id', 'is', null)
         .order('created_at', { ascending: false });
 
-    if (error) throw new Error(error.message);
+    if (membersError) throw new Error(membersError.message);
+    if (!members || members.length === 0) throw new Error('No referral data found.');
 
-    const rows = (data || []).map((row: any) => ({
-        'Referrer Member ID':   row.referrer?.member_id   ?? '',
-        'Referrer Name':        row.referrer?.full_name   ?? '',
-        'Referrer Phone':       row.referrer?.phone       ?? '',
-        'Referrer Code':        row.referrer?.referral_code ?? '',
-        'Member ID':            row.member_id             ?? '',
-        'Member Name':          row.full_name             ?? '',
-        'Member Phone':         row.phone                 ?? '',
-        'KYC Status':           row.kyc_status            ?? '',
-        'Member Referral Code': row.referral_code         ?? '',
-        'Join Date':            row.created_at
-            ? format(new Date(row.created_at), 'dd-MM-yyyy')
-            : '',
-    }));
+    // Step 2: fetch all referrer profiles in one batch
+    const referrerIds = [...new Set(members.map((m: any) => m.referrer_id).filter(Boolean))];
+    const { data: referrers, error: referrersError } = await supabase
+        .from('profiles')
+        .select('id, member_id, full_name, phone, referral_code')
+        .in('id', referrerIds);
 
-    if (!rows.length) throw new Error('No referral data found.');
-    return rows;
+    if (referrersError) throw new Error(referrersError.message);
+
+    const referrerMap: Record<string, any> = {};
+    (referrers || []).forEach((r: any) => { referrerMap[r.id] = r; });
+
+    // Step 3: merge into flat rows for Excel
+    return members.map((row: any) => {
+        const ref = referrerMap[row.referrer_id] || {};
+        return {
+            'Referrer Member ID':   ref.member_id    ?? '',
+            'Referrer Name':        ref.full_name    ?? '',
+            'Referrer Phone':       ref.phone        ?? '',
+            'Referrer Code':        ref.referral_code ?? '',
+            'Member ID':            row.member_id    ?? '',
+            'Member Name':          row.full_name    ?? '',
+            'Member Phone':         row.phone        ?? '',
+            'KYC Status':           row.kyc_status   ?? '',
+            'Member Referral Code': row.referral_code ?? '',
+            'Join Date':            row.created_at
+                ? format(new Date(row.created_at), 'dd-MM-yyyy')
+                : '',
+        };
+    });
 };
 
 const MasterReports = () => {
