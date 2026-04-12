@@ -30,9 +30,9 @@ const fetchReferralNetworkData = async () => {
     // Step 1: fetch all members who have a referrer
     const { data: members, error: membersError } = await supabase
         .from('profiles')
-        .select('id, member_id, full_name, phone, kyc_status, referral_code, created_at, referrer_id')
+        .select('id, member_id, full_name, phone, kyc_status, referral_code, referrer_id')
         .not('referrer_id', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('member_id', { ascending: true });
 
     if (membersError) throw new Error(membersError.message);
     if (!members || members.length === 0) throw new Error('No referral data found.');
@@ -53,18 +53,15 @@ const fetchReferralNetworkData = async () => {
     return members.map((row: any) => {
         const ref = referrerMap[row.referrer_id] || {};
         return {
-            'Referrer Member ID':   ref.member_id    ?? '',
-            'Referrer Name':        ref.full_name    ?? '',
-            'Referrer Phone':       ref.phone        ?? '',
+            'Referrer Member ID':   ref.member_id     ?? '',
+            'Referrer Name':        ref.full_name     ?? '',
+            'Referrer Phone':       ref.phone         ?? '',
             'Referrer Code':        ref.referral_code ?? '',
-            'Member ID':            row.member_id    ?? '',
-            'Member Name':          row.full_name    ?? '',
-            'Member Phone':         row.phone        ?? '',
-            'KYC Status':           row.kyc_status   ?? '',
+            'Member ID':            row.member_id     ?? '',
+            'Member Name':          row.full_name     ?? '',
+            'Member Phone':         row.phone         ?? '',
+            'KYC Status':           row.kyc_status    ?? '',
             'Member Referral Code': row.referral_code ?? '',
-            'Join Date':            row.created_at
-                ? format(new Date(row.created_at), 'dd-MM-yyyy')
-                : '',
         };
     });
 };
