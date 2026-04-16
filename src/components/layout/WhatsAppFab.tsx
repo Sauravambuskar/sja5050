@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 
 const WHATSAPP_NUMBER = "919699346910";
-const DEFAULT_MESSAGE = "Hello! I need help with Pro SJA Micro Finance. Could you please assist me?";
+const DEFAULT_MESSAGE = "Hello! I need help with SJA App, Could you please assist me?";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
 
 export const WhatsAppFab = () => {
