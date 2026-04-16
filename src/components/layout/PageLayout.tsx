@@ -8,6 +8,7 @@ import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { WhatsAppFab } from "./WhatsAppFab";
 
 interface PageLayoutContextType {
   handleViewUser: (userId: string) => void;
@@ -67,6 +68,8 @@ export const PageLayout = () => {
           onViewUser={handleViewUser}
         />
       )}
+
+      <WhatsAppFab />
     </div>
   );
 };

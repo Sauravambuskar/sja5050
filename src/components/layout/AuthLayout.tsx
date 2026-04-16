@@ -3,6 +3,7 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Skeleton } from '../ui/skeleton';
 import { Link } from 'react-router-dom';
 import { AppLogo } from '@/components/branding/AppLogo';
+import { WhatsAppFab } from './WhatsAppFab';
 
 export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const { settings, isLoading } = useSystemSettings();
@@ -55,6 +56,8 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </div>
+
+      <WhatsAppFab />
     </div>
   );
 };
