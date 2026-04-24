@@ -40,6 +40,13 @@ import QRCode from 'qrcode';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Fixed agreement content template fallback (body).
 // Admin can override this in System Management.
@@ -296,6 +303,7 @@ const Agreement = () => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [includeQr, setIncludeQr] = useState(true);
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | null>(null);
 
   const { settings, isLoading: isSettingsLoading } = useSystemSettings();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
@@ -307,8 +315,31 @@ const Agreement = () => {
     queryKey: ['agreementDynamicFields', user?.id],
     queryFn: fetchMyAgreementDynamicFields,
     enabled: !!user,
-    // fetchMyAgreementDynamicFields never throws — it returns a safe fallback on error
     retry: false,
+  });
+
+  // Fetch all user investments directly so we always have accurate amounts
+  const { data: userInvestments = [] } = useQuery({
+    queryKey: ['myInvestmentsForAgreement', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_investments')
+        .select('id, investment_amount, start_date, maturity_date, status, plan_id, investment_plans(name)')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return (data || []) as Array<{
+        id: string;
+        investment_amount: string | number;
+        start_date: string;
+        maturity_date: string;
+        status: string;
+        plan_id: string;
+        investment_plans: { name: string } | null;
+      }>;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
   });
 
   const { data: agreementRow, isLoading } = useQuery({
@@ -333,6 +364,21 @@ const Agreement = () => {
     enabled: !!user,
     staleTime: 1000 * 60 * 5,
   });
+
+  // Auto-select an investment when the list loads: prefer the one linked to the existing
+  // agreement, then the first Active one, then the first in the list.
+  useEffect(() => {
+    if (!userInvestments.length) return;
+    if (selectedInvestmentId) return; // already selected
+
+    const linked = agreementRow?.user_investment_id
+      ? userInvestments.find((inv) => inv.id === agreementRow.user_investment_id)
+      : null;
+    const firstActive = userInvestments.find((inv) => inv.status === 'Active');
+    const fallback = userInvestments[0];
+
+    setSelectedInvestmentId((linked ?? firstActive ?? fallback)?.id ?? null);
+  }, [userInvestments, agreementRow?.user_investment_id, selectedInvestmentId]);
 
   // Keep the agreement live: if profile/investments/system settings change, refresh dynamic fields.
   useEffect(() => {
@@ -361,6 +407,7 @@ const Agreement = () => {
         { event: '*', schema: 'public', table: 'user_investments', filter: `user_id=eq.${user.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['agreementDynamicFields', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['myInvestmentsForAgreement', user.id] });
         }
       )
       .subscribe();
@@ -373,10 +420,34 @@ const Agreement = () => {
   const brandLogoUrl = settings?.login_page_logo_url || FALLBACK_LOGO_URL;
   const templateText = (settings?.investment_agreement_text || '').trim() || FALLBACK_TEMPLATE;
 
-  // Always build a complete set of dynamic fields so agreement generation never fails.
-  // Priority: RPC result > profile data > settings > sensible defaults.
+  // The selected investment object (from the direct DB query — accurate amounts)
+  const selectedInvestment = useMemo(
+    () => userInvestments.find((inv) => inv.id === selectedInvestmentId) ?? null,
+    [userInvestments, selectedInvestmentId]
+  );
+
+  // Always build a complete set of dynamic fields.
+  // Priority: selected investment (direct DB) > RPC result > profile data > settings > defaults.
   const effectiveDynamicFields = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
+
+    // Use amount from the directly-queried investment if we have one
+    const directAmount = selectedInvestment
+      ? Number(selectedInvestment.investment_amount || 0)
+      : 0;
+    // RPC amount as secondary fallback
+    const rpcAmount = Number(dynamicFields?.invested_amount || 0);
+    const investedAmount = directAmount > 0 ? directAmount : rpcAmount;
+
+    // Use start_date from selected investment if available
+    const investmentDate = selectedInvestment?.start_date
+      || dynamicFields?.investment_date
+      || today;
+
+    const investmentId = selectedInvestmentId
+      || dynamicFields?.user_investment_id
+      || null;
+
     return {
       first_party_name: String(
         dynamicFields?.first_party_name ||
@@ -388,11 +459,11 @@ const Agreement = () => {
         profile?.full_name ||
         ''
       ).trim(),
-      investment_date: dynamicFields?.investment_date || today,
-      invested_amount: Number(dynamicFields?.invested_amount || 0),
-      user_investment_id: dynamicFields?.user_investment_id ?? null,
+      investment_date: investmentDate,
+      invested_amount: investedAmount,
+      user_investment_id: investmentId,
     };
-  }, [dynamicFields, profile, settings]);
+  }, [dynamicFields, profile, settings, selectedInvestment, selectedInvestmentId]);
 
   const detailsForm = useForm<UserDetailsFormValues>({
     resolver: zodResolver(userDetailsSchema),
@@ -502,7 +573,11 @@ const Agreement = () => {
     const investDate = agreementRow.investment_date ? new Date(agreementRow.investment_date) : new Date();
     const filled: any = agreementRow.filled_fields || {};
 
-    const investedAmountNum = Number(agreementRow.invested_amount ?? 0);
+    // If the saved amount is 0 (legacy), use the directly-queried selected investment amount
+    const savedAmount = Number(agreementRow.invested_amount ?? 0);
+    const investedAmountNum = savedAmount > 0
+      ? savedAmount
+      : Number(selectedInvestment?.investment_amount || effectiveDynamicFields.invested_amount || 0);
 
     return {
       first_party_name: String(agreementRow.first_party_name || liveVars.first_party_name || '').trim(),
@@ -513,7 +588,8 @@ const Agreement = () => {
       agreement_year: String(investDate.getFullYear()),
       invested_amount: investedAmountNum.toLocaleString('en-IN'),
       invested_amount_words: String(
-        filled.invested_amount_words || (investedAmountNum ? numberToWordsIN(investedAmountNum) : '')
+        (investedAmountNum !== savedAmount ? '' : filled.invested_amount_words) ||
+        (investedAmountNum ? numberToWordsIN(investedAmountNum) : '')
       ).trim(),
       lender_aadhaar: String(filled.lender_aadhaar || profile?.aadhaar_number || '').trim(),
       lender_pan: String(filled.lender_pan || profile?.pan_number || '').trim(),
@@ -525,7 +601,7 @@ const Agreement = () => {
         (firstNominee?.relationship ? `Relationship: ${firstNominee.relationship}` : '')
       ).trim(),
     };
-  }, [agreementRow, liveVars, profile, firstNominee]);
+  }, [agreementRow, liveVars, profile, firstNominee, selectedInvestment, effectiveDynamicFields.invested_amount]);
 
   const renderedAgreementText = useMemo(() => {
     return renderTemplate(templateText, displayVars);
@@ -810,12 +886,15 @@ const Agreement = () => {
       'Investor'
     ).trim();
 
-    const investedAmount = Number(
-      agreementRow.invested_amount ??
-      filled.investment_amount ??
-      effectiveDynamicFields.invested_amount ??
-      0
-    );
+    const savedAmt = Number(agreementRow.invested_amount ?? 0);
+    const investedAmount = savedAmt > 0
+      ? savedAmt
+      : Number(
+          selectedInvestment?.investment_amount ??
+          filled.investment_amount ??
+          effectiveDynamicFields.invested_amount ??
+          0
+        );
 
     const investedAmountStr = investedAmount > 0
       ? `Rs. ${investedAmount.toLocaleString('en-IN')}`
@@ -1250,7 +1329,10 @@ const Agreement = () => {
         firstPartyName:  String(agreementRow.first_party_name || filled.authorized_signatory_name || effectiveDynamicFields.first_party_name || 'SJA Foundation'),
         secondPartyName: String(agreementRow.second_party_name || filled.full_name || user.email || ''),
         investmentDate:  String(agreementRow.investment_date || effectiveDynamicFields.investment_date || ''),
-        investedAmount:  Number(agreementRow.invested_amount ?? effectiveDynamicFields.invested_amount ?? 0),
+        investedAmount:  (() => {
+          const sv = Number(agreementRow.invested_amount ?? 0);
+          return sv > 0 ? sv : Number(selectedInvestment?.investment_amount ?? effectiveDynamicFields.invested_amount ?? 0);
+        })(),
         status:          String(agreementRow.status || ''),
         documentHash:    String(agreementRow.document_hash || ''),
       });
@@ -1341,7 +1423,20 @@ const Agreement = () => {
       ]
     : [];
 
-  const amountForUi = agreementRow ? Number(agreementRow.invested_amount ?? 0) : Number(watchedInvestmentAmount || 0);
+  // Use the actual investment amount for display — fall back to selected investment when the
+  // saved row has 0 (e.g. legacy agreements created before amount tracking was in place).
+  const amountForUi = useMemo(() => {
+    if (agreementRow) {
+      const saved = Number(agreementRow.invested_amount ?? 0);
+      if (saved > 0) return saved;
+      // Saved amount is 0 — try the directly-queried selected investment
+      return Number(selectedInvestment?.investment_amount || effectiveDynamicFields.invested_amount || 0);
+    }
+    return (
+      Number(watchedInvestmentAmount || 0) ||
+      Number(effectiveDynamicFields.invested_amount || 0)
+    );
+  }, [agreementRow, selectedInvestment, effectiveDynamicFields.invested_amount, watchedInvestmentAmount]);
 
   const agreementQrUrl = agreementRow
     ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
@@ -1435,6 +1530,71 @@ const Agreement = () => {
             </Alert>
           )}
 
+          {/* Investment selector — shown when user has investments */}
+          {userInvestments.length > 0 && (
+            <div className="rounded-md border p-4 space-y-3">
+              <div className="text-sm font-medium">Your Investments</div>
+              {userInvestments.length > 1 && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Select which investment this agreement covers
+                  </Label>
+                  <Select
+                    value={selectedInvestmentId ?? ''}
+                    onValueChange={(v) => setSelectedInvestmentId(v || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an investment…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userInvestments.map((inv) => (
+                        <SelectItem key={inv.id} value={inv.id}>
+                          {inv.investment_plans?.name ?? 'Investment'} — ₹{Number(inv.investment_amount).toLocaleString('en-IN')} ({inv.status})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>Maturity</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userInvestments.map((inv) => (
+                    <TableRow
+                      key={inv.id}
+                      className={selectedInvestmentId === inv.id ? 'bg-muted/50' : ''}
+                      onClick={() => setSelectedInvestmentId(inv.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <TableCell className="font-medium">
+                        {inv.investment_plans?.name ?? 'Investment'}
+                        {selectedInvestmentId === inv.id && (
+                          <Badge className="ml-2 text-xs" variant="secondary">Selected</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>₹{Number(inv.investment_amount).toLocaleString('en-IN')}</TableCell>
+                      <TableCell>{inv.start_date ? format(new Date(inv.start_date), 'PP') : '—'}</TableCell>
+                      <TableCell>{inv.maturity_date ? format(new Date(inv.maturity_date), 'PP') : '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant={inv.status === 'Active' ? 'default' : 'outline'} className="text-xs">
+                          {inv.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
           <div className="rounded-md border bg-muted/30 p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -1451,7 +1611,14 @@ const Agreement = () => {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Amount</div>
-                <div className="font-medium">INR {Number.isFinite(amountForUi) ? amountForUi.toLocaleString('en-IN') : '-'}</div>
+                <div className="font-medium text-green-700 dark:text-green-400">
+                  ₹{Number.isFinite(amountForUi) && amountForUi > 0 ? amountForUi.toLocaleString('en-IN') : '—'}
+                  {Number.isFinite(amountForUi) && amountForUi > 0 && (
+                    <span className="block text-xs font-normal text-muted-foreground mt-0.5">
+                      {numberToWordsIN(amountForUi)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
