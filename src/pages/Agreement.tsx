@@ -1425,7 +1425,7 @@ const Agreement = () => {
 
   // Use the actual investment amount for display — fall back to selected investment when the
   // saved row has 0 (e.g. legacy agreements created before amount tracking was in place).
-  const amountForUi = useMemo(() => {
+  const amountForUi = (() => {
     if (agreementRow) {
       const saved = Number(agreementRow.invested_amount ?? 0);
       if (saved > 0) return saved;
@@ -1436,7 +1436,7 @@ const Agreement = () => {
       Number(watchedInvestmentAmount || 0) ||
       Number(effectiveDynamicFields.invested_amount || 0)
     );
-  }, [agreementRow, selectedInvestment, effectiveDynamicFields.invested_amount, watchedInvestmentAmount]);
+  })();
 
   const agreementQrUrl = agreementRow
     ? `${window.location.origin}/agreement?ref=${agreementRow.reference_number || agreementRow.id}`
