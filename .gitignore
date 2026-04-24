@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .dyad/
+
+# Environment files
+.env
+.env.*
+!.env.example

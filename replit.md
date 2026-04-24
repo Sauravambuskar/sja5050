@@ -9,7 +9,7 @@ A comprehensive financial investment platform for Indian users (₹ currency), m
 - **Frontend**: React 18 + Vite SPA, TypeScript, Tailwind CSS, shadcn/ui
 - **Auth & Data**: Supabase (auth, RLS policies, database RPCs, storage buckets)
 - **Server**: Express.js backend at port 3000 (health check, future API routes)
-- **Database (schema)**: PostgreSQL via Drizzle ORM (`shared/schema.ts`) — schema reference for all 23 tables
+- **Database (schema)**: PostgreSQL via Drizzle ORM (`shared/schema.ts`) — schema reference for all 23 tables; also provisioned as Replit Postgres for server-side use
 - **Routing**: React Router v6 with lazy-loaded pages
 
 ## Key Features
@@ -33,7 +33,7 @@ src/                  Frontend React app
   types/              TypeScript type definitions
 server/               Express backend
   index.ts            Server entry point (port 3000)
-  db.ts               Drizzle + node-postgres pool
+  db.ts               Drizzle + node-postgres pool (uses DATABASE_URL)
 shared/               Shared code between frontend and backend
   schema.ts           Drizzle ORM schema (all 23 tables)
 supabase/migrations/  Historical Supabase migration SQL files (reference only)
@@ -42,23 +42,24 @@ drizzle.config.ts     Drizzle Kit configuration
 
 ## Environment Variables
 
-- `VITE_SUPABASE_URL` — Supabase project URL (set as Replit env var)
-- `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key (set as Replit env var)
+- `VITE_SUPABASE_URL` — Supabase project URL (set as Replit env var in .replit userenv)
+- `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key (set as Replit env var in .replit userenv)
 - `DATABASE_URL` — Replit Postgres connection string (provisioned as secret)
 - `SERVER_PORT` — Express server port (3000)
 - `NODE_ENV` — development / production
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` — Replit Postgres credentials (secrets)
+- `SESSION_SECRET` — Express session secret (secret)
 
 ## Database Tables (Drizzle Schema)
 
-All 23 tables defined in `shared/schema.ts`:
+All 23 tables defined in `shared/schema.ts` and pushed to Replit Postgres:
 `profiles`, `wallets`, `investment_plans`, `user_investments`, `withdrawal_requests`, `deposit_requests`, `investment_cancellation_requests`, `payout_log`, `nominees`, `kyc_documents`, `notifications`, `transactions`, `commission_rules`, `commission_payouts`, `system_settings`, `investment_agreements`, `agreement_public_views`, `user_notes`, `admin_audit_log`, `faqs`, `support_tickets`, `support_messages`, `investment_requests`
 
 ## Scripts
 
 - `npm run dev` — Start Vite dev server (port 5000)
 - `npm run server` — Start Express API server (port 3000)
-- `npm run db:push` — Sync Drizzle schema to Postgres
+- `npm run db:push` — Sync Drizzle schema to Replit Postgres
 - `npm run db:studio` — Open Drizzle Studio
 
 ## Workflows
@@ -70,6 +71,7 @@ All 23 tables defined in `shared/schema.ts`:
 
 - The app uses Supabase for all auth and data operations (auth, RPCs, storage)
 - The Supabase anon key is intentionally public-safe per Supabase design; RLS policies control data access
-- Express server handles additional server-side logic and future API routes
+- Express server handles additional server-side logic and future API routes via Replit Postgres (Drizzle)
 - All financial amounts are in Indian Rupees (₹)
 - Supabase storage buckets: `system_assets` (public), `nominee_photos`, `agreement_assets`, `signed_agreements` (private)
+- `.env` is excluded from git; Supabase credentials are set in `.replit` userenv section
