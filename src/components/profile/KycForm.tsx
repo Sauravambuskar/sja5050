@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Profile } from "@/types/database";
 import { useEffect } from "react";
 import { format } from "date-fns";
+import type { ExtractedMainUserData } from "@/lib/ocr";
 
 const kycSchema = z.object({
   pan_number: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN number format.").nullable(),
@@ -27,7 +28,13 @@ const updateKycDetails = async (values: KycFormValues) => {
   if (error) throw new Error(error.message);
 };
 
-export const KycForm = ({ profile }: { profile: Profile }) => {
+interface KycFormProps {
+  profile: Profile;
+  ocrFill?: ExtractedMainUserData | null;
+  onOcrFillApplied?: () => void;
+}
+
+export const KycForm = ({ profile, ocrFill, onOcrFillApplied }: KycFormProps) => {
   const queryClient = useQueryClient();
   const form = useForm<KycFormValues>({
     resolver: zodResolver(kycSchema),
@@ -42,20 +49,27 @@ export const KycForm = ({ profile }: { profile: Profile }) => {
     }
   }, [profile, form]);
 
+  useEffect(() => {
+    if (!ocrFill) return;
+    let filled = false;
+    if (ocrFill.pan_number) { form.setValue('pan_number', ocrFill.pan_number, { shouldDirty: true }); filled = true; }
+    if (ocrFill.aadhaar_number) { form.setValue('aadhaar_number', ocrFill.aadhaar_number, { shouldDirty: true }); filled = true; }
+    if (filled) {
+      toast.info('KYC details auto-filled from document. Please review and save.');
+      onOcrFillApplied?.();
+    }
+  }, [ocrFill]);
+
   const mutation = useMutation({
     mutationFn: updateKycDetails,
     onSuccess: () => {
       toast.success("KYC details saved successfully!");
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
-    onError: (error) => {
-      toast.error(`Update failed: ${error.message}`);
-    },
+    onError: (error) => { toast.error(`Update failed: ${error.message}`); },
   });
 
-  const onSubmit = (values: KycFormValues) => {
-    mutation.mutate(values);
-  };
+  const onSubmit = (values: KycFormValues) => mutation.mutate(values);
 
   return (
     <Card>
@@ -73,32 +87,24 @@ export const KycForm = ({ profile }: { profile: Profile }) => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="pan_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>PAN Card Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="ABCDE1234F" {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="aadhaar_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Aadhaar Card Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="123456789012" {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="pan_number" render={({ field }) => (
+              <FormItem>
+                <FormLabel>PAN Card Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="ABCDE1234F" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="aadhaar_number" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Aadhaar Card Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="123456789012" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? "Saving..." : "Save KYC Details"}
             </Button>

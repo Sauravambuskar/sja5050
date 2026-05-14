@@ -18,15 +18,11 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { OcrUploadPanel } from "@/components/ocr/OcrUploadPanel";
+import type { ExtractedMainUserData } from "@/lib/ocr";
 
 const fetchUserKycDocs = async (userId: string): Promise<AdminKycRequest[]> => {
   const { data, error } = await supabase.rpc('get_user_kyc_documents_for_admin', { user_id_to_fetch: userId });
@@ -82,6 +78,15 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
     }
   }, [profile, form]);
 
+  const handleFillMainUser = (data: ExtractedMainUserData) => {
+    let filled = false;
+    if (data.aadhaar_number) { form.setValue('aadhaar_number', data.aadhaar_number, { shouldDirty: true }); filled = true; }
+    if (data.pan_number) { form.setValue('pan_number', data.pan_number, { shouldDirty: true }); filled = true; }
+    if (data.blood_group) { form.setValue('blood_group', data.blood_group, { shouldDirty: true }); filled = true; }
+    if (filled) toast.info('KYC fields auto-filled. Review and save.');
+    else toast.warning('No KYC data (Aadhaar/PAN) found in this document.');
+  };
+
   const saveDetailsMutation = useMutation({
     mutationFn: async (values: KycDetailsFormValues) => {
       const { error } = await supabase
@@ -92,7 +97,6 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
           blood_group: values.blood_group || null,
         })
         .eq('id', userId);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -120,14 +124,10 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
       queryClient.invalidateQueries({ queryKey: ['adminStats'] });
     },
     onError: (error: Error) => toast.error(error.message),
-    onSettled: () => {
-      setAction(null);
-      setNotes('');
-    },
+    onSettled: () => { setAction(null); setNotes(''); },
   });
 
   const onSubmit = (values: KycDetailsFormValues) => saveDetailsMutation.mutate(values);
-
   const currentStatus = profile?.kyc_status || 'Not Submitted';
 
   return (
@@ -136,9 +136,15 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>KYC Details</span>
-            <Badge variant={currentStatus === 'Approved' ? 'default' : currentStatus === 'Pending' ? 'outline' : 'destructive'}>
-              {currentStatus}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <OcrUploadPanel
+                onFillMainUser={handleFillMainUser}
+                onFillNominee={() => toast.info('Switch to Profile tab to fill nominee details via OCR.')}
+              />
+              <Badge variant={currentStatus === 'Approved' ? 'default' : currentStatus === 'Pending' ? 'outline' : 'destructive'}>
+                {currentStatus}
+              </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -152,45 +158,21 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
             <>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 md:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="aadhaar_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aadhaar Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="pan_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PAN Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="blood_group"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Blood Group</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="aadhaar_number" render={({ field }) => (
+                    <FormItem><FormLabel>Aadhaar Number</FormLabel><FormControl>
+                      <Input {...field} value={field.value || ''} />
+                    </FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="pan_number" render={({ field }) => (
+                    <FormItem><FormLabel>PAN Number</FormLabel><FormControl>
+                      <Input {...field} value={field.value || ''} />
+                    </FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="blood_group" render={({ field }) => (
+                    <FormItem><FormLabel>Blood Group</FormLabel><FormControl>
+                      <Input {...field} value={field.value || ''} />
+                    </FormControl><FormMessage /></FormItem>
+                  )} />
 
                   <div className="md:col-span-3 flex flex-wrap items-center gap-2">
                     <Button type="submit" disabled={saveDetailsMutation.isPending}>
@@ -244,7 +226,11 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
                       {doc.status === 'Rejected' && doc.admin_notes && (<p className="text-xs text-destructive mt-1">Note: {doc.admin_notes}</p>)}
                     </TableCell>
                     <TableCell>{format(new Date(doc.submitted_at), "PPP")}</TableCell>
-                    <TableCell><Badge variant={doc.status === "Approved" ? "default" : doc.status === "Pending" ? "outline" : "destructive"}>{doc.status}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={doc.status === "Approved" ? "default" : doc.status === "Pending" ? "outline" : "destructive"}>
+                        {doc.status}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => setViewingRequest(doc)}>
                         <Eye className="h-4 w-4" />
@@ -285,10 +271,7 @@ export const AdminUserKycTab = ({ userId }: { userId: string }) => {
             <AlertDialogAction
               onClick={() => {
                 if (!action) return;
-                if (action.status === 'Rejected' && !notes.trim()) {
-                  toast.error('Rejection notes are required.');
-                  return;
-                }
+                if (action.status === 'Rejected' && !notes.trim()) { toast.error('Rejection notes are required.'); return; }
                 processKycMutation.mutate({ status: action.status, notes });
               }}
               disabled={processKycMutation.isPending}

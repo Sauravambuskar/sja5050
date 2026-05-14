@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PersonalDetailsForm from "@/components/profile/PersonalDetailsForm";
@@ -13,10 +14,28 @@ import { useSearchParams } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { WelcomeLetter } from "@/components/profile/WelcomeLetter";
 import { IdCardSection } from "@/components/profile/IdCardSection";
+import { OcrUploadPanel } from "@/components/ocr/OcrUploadPanel";
+import type { ExtractedMainUserData, ExtractedNomineeData } from "@/lib/ocr";
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: profile, isLoading, error } = useProfile();
+
+  const [mainOcrFill, setMainOcrFill] = useState<ExtractedMainUserData | null>(null);
+  const [nomineeOcrFill, setNomineeOcrFill] = useState<ExtractedNomineeData | null>(null);
+
+  const handleFillMainUser = (data: ExtractedMainUserData) => {
+    setMainOcrFill(null);
+    setTimeout(() => setMainOcrFill(data), 50);
+  };
+
+  const handleFillNominee = (data: ExtractedNomineeData) => {
+    setNomineeOcrFill(null);
+    setTimeout(() => {
+      setNomineeOcrFill(data);
+      setSearchParams({ tab: 'kyc-and-docs' });
+    }, 50);
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -31,22 +50,50 @@ const ProfilePage = () => {
   }
 
   const tabs = [
-    { value: "personal", label: "Personal", component: <PersonalDetailsForm profile={profile} /> },
-    { value: "bank", label: "Bank", component: <BankDetailsForm profile={profile} /> },
+    {
+      value: "personal",
+      label: "Personal",
+      component: (
+        <PersonalDetailsForm
+          profile={profile}
+          ocrFill={mainOcrFill}
+          onOcrFillApplied={() => setMainOcrFill(null)}
+        />
+      ),
+    },
+    {
+      value: "bank",
+      label: "Bank",
+      component: (
+        <BankDetailsForm
+          profile={profile}
+          ocrFill={mainOcrFill}
+          onOcrFillApplied={() => setMainOcrFill(null)}
+        />
+      ),
+    },
     {
       value: "kyc-and-docs",
       label: "KYC & Documents",
       component: (
         <div className="space-y-6">
+          <KycForm
+            profile={profile}
+            ocrFill={mainOcrFill}
+            onOcrFillApplied={() => setMainOcrFill(null)}
+          />
           <KycDocuments profile={profile} />
           <Separator className="my-6" />
-          <h2 className="text-xl font-semibold">Nominee Documets</h2>
+          <h2 className="text-xl font-semibold">Nominee Documents</h2>
           <p className="text-muted-foreground">Upload any other supporting documents.</p>
           <AdditionalDocuments />
           <Separator className="my-6" />
           <h2 className="text-xl font-semibold">Nominee Details</h2>
           <p className="text-muted-foreground">Manage your nominee information.</p>
-          <NomineeForm />
+          <NomineeForm
+            nomineeOcrFill={nomineeOcrFill}
+            onNomineeOcrFillApplied={() => setNomineeOcrFill(null)}
+          />
         </div>
       ),
     },
@@ -58,10 +105,18 @@ const ProfilePage = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Profile</CardTitle>
-        <CardDescription>
-          Manage your personal, financial, and security settings.
-        </CardDescription>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>My Profile</CardTitle>
+            <CardDescription>
+              Manage your personal, financial, and security settings.
+            </CardDescription>
+          </div>
+          <OcrUploadPanel
+            onFillMainUser={handleFillMainUser}
+            onFillNominee={handleFillNominee}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs

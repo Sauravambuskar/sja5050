@@ -18,6 +18,7 @@ import { useEffect, useState, ChangeEvent } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import type { ExtractedMainUserData } from "@/lib/ocr";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name is too short").max(100, "Name is too long"),
@@ -32,7 +33,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const updatePersonalDetails = async (values: ProfileFormValues) => {
@@ -46,9 +47,8 @@ const updatePersonalDetails = async (values: ProfileFormValues) => {
     p_pincode: values.pincode,
     p_blood_group: values.blood_group,
   });
-
   if (error) throw new Error(error.message);
-  return values; // Pass values to onSuccess
+  return values;
 };
 
 const uploadAvatar = async ({ userId, file }: { userId: string; file: File }) => {
@@ -62,7 +62,13 @@ const uploadAvatar = async ({ userId, file }: { userId: string; file: File }) =>
   return publicUrl;
 };
 
-const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
+interface PersonalDetailsFormProps {
+  profile: Profile;
+  ocrFill?: ExtractedMainUserData | null;
+  onOcrFillApplied?: () => void;
+}
+
+const PersonalDetailsForm = ({ profile, ocrFill, onOcrFillApplied }: PersonalDetailsFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -88,25 +94,30 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     }
   }, [profile, form]);
 
+  useEffect(() => {
+    if (!ocrFill) return;
+    if (ocrFill.full_name) form.setValue('full_name', ocrFill.full_name, { shouldDirty: true });
+    if (ocrFill.phone) form.setValue('phone', ocrFill.phone, { shouldDirty: true });
+    if (ocrFill.dob) form.setValue('dob', new Date(ocrFill.dob), { shouldDirty: true });
+    if (ocrFill.address) form.setValue('address', ocrFill.address, { shouldDirty: true });
+    if (ocrFill.city) form.setValue('city', ocrFill.city, { shouldDirty: true });
+    if (ocrFill.state) form.setValue('state', ocrFill.state, { shouldDirty: true });
+    if (ocrFill.pincode) form.setValue('pincode', ocrFill.pincode, { shouldDirty: true });
+    if (ocrFill.blood_group) form.setValue('blood_group', ocrFill.blood_group, { shouldDirty: true });
+    toast.info('Personal details auto-filled from document. Please review and save.');
+    onOcrFillApplied?.();
+  }, [ocrFill]);
+
   const detailsMutation = useMutation({
     mutationFn: updatePersonalDetails,
     onSuccess: async (data) => {
       toast.success("Profile updated successfully!");
-      
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: data.full_name }
-      });
-
-      if (error) {
-        toast.error("Could not update name in header: " + error.message);
-      }
-
+      const { error } = await supabase.auth.updateUser({ data: { full_name: data.full_name } });
+      if (error) toast.error("Could not update name in header: " + error.message);
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
     },
-    onError: (error) => {
-      toast.error(`Update failed: ${error.message}`);
-    },
+    onError: (error) => { toast.error(`Update failed: ${error.message}`); },
   });
 
   const avatarMutation = useMutation({
@@ -118,9 +129,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
       setSelectedFile(null);
       setPreview(null);
     },
-    onError: (error) => {
-      toast.error(`Upload failed: ${error.message}`);
-    },
+    onError: (error) => { toast.error(`Upload failed: ${error.message}`); },
   });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -142,10 +151,7 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase();
   };
 
-  const onSubmit = (values: ProfileFormValues) => {
-    detailsMutation.mutate(values);
-  };
-
+  const onSubmit = (values: ProfileFormValues) => detailsMutation.mutate(values);
   const currentAvatarUrl = user?.user_metadata?.avatar_url;
 
   return (
@@ -187,19 +193,56 @@ const PersonalDetailsForm = ({ profile }: { profile: Profile }) => {
           <div className="md:col-span-2">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField control={form.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="full_name" render={({ field }) => (
+                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1940-01-01")} initialFocus captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="phone" render={({ field }) => (
+                    <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="dob" render={({ field }) => (
+                    <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl></PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange}
+                          disabled={(date) => date > new Date() || date < new Date("1940-01-01")}
+                          initialFocus captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} />
+                      </PopoverContent></Popover><FormMessage />
+                    </FormItem>
+                  )} />
                 </div>
-                <FormField control={form.control} name="blood_group" render={({ field }) => (<FormItem><FormLabel>Blood Group</FormLabel><Select onValueChange={field.onChange} value={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl><SelectContent><SelectItem value="A+">A+</SelectItem><SelectItem value="A-">A-</SelectItem><SelectItem value="B+">B+</SelectItem><SelectItem value="B-">B-</SelectItem><SelectItem value="AB+">AB+</SelectItem><SelectItem value="AB-">AB-</SelectItem><SelectItem value="O+">O+</SelectItem><SelectItem value="O-">O-</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="blood_group" render={({ field }) => (
+                  <FormItem><FormLabel>Blood Group</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <SelectItem key={bg} value={bg}>{bg}</SelectItem>)}
+                      </SelectContent>
+                    </Select><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                  <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="pincode" render={({ field }) => (<FormItem><FormLabel>Pincode</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="city" render={({ field }) => (
+                    <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="state" render={({ field }) => (
+                    <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="pincode" render={({ field }) => (
+                    <FormItem><FormLabel>Pincode</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
                 </div>
-                <Button type="submit" loading={detailsMutation.isPending}>{detailsMutation.isPending ? "Saving..." : "Save Changes"}</Button>
+                <Button type="submit" loading={detailsMutation.isPending}>
+                  {detailsMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
               </form>
             </Form>
           </div>

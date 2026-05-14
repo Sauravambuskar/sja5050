@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Profile } from "@/types/database";
 import { useEffect } from "react";
 import { format } from "date-fns";
+import type { ExtractedMainUserData } from "@/lib/ocr";
 
 const bankDetailsSchema = z.object({
   bank_name: z.string().min(2, "Bank name is too short").max(100).nullable(),
@@ -28,13 +29,18 @@ const updateBankDetails = async (values: BankDetailsFormValues) => {
     p_bank_account_number: values.bank_account_number,
     p_bank_ifsc_code: values.bank_ifsc_code,
   });
-
   if (error) throw new Error(error.message);
 };
 
-export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
+interface BankDetailsFormProps {
+  profile: Profile;
+  ocrFill?: ExtractedMainUserData | null;
+  onOcrFillApplied?: () => void;
+}
+
+export const BankDetailsForm = ({ profile, ocrFill, onOcrFillApplied }: BankDetailsFormProps) => {
   const queryClient = useQueryClient();
-  const form = useForm<z.infer<typeof bankDetailsSchema>>({
+  const form = useForm<BankDetailsFormValues>({
     resolver: zodResolver(bankDetailsSchema),
     defaultValues: {},
   });
@@ -50,20 +56,29 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
     }
   }, [profile, form]);
 
+  useEffect(() => {
+    if (!ocrFill) return;
+    let filled = false;
+    if (ocrFill.bank_name) { form.setValue('bank_name', ocrFill.bank_name, { shouldDirty: true }); filled = true; }
+    if (ocrFill.bank_account_holder_name) { form.setValue('bank_account_holder_name', ocrFill.bank_account_holder_name, { shouldDirty: true }); filled = true; }
+    if (ocrFill.bank_account_number) { form.setValue('bank_account_number', ocrFill.bank_account_number, { shouldDirty: true }); filled = true; }
+    if (ocrFill.bank_ifsc_code) { form.setValue('bank_ifsc_code', ocrFill.bank_ifsc_code, { shouldDirty: true }); filled = true; }
+    if (filled) {
+      toast.info('Bank details auto-filled from document. Please review and save.');
+      onOcrFillApplied?.();
+    }
+  }, [ocrFill]);
+
   const mutation = useMutation({
     mutationFn: updateBankDetails,
     onSuccess: () => {
       toast.success("Bank details updated successfully!");
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
-    onError: (error) => {
-      toast.error(`Update failed: ${error.message}`);
-    },
+    onError: (error) => { toast.error(`Update failed: ${error.message}`); },
   });
 
-  const onSubmit = (values: z.infer<typeof bankDetailsSchema>) => {
-    mutation.mutate(values);
-  };
+  const onSubmit = (values: BankDetailsFormValues) => mutation.mutate(values);
 
   return (
     <Card>
@@ -82,60 +97,28 @@ export const BankDetailsForm = ({ profile }: { profile: Profile }) => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="bank_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., State Bank of India" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="bank_account_holder_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account Holder Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., John Doe" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="bank_name" render={({ field }) => (
+                <FormItem><FormLabel>Bank Name</FormLabel><FormControl>
+                  <Input placeholder="e.g., State Bank of India" {...field} value={field.value || ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="bank_account_holder_name" render={({ field }) => (
+                <FormItem><FormLabel>Account Holder Name</FormLabel><FormControl>
+                  <Input placeholder="e.g., John Doe" {...field} value={field.value || ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="bank_account_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank Account Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter account number" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="bank_ifsc_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>IFSC Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter IFSC code" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="bank_account_number" render={({ field }) => (
+                <FormItem><FormLabel>Bank Account Number</FormLabel><FormControl>
+                  <Input placeholder="Enter account number" {...field} value={field.value || ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="bank_ifsc_code" render={({ field }) => (
+                <FormItem><FormLabel>IFSC Code</FormLabel><FormControl>
+                  <Input placeholder="Enter IFSC code" {...field} value={field.value || ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
             </div>
             <Button type="submit" loading={mutation.isPending}>
               {mutation.isPending ? "Saving..." : "Save Bank Details"}

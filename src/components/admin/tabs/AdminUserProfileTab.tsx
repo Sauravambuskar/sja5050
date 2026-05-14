@@ -18,15 +18,11 @@ import { NomineeManager } from "../NomineeManager";
 import { UserAgreementManager } from "@/components/admin/UserAgreementManager";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { OcrUploadPanel } from "@/components/ocr/OcrUploadPanel";
+import type { ExtractedMainUserData, ExtractedNomineeData } from "@/lib/ocr";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name is required.").max(100),
@@ -75,6 +71,7 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [confirmAuthUpdate, setConfirmAuthUpdate] = useState<null | { email?: string; password?: string }>(null);
+  const [nomineeOcrFill, setNomineeOcrFill] = useState<ExtractedNomineeData | null>(null);
 
   const profileForm = useForm<ProfileFormValues>({ resolver: zodResolver(profileSchema) });
   const authForm = useForm<AuthFormValues>({
@@ -106,6 +103,35 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
     }
   }, [profile, isEditingProfile, profileForm]);
 
+  const handleFillMainUser = (data: ExtractedMainUserData) => {
+    if (!isEditingProfile) {
+      setIsEditingProfile(true);
+      setTimeout(() => applyOcrToProfileForm(data), 200);
+    } else {
+      applyOcrToProfileForm(data);
+    }
+  };
+
+  const applyOcrToProfileForm = (data: ExtractedMainUserData) => {
+    if (data.full_name) profileForm.setValue('full_name', data.full_name, { shouldDirty: true });
+    if (data.phone) profileForm.setValue('phone', data.phone, { shouldDirty: true });
+    if (data.dob) profileForm.setValue('dob', new Date(data.dob), { shouldDirty: true });
+    if (data.address) profileForm.setValue('address', data.address, { shouldDirty: true });
+    if (data.city) profileForm.setValue('city', data.city, { shouldDirty: true });
+    if (data.state) profileForm.setValue('state', data.state, { shouldDirty: true });
+    if (data.pincode) profileForm.setValue('pincode', data.pincode, { shouldDirty: true });
+    if (data.bank_name) profileForm.setValue('bank_name', data.bank_name, { shouldDirty: true });
+    if (data.bank_account_holder_name) profileForm.setValue('bank_account_holder_name', data.bank_account_holder_name, { shouldDirty: true });
+    if (data.bank_account_number) profileForm.setValue('bank_account_number', data.bank_account_number, { shouldDirty: true });
+    if (data.bank_ifsc_code) profileForm.setValue('bank_ifsc_code', data.bank_ifsc_code, { shouldDirty: true });
+    toast.info('Profile fields auto-filled from document. Review and save.');
+  };
+
+  const handleFillNominee = (data: ExtractedNomineeData) => {
+    setNomineeOcrFill(null);
+    setTimeout(() => setNomineeOcrFill(data), 50);
+  };
+
   const updateProfileMutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
       const profileData = { ...values, dob: values.dob ? format(values.dob, 'yyyy-MM-dd') : null };
@@ -125,11 +151,7 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   const updateAuthMutation = useMutation({
     mutationFn: async (payload: { email?: string; password?: string }) => {
       const { data, error } = await supabase.functions.invoke('admin-update-auth-user', {
-        body: {
-          userId,
-          email: payload.email,
-          password: payload.password,
-        },
+        body: { userId, email: payload.email, password: payload.password },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
@@ -150,21 +172,12 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
   const onAuthSubmit = (values: AuthFormValues) => {
     const newEmail = values.email?.trim() || undefined;
     const newPassword = values.password?.trim() || undefined;
-
-    if (!newEmail && !newPassword) {
-      toast.error("Enter a new email and/or password.");
-      return;
-    }
-
+    if (!newEmail && !newPassword) { toast.error("Enter a new email and/or password."); return; }
     setConfirmAuthUpdate({ email: newEmail, password: newPassword });
   };
 
   const handleDownloadProfile = () => {
-    if (!profile) {
-      toast.error("Profile data not loaded yet.");
-      return;
-    }
-
+    if (!profile) { toast.error("Profile data not loaded yet."); return; }
     const filename = `SJA_Profile_${profile.member_id || userId}.pdf`;
     const title = "User Profile Statement";
     const headers = ["Field", "Details"];
@@ -183,7 +196,6 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
       ["Bank Account Number", profile.bank_account_number || 'N/A'],
       ["Bank IFSC Code", profile.bank_ifsc_code || 'N/A'],
     ];
-
     exportToPdf(filename, title, headers, data.map(row => [row[0], String(row[1])]), profile.full_name || "User");
     toast.success("Profile downloaded as PDF.");
   };
@@ -206,37 +218,18 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
               <span className="font-medium flex items-center gap-2"><Mail className="h-4 w-4" /> {email || 'N/A'}</span>
             </div>
           </div>
-
           <Form {...authForm}>
             <form onSubmit={authForm.handleSubmit(onAuthSubmit)} className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={authForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="user@example.com" {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={authForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Min 8 characters" {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+              <FormField control={authForm.control} name="email" render={({ field }) => (
+                <FormItem><FormLabel>New Email</FormLabel><FormControl>
+                  <Input placeholder="user@example.com" {...field} value={field.value ?? ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={authForm.control} name="password" render={({ field }) => (
+                <FormItem><FormLabel>New Password</FormLabel><FormControl>
+                  <Input type="password" placeholder="Min 8 characters" {...field} value={field.value ?? ''} />
+                </FormControl><FormMessage /></FormItem>
+              )} />
               <div className="md:col-span-2">
                 <Button type="submit" disabled={updateAuthMutation.isPending}>
                   {updateAuthMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -245,7 +238,6 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
               </div>
             </form>
           </Form>
-
           <p className="text-xs text-muted-foreground">
             Note: Updating a password will immediately change the user's login password.
           </p>
@@ -258,6 +250,10 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
             <CardTitle>User Profile Details</CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            <OcrUploadPanel
+              onFillMainUser={handleFillMainUser}
+              onFillNominee={handleFillNominee}
+            />
             {!isEditingProfile && (
               <Button variant="outline" size="sm" onClick={handleDownloadProfile}>
                 <Download className="mr-2 h-4 w-4" /> Download
@@ -275,19 +271,59 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
             <Form {...profileForm}>
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
                 <h4 className="font-semibold">Personal Details</h4>
-                <FormField control={profileForm.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="dob" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="full_name" render={({ field }) => (
+                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={profileForm.control} name="phone" render={({ field }) => (
+                  <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={profileForm.control} name="dob" render={({ field }) => (
+                  <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
+                    <Popover><PopoverTrigger asChild><FormControl>
+                      <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange}
+                        captionLayout="dropdown-buttons" fromYear={1940} toYear={new Date().getFullYear()} />
+                    </PopoverContent></Popover><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={profileForm.control} name="address" render={({ field }) => (
+                  <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField control={profileForm.control} name="city" render={({ field }) => (
+                    <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={profileForm.control} name="state" render={({ field }) => (
+                    <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={profileForm.control} name="pincode" render={({ field }) => (
+                    <FormItem><FormLabel>Pincode</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
 
                 <h4 className="font-semibold pt-4">Bank Details</h4>
-                <FormField control={profileForm.control} name="bank_name" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (<FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (<FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={profileForm.control} name="bank_name" render={({ field }) => (
+                  <FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={profileForm.control} name="bank_account_holder_name" render={({ field }) => (
+                  <FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={profileForm.control} name="bank_account_number" render={({ field }) => (
+                  <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={profileForm.control} name="bank_ifsc_code" render={({ field }) => (
+                  <FormItem><FormLabel>IFSC Code</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                )} />
 
                 <div className="flex gap-2 pt-4">
-                  <Button type="submit" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>
+                    {updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
+                  </Button>
                   <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
                 </div>
               </form>
@@ -302,9 +338,7 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
                     <Button variant="link" className="p-0 h-auto" onClick={() => onViewUser(profile.referrer_id!)}>
                       {profile.referrer_full_name} <LinkIcon className="ml-2 h-3 w-3" />
                     </Button>
-                  ) : (
-                    <span>N/A</span>
-                  )}
+                  ) : <span>N/A</span>}
                 </DetailRow>
               </div>
               <div>
@@ -326,7 +360,11 @@ export const AdminUserProfileTab = ({ userId, email, onViewUser }: AdminUserProf
         </CardContent>
       </Card>
 
-      <NomineeManager userId={userId} />
+      <NomineeManager
+        userId={userId}
+        nomineeOcrFill={nomineeOcrFill}
+        onNomineeOcrFillApplied={() => setNomineeOcrFill(null)}
+      />
 
       <UserAgreementManager userId={userId} />
 
